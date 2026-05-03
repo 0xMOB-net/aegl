@@ -1,0 +1,268 @@
+import { useState, useEffect } from 'react';
+import MemberLayout from '../../components/members/MemberLayout';
+import { StatusBadge, DossierStepper } from '../../components/members/SharedComponents';
+import { useAuth } from '../../context/AuthContext';
+import api from '../../api/client';
+
+export default function StudentMyDossier() {
+  const { user } = useAuth();
+  const [dossier, setDossier] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [creating, setCreating] = useState(false);
+  const [noticFile, setNoticeFile] = useState(null);
+  const [showCreate, setShowCreate] = useState(false);
+  const [toast, setToast] = useState(null);
+  const [downloading, setDownloading] = useState(false);
+
+  const showToast = (msg, type = 'success') => { setToast({ msg, type }); setTimeout(() => setToast(null), 4000); };
+
+  const downloadPdf = async (dossierId) => {
+    setDownloading(true);
+    try {
+      const res = await api.get(`/pdf/${dossierId}`, { responseType: 'blob' });
+      const url = window.URL.createObjectURL(new Blob([res.data], { type: 'application/pdf' }));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', 'Attestation_AEGL.pdf');
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch {
+      showToast('Erreur lors du téléchargement du PDF', 'error');
+    } finally { setDownloading(false); }
+  };
+
+  useEffect(() => {
+    api.get('/dossiers').then(r => {
+      const all = r.data.dossiers || [];
+      setDossier(all.find(d => d.student?.id === user?.id) || all[0] || null);
+    }).finally(() => setLoading(false));
+  }, []);
+
+  const handleCreate = async (e) => {
+    e.preventDefault();
+    setCreating(true);
+    try {
+      const fd = new FormData();
+      if (noticFile) fd.append('universityNotice', noticFile);
+      const res = await api.post('/dossiers', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+      setDossier(res.data.dossier);
+      setShowCreate(false);
+      showToast('Dossier créé avec succès ! L\'administration va traiter votre demande.');
+    } catch (err) {
+      showToast(err.response?.data?.error || 'Erreur lors de la création', 'error');
+    } finally { setCreating(false); }
+  };
+
+  const statusMessages = {
+    pending: {
+      title: 'Votre dossier est en attente',
+      desc: 'Le Bureau AEGL va vous assigner un hébergeur bénévole. Vous serez notifié(e) dès qu\'un hébergeur est disponible.',
+      icon: '⏳', color: 'bg-amber-50 border-amber-200 text-amber-800',
+    },
+    host_assigned: {
+      title: 'Un hébergeur vous a été assigné !',
+      desc: 'L\'hébergeur doit maintenant soumettre ses documents (bail, énergie, identité). Nous vous tiendrons informé(e).',
+      icon: '🤝', color: 'bg-blue-50 border-blue-200 text-blue-800',
+    },
+    documents_provided: {
+      title: 'Documents soumis — vérification en cours',
+      desc: 'Le Bureau AEGL vérifie les documents de votre hébergeur. Merci de patienter.',
+      icon: '🔍', color: 'bg-purple-50 border-purple-200 text-purple-800',
+    },
+    documents_verified: {
+      title: 'Documents validés !',
+      desc: 'Vos documents ont été vérifiés. Le Bureau AEGL va clôturer votre dossier et vous envoyer l\'attestation.',
+      icon: '✅', color: 'bg-green-50 border-green-200 text-green-800',
+    },
+    confirmed: {
+      title: '🎉 Votre attestation est prête !',
+      desc: 'Félicitations ! Votre attestation d\'hébergement a été générée. Téléchargez-la ci-dessous.',
+      icon: '🎉', color: 'bg-emerald-50 border-emerald-200 text-emerald-800',
+    },
+  };
+
+  return (
+    <MemberLayout title="Mon dossier">
+      {toast && (
+        <div className={`fixed top-6 right-6 z-50 px-5 py-3.5 rounded-xl shadow-lg text-sm font-medium animate-slide-up ${toast.type === 'success' ? 'bg-green-800 text-white' : 'bg-red-600 text-white'}`}>
+          {toast.msg}
+        </div>
+      )}
+
+      {/* Modal création */}
+      {showCreate && (
+        <div className="fixed inset-0 z-40 bg-black/40 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md animate-slide-up">
+            <div className="p-6 border-b border-gray-100">
+              <h3 className="font-heading text-xl text-green-900">Créer mon dossier</h3>
+              <p className="text-gray-500 text-sm mt-1">Déposez votre avis d'inscription universitaire pour démarrer</p>
+            </div>
+            <form onSubmit={handleCreate} className="p-6 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">📄 Avis d'inscription universitaire (optionnel)</label>
+                <div className={`border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition-all ${noticFile ? 'border-green-400 bg-green-50' : 'border-gray-200 hover:border-green-300'}`}>
+                  <input type="file" accept=".pdf,.jpg,.jpeg,.png" id="notice-file" className="hidden"
+                    onChange={e => setNoticeFile(e.target.files[0])} />
+                  <label htmlFor="notice-file" className="cursor-pointer">
+                    {noticFile ? (
+                      <div>
+                        <p className="text-green-700 font-medium text-sm">{noticFile.name}</p>
+                        <p className="text-green-500 text-xs">Cliquer pour changer</p>
+                      </div>
+                    ) : (
+                      <div>
+                        <p className="text-4xl mb-2">📤</p>
+                        <p className="text-gray-500 text-sm">Cliquez pour choisir un fichier</p>
+                        <p className="text-gray-300 text-xs mt-1">PDF, JPG, PNG</p>
+                      </div>
+                    )}
+                  </label>
+                </div>
+                <p className="text-gray-400 text-xs mt-1">Vous pouvez créer votre dossier sans ce document et l'ajouter plus tard.</p>
+              </div>
+              <div className="flex gap-3 pt-2">
+                <button type="button" onClick={() => setShowCreate(false)} className="flex-1 btn-secondary text-sm">Annuler</button>
+                <button type="submit" disabled={creating} className="flex-1 btn-primary text-sm">
+                  {creating ? 'Création...' : '📁 Créer mon dossier'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      <div className="space-y-6 animate-fade-in max-w-2xl">
+        {loading ? (
+          <div className="flex justify-center py-16"><div className="w-8 h-8 border-2 border-green-800 border-t-transparent rounded-full animate-spin" /></div>
+        ) : !dossier ? (
+          /* Pas encore de dossier */
+          <div className="card text-center py-16">
+            <p className="text-5xl mb-4">📁</p>
+            <h2 className="font-heading text-2xl text-green-900 mb-3">Commencez votre demande</h2>
+            <p className="text-gray-500 text-sm mb-8 max-w-sm mx-auto">
+              Créez votre dossier pour demander une attestation d'hébergement via l'AEGL.
+              L'équipe vous assignera un hébergeur bénévole.
+            </p>
+            <button onClick={() => setShowCreate(true)} className="btn-primary">
+              📁 Créer mon dossier →
+            </button>
+          </div>
+        ) : (
+          /* Dossier existant */
+          <>
+            {/* Statut message */}
+            {statusMessages[dossier.status] && (
+              <div className={`border rounded-2xl p-5 ${statusMessages[dossier.status].color}`}>
+                <div className="flex items-start gap-3">
+                  <span className="text-2xl">{statusMessages[dossier.status].icon}</span>
+                  <div>
+                    <h3 className="font-semibold">{statusMessages[dossier.status].title}</h3>
+                    <p className="text-sm mt-1 opacity-80">{statusMessages[dossier.status].desc}</p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Dossier card */}
+            <div className="card">
+              <div className="flex items-center justify-between mb-5">
+                <h2 className="font-semibold text-gray-800">Mon dossier</h2>
+                <StatusBadge status={dossier.status} />
+              </div>
+              <DossierStepper status={dossier.status} />
+            </div>
+
+            {/* Hébergeur assigné */}
+            {dossier.host && (
+              <div className="card">
+                <h3 className="font-semibold text-gray-800 mb-4">🏠 Mon hébergeur</h3>
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center font-bold text-green-800">
+                    {dossier.host.firstName[0]}{dossier.host.lastName[0]}
+                  </div>
+                  <div>
+                    <p className="font-medium text-gray-900">{dossier.host.firstName} {dossier.host.lastName}</p>
+                    <p className="text-gray-400 text-sm">{dossier.host.email}</p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Notes admin */}
+            {dossier.adminNotes && (
+              <div className="bg-amber-50 border border-amber-200 rounded-2xl p-5">
+                <h3 className="font-semibold text-amber-800 mb-2">📝 Message de l'administration</h3>
+                <p className="text-amber-700 text-sm">{dossier.adminNotes}</p>
+              </div>
+            )}
+
+            {/* Téléchargement PDF */}
+            {['documents_provided', 'documents_verified', 'confirmed'].includes(dossier.status) && (
+              <div className="card bg-green-50 border-green-100">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="font-semibold text-green-900">📄 Mon attestation d'hébergement</h3>
+                    <p className="text-green-700 text-sm mt-1">
+                      {dossier.status === 'confirmed'
+                        ? 'Attestation officielle disponible — également envoyée par email'
+                        : 'Aperçu disponible en attente de finalisation'}
+                    </p>
+                  </div>
+                  <button onClick={() => downloadPdf(dossier.id)} disabled={downloading} className="btn-primary">
+                    {downloading ? '⏳ Chargement...' : '⬇ Télécharger'}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Documents de l'hébergeur (visibles après validation admin) */}
+            {['documents_verified', 'confirmed'].includes(dossier.status) && dossier.hostDocuments?.length > 0 && (
+              <div className="card">
+                <h3 className="font-semibold text-gray-800 mb-4">📎 Documents de mon hébergeur</h3>
+                <div className="space-y-3">
+                  {dossier.hostDocuments.map(doc => {
+                    const labels = { bail: '📋 Contrat de bail', energy: '⚡ Contrat d\'énergie', identity: '🪪 Pièce d\'identité' };
+                    return (
+                      <div key={doc.id} className="flex items-center justify-between py-2 border-b border-gray-50 last:border-0">
+                        <span className="text-sm text-gray-700">{labels[doc.docType] || doc.docType}</span>
+                        <a href={doc.filePath} target="_blank" rel="noreferrer"
+                          className="text-xs text-green-700 font-medium border border-green-200 rounded-lg px-3 py-1.5 hover:bg-green-50 transition-colors">
+                          Voir le document →
+                        </a>
+                      </div>
+                    );
+                  })}
+                </div>
+                {dossier.hostAddress && (
+                  <div className="mt-4 pt-4 border-t border-gray-100">
+                    <p className="text-xs text-gray-400 mb-1">Adresse d'hébergement</p>
+                    <p className="text-sm font-medium text-gray-700">📍 {dossier.hostAddress}</p>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Infos dossier */}
+            <div className="card">
+              <h3 className="font-semibold text-gray-800 mb-4">📋 Informations du dossier</h3>
+              <dl className="space-y-2 text-sm">
+                <div className="flex justify-between"><dt className="text-gray-400">N° dossier</dt><dd className="font-mono text-xs font-medium">{dossier.id.substring(0, 8).toUpperCase()}</dd></div>
+                <div className="flex justify-between"><dt className="text-gray-400">Créé le</dt><dd>{new Date(dossier.createdAt).toLocaleDateString('fr-FR')}</dd></div>
+                {dossier.closedAt && <div className="flex justify-between"><dt className="text-gray-400">Clôturé le</dt><dd className="font-medium text-green-700">{new Date(dossier.closedAt).toLocaleDateString('fr-FR')}</dd></div>}
+                {dossier.universityNoticePath && (
+                  <div className="pt-2 border-t border-gray-100">
+                    <a href={dossier.universityNoticePath} target="_blank" rel="noreferrer" className="text-green-700 text-xs font-medium hover:underline">
+                      📄 Mon avis d'inscription →
+                    </a>
+                  </div>
+                )}
+              </dl>
+            </div>
+          </>
+        )}
+      </div>
+    </MemberLayout>
+  );
+}

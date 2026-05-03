@@ -1,0 +1,22 @@
+services:
+  - type: web
+    name: aegl-api
+    runtime: node
+    rootDir: .
+    buildCommand: npm install && npx prisma generate --schema=src/prisma/schema.prisma
+    startCommand: node src/server.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 4000
+      - key: DATABASE_URL
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: FRONTEND_URL
+        sync: false
+      - key: ADMIN_EMAIL
+        sync: false
+      - key: ADMIN_PASSWORD
+        sync: false

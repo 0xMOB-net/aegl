@@ -1,0 +1,21 @@
+const router = require('express').Router();
+const { authenticate } = require('../middlewares/auth.middleware');
+const { requireRole } = require('../middlewares/role.middleware');
+const { upload } = require('../middlewares/upload.middleware');
+const ctrl = require('../controllers/dossiers.controller');
+
+router.use(authenticate);
+
+router.get('/stats', requireRole('admin'), ctrl.stats);
+router.get('/', ctrl.list);
+router.get('/:id', ctrl.getOne);
+router.post('/', upload.single('universityNotice'), ctrl.create);
+router.patch('/:id/assign-host', requireRole('admin'), ctrl.assignHost);
+router.patch('/:id/revoke-host', requireRole('admin'), ctrl.revokeHost);
+router.patch('/:id/validate-docs', requireRole('admin'), ctrl.validateDocs);
+router.patch('/:id/reject-docs', requireRole('admin'), ctrl.rejectDocs);
+router.patch('/:id/close', requireRole('admin'), ctrl.close);
+router.patch('/:id/notes', requireRole('admin'), ctrl.updateNotes);
+router.delete('/:id', requireRole('admin'), ctrl.remove);
+
+module.exports = router;

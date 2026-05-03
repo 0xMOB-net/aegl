@@ -1,0 +1,37 @@
+# Dependencies
+node_modules/
+**/node_modules/
+
+# Environment files (NEVER commit)
+.env
+.env.local
+.env.production
+**/.env
+**/.env.local
+
+# Build output
+frontend/dist/
+frontend/.vite/
+backend/dist/
+
+# Uploads & generated PDFs (ephemeral - stored on server)
+backend/uploads/*
+backend/pdfs/*
+!backend/uploads/.gitkeep
+!backend/pdfs/.gitkeep
+
+# Logs
+*.log
+backend/backend.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# Prisma
+backend/node_modules/.prisma/

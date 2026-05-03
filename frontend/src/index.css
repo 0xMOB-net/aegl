@@ -1,0 +1,174 @@
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=DM+Sans:wght@300;400;500;600&display=swap');
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --green-primary: #1a5c3a;
+  --green-dark:    #0d3321;
+  --green-darker:  #06160d;
+  --gold:          #FCD116;
+  --red-guinea:    #CE1126;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  font-family: 'DM Sans', system-ui, sans-serif;
+  color: #1a1a1a;
+  background: #fff;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+h1, h2, h3, h4 { font-family: 'Playfair Display', Georgia, serif; }
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: #f1f1f1; }
+::-webkit-scrollbar-thumb { background: #1a5c3a; border-radius: 3px; }
+
+/* ================================================
+   GLASSMORPHISM
+   ================================================ */
+.glass {
+  background: rgba(255,255,255,0.08);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255,255,255,0.15);
+}
+
+.glass-light {
+  background: rgba(255,255,255,0.7);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255,255,255,0.8);
+}
+
+/* ================================================
+   HERO ANIMATED BACKGROUND
+   ================================================ */
+.hero-bg {
+  background: linear-gradient(-45deg, #06160d, #0d3321, #1a5c3a, #0d3321);
+  background-size: 400% 400%;
+  animation: gradientShift 10s ease infinite;
+}
+
+@keyframes gradientShift {
+  0%,100% { background-position: 0% 50%; }
+  50%      { background-position: 100% 50%; }
+}
+
+/* ================================================
+   BADGES DE STATUT
+   ================================================ */
+.badge-pending     { @apply bg-amber-100 text-amber-800 text-xs font-semibold px-3 py-1 rounded-full; }
+.badge-assigned    { @apply bg-blue-100 text-blue-800 text-xs font-semibold px-3 py-1 rounded-full; }
+.badge-provided    { @apply bg-purple-100 text-purple-800 text-xs font-semibold px-3 py-1 rounded-full; }
+.badge-verified    { @apply bg-green-100 text-green-800 text-xs font-semibold px-3 py-1 rounded-full; }
+.badge-confirmed   { @apply bg-emerald-100 text-emerald-800 text-xs font-semibold px-3 py-1 rounded-full; }
+
+/* ================================================
+   CARDS
+   ================================================ */
+.card {
+  @apply bg-white rounded-2xl border border-gray-100 p-6;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.06);
+}
+
+.card-premium {
+  @apply bg-white rounded-3xl p-8;
+  box-shadow: 0 8px 40px rgba(0,0,0,0.09);
+  border: 1px solid rgba(0,0,0,0.06);
+}
+
+.card-hover {
+  @apply transition-all duration-300;
+}
+.card-hover:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 20px 60px rgba(0,0,0,0.13);
+}
+
+/* ================================================
+   BUTTONS
+   ================================================ */
+.btn-primary {
+  @apply bg-green-800 text-white font-semibold px-6 py-3 rounded-xl hover:bg-green-700 transition-all duration-200 inline-flex items-center gap-2;
+  box-shadow: 0 4px 16px rgba(26,92,58,0.3);
+}
+.btn-primary:hover { box-shadow: 0 8px 24px rgba(26,92,58,0.4); transform: translateY(-1px); }
+
+.btn-secondary {
+  @apply border-2 border-green-800 text-green-800 font-semibold px-6 py-3 rounded-xl hover:bg-green-50 transition-all duration-200 inline-flex items-center gap-2;
+}
+
+.btn-gold {
+  @apply bg-gold-500 text-green-900 font-bold px-6 py-3 rounded-xl hover:bg-gold-400 transition-all duration-200 inline-flex items-center gap-2;
+  box-shadow: 0 4px 20px rgba(252,209,22,0.4);
+}
+.btn-gold:hover { box-shadow: 0 8px 30px rgba(252,209,22,0.55); transform: translateY(-1px); }
+
+.btn-white {
+  @apply bg-white text-green-900 font-bold px-6 py-3 rounded-xl hover:bg-gray-50 transition-all duration-200 inline-flex items-center gap-2;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+}
+
+.btn-danger {
+  @apply bg-red-600 text-white font-semibold px-4 py-2 rounded-lg hover:bg-red-700 transition-all duration-200;
+}
+
+/* ================================================
+   GUINEA FLAG STRIPE
+   ================================================ */
+.flag-stripe {
+  height: 4px;
+  background: linear-gradient(90deg, #CE1126 33.3%, #FCD116 33.3% 66.6%, #258553 66.6%);
+}
+
+/* ================================================
+   SECTION DIVIDER
+   ================================================ */
+.section-divider {
+  width: 60px;
+  height: 3px;
+  background: linear-gradient(90deg, #FCD116, #CE1126);
+  border-radius: 2px;
+  margin: 0 auto 1.5rem;
+}
+
+/* ================================================
+   GRADIENT TEXT
+   ================================================ */
+.text-gradient-gold {
+  background: linear-gradient(135deg, #FCD116, #fdd840);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ================================================
+   FEATURE ICON
+   ================================================ */
+.feature-icon {
+  @apply w-14 h-14 rounded-2xl flex items-center justify-center text-2xl flex-shrink-0;
+  background: linear-gradient(135deg, #edfaf3, #d4f0e0);
+}
+
+/* ================================================
+   ANIMATIONS UTILITAIRES
+   ================================================ */
+.animate-float      { animation: float 7s ease-in-out infinite; }
+.animate-float-slow { animation: float 10s ease-in-out 2s infinite; }
+
+@keyframes float {
+  0%,100% { transform: translateY(0px); }
+  50%      { transform: translateY(-18px); }
+}
+
+/* Stagger delays */
+.delay-100 { animation-delay: 0.1s; }
+.delay-200 { animation-delay: 0.2s; }
+.delay-300 { animation-delay: 0.3s; }
+.delay-400 { animation-delay: 0.4s; }
+.delay-500 { animation-delay: 0.5s; }

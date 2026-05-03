@@ -1,0 +1,169 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  admin
+  host
+  student
+}
+
+enum Gender {
+  M
+  F
+}
+
+enum DossierStatus {
+  pending
+  host_assigned
+  documents_provided
+  documents_verified
+  confirmed
+}
+
+enum DocType {
+  bail
+  energy
+  identity
+}
+
+enum Audience {
+  all
+  students
+  hosts
+}
+
+model User {
+  id            String    @id @default(uuid())
+  firstName     String
+  lastName      String
+  email         String    @unique
+  passwordHash  String
+  role          Role
+  gender        Gender
+  emailVerified Boolean   @default(false)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  studentDossiers  Dossier[]             @relation("StudentDossiers")
+  hostDossiers     Dossier[]             @relation("HostDossiers")
+  announcements    Announcement[]
+  reactions        AnnouncementReaction[]
+  comments         AnnouncementComment[]
+  articles         Article[]
+  activityLogs     ActivityLog[]
+
+  @@map("users")
+}
+
+model Dossier {
+  id                  String        @id @default(uuid())
+  studentId           String
+  hostId              String?
+  status              DossierStatus @default(pending)
+  universityNoticePath String?
+  adminNotes          String?
+  pdfVariant          Int?
+  hostAddress         String?
+  closedAt            DateTime?
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
+
+  student      User           @relation("StudentDossiers", fields: [studentId], references: [id])
+  host         User?          @relation("HostDossiers", fields: [hostId], references: [id])
+  hostDocuments HostDocument[]
+
+  @@map("dossiers")
+}
+
+model HostDocument {
+  id         String   @id @default(uuid())
+  dossierId  String
+  docType    DocType
+  filePath   String
+  verified   Boolean  @default(false)
+  uploadedAt DateTime @default(now())
+
+  dossier Dossier @relation(fields: [dossierId], references: [id], onDelete: Cascade)
+
+  @@map("host_documents")
+}
+
+model Announcement {
+  id          String    @id @default(uuid())
+  authorId    String
+  title       String
+  content     String
+  audience    Audience  @default(all)
+  pinned      Boolean   @default(false)
+  isPublic    Boolean   @default(false)
+  publishedAt DateTime  @default(now())
+  createdAt   DateTime  @default(now())
+
+  author    User                   @relation(fields: [authorId], references: [id])
+  reactions AnnouncementReaction[]
+  comments  AnnouncementComment[]
+
+  @@map("announcements")
+}
+
+model AnnouncementReaction {
+  id             String   @id @default(uuid())
+  announcementId String
+  userId         String
+  reaction       String   @default("👍")
+  createdAt      DateTime @default(now())
+
+  announcement Announcement @relation(fields: [announcementId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id])
+
+  @@unique([announcementId, userId])
+  @@map("announcement_reactions")
+}
+
+model AnnouncementComment {
+  id             String   @id @default(uuid())
+  announcementId String
+  authorId       String
+  content        String
+  createdAt      DateTime @default(now())
+
+  announcement Announcement @relation(fields: [announcementId], references: [id], onDelete: Cascade)
+  author       User         @relation(fields: [authorId], references: [id])
+
+  @@map("announcement_comments")
+}
+
+model Article {
+  id          String   @id @default(uuid())
+  authorId    String
+  title       String
+  slug        String   @unique
+  content     String
+  coverImage  String?
+  published   Boolean  @default(false)
+  publishedAt DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  author User @relation(fields: [authorId], references: [id])
+
+  @@map("articles")
+}
+
+model ActivityLog {
+  id        String   @id @default(uuid())
+  userId    String
+  action    String
+  metadata  Json?
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@map("activity_logs")
+}
