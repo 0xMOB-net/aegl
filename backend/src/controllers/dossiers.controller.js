@@ -19,7 +19,6 @@ const dossierSelect = {
   hostDocuments: true,
 };
 
-// GET /api/dossiers — liste selon rôle
 const list = async (req, res) => {
   try {
     const { user } = req;
@@ -49,7 +48,6 @@ const list = async (req, res) => {
   }
 };
 
-// GET /api/dossiers/:id
 const getOne = async (req, res) => {
   try {
     const { user } = req;
@@ -59,7 +57,6 @@ const getOne = async (req, res) => {
     });
     if (!dossier) return res.status(404).json({ error: 'Dossier introuvable' });
 
-    // Access control
     if (user.role === 'student' && dossier.student.id !== user.id) {
       return res.status(403).json({ error: 'Accès refusé' });
     }
@@ -73,20 +70,17 @@ const getOne = async (req, res) => {
   }
 };
 
-// POST /api/dossiers — créer un dossier (student ou admin)
 const create = async (req, res) => {
   try {
     const { user } = req;
     let studentId = user.id;
 
-    // Admin peut créer pour n'importe quel étudiant
     if (user.role === 'admin' && req.body.studentId) {
       studentId = req.body.studentId;
     } else if (user.role !== 'student' && user.role !== 'admin') {
       return res.status(403).json({ error: 'Seuls les étudiants peuvent créer un dossier' });
     }
 
-    // Vérifier qu'il n'a pas déjà un dossier en cours
     if (user.role === 'student') {
       const existing = await prisma.dossier.findFirst({
         where: { studentId, status: { not: 'confirmed' } },
@@ -108,7 +102,6 @@ const create = async (req, res) => {
   }
 };
 
-// PATCH /api/dossiers/:id/assign-host — Admin: assigner un hébergeur
 const assignHost = async (req, res) => {
   try {
     const { hostId } = req.body;
@@ -137,7 +130,6 @@ const assignHost = async (req, res) => {
   }
 };
 
-// PATCH /api/dossiers/:id/revoke-host — Admin: révoquer l'hébergeur
 const revokeHost = async (req, res) => {
   try {
     const dossier = await prisma.dossier.findUnique({ where: { id: req.params.id } });
@@ -155,7 +147,6 @@ const revokeHost = async (req, res) => {
   }
 };
 
-// PATCH /api/dossiers/:id/validate-docs — Admin: valider les documents
 const validateDocs = async (req, res) => {
   try {
     const dossier = await prisma.dossier.findUnique({
@@ -184,7 +175,6 @@ const validateDocs = async (req, res) => {
   }
 };
 
-// PATCH /api/dossiers/:id/reject-docs — Admin: rejeter les documents
 const rejectDocs = async (req, res) => {
   try {
     const { reason } = req.body;
@@ -203,7 +193,6 @@ const rejectDocs = async (req, res) => {
   }
 };
 
-// PATCH /api/dossiers/:id/close — Admin: clôturer et envoyer l'attestation
 const close = async (req, res) => {
   try {
     const dossier = await prisma.dossier.findUnique({
@@ -219,7 +208,6 @@ const close = async (req, res) => {
       return res.status(400).json({ error: 'Les documents doivent être vérifiés avant clôture' });
     }
 
-    // Générer le PDF
     const pdfPath = await generateAttestation(dossier);
 
     const updated = await prisma.dossier.update({
@@ -228,7 +216,6 @@ const close = async (req, res) => {
       select: dossierSelect,
     });
 
-    // Envoyer l'email à l'étudiant
     await sendDossierConfirmedEmail(dossier.student, pdfPath);
     await logActivity(req.user.id, 'close_dossier', { dossierId: req.params.id });
     res.json({ dossier: updated, pdfPath });
@@ -238,7 +225,6 @@ const close = async (req, res) => {
   }
 };
 
-// PATCH /api/dossiers/:id/notes — Admin: notes
 const updateNotes = async (req, res) => {
   try {
     const { adminNotes } = req.body;
@@ -253,7 +239,6 @@ const updateNotes = async (req, res) => {
   }
 };
 
-// GET /api/dossiers/stats — Admin: statistiques tableau de bord
 const stats = async (req, res) => {
   try {
     const [total, pending, hostAssigned, docsProvided, docsVerified, confirmed] = await Promise.all([
@@ -272,7 +257,6 @@ const stats = async (req, res) => {
   }
 };
 
-// DELETE /api/dossiers/:id — Admin: supprimer un dossier
 const remove = async (req, res) => {
   try {
     const dossier = await prisma.dossier.findUnique({ where: { id: req.params.id } });

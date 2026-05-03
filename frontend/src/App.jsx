@@ -1,7 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 
-// Public pages
 import Home from './pages/public/Home';
 import About from './pages/public/About';
 import Services from './pages/public/Services';
@@ -9,12 +8,10 @@ import News from './pages/public/News';
 import NewsDetail from './pages/public/NewsDetail';
 import Contact from './pages/public/Contact';
 
-// Auth pages
 import Login from './pages/auth/Login';
 import Register from './pages/auth/Register';
 import ResetPassword from './pages/auth/ResetPassword';
 
-// Member pages - Admin
 import AdminDashboard from './pages/admin/Dashboard';
 import AdminDossiers from './pages/admin/Dossiers';
 import AdminDossierDetail from './pages/admin/DossierDetail';
@@ -24,16 +21,13 @@ import AdminHosts from './pages/admin/Hosts';
 import AdminActivity from './pages/admin/Activity';
 import AdminAlerts from './pages/admin/Alerts';
 
-// Member pages - Host
 import HostDossiers from './pages/host/MyDossiers';
 import HostAttestations from './pages/host/Attestations';
 import HostAlerts from './pages/host/Alerts';
 
-// Member pages - Student
 import StudentDossier from './pages/student/MyDossier';
 import StudentAlerts from './pages/student/Alerts';
 
-// Shared member page
 import MemberAnnouncements from './pages/members/Announcements';
 
 const ProtectedRoute = ({ children, roles }) => {
@@ -51,7 +45,6 @@ const ProtectedRoute = ({ children, roles }) => {
   return children;
 };
 
-// Redirection intelligente après connexion selon le rôle
 const MembersIndex = () => {
   const { user } = useAuth();
   if (!user) return <Navigate to="/login" />;

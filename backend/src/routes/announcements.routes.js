@@ -6,7 +6,6 @@ const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 router.use(authenticate);
 
-// GET /api/announcements — liste selon rôle
 router.get('/', async (req, res) => {
   try {
     const { user } = req;
@@ -31,7 +30,6 @@ router.get('/', async (req, res) => {
   }
 });
 
-// POST /api/announcements — admin crée une annonce
 router.post('/', requireRole('admin'), async (req, res) => {
   try {
     const { title, content, audience, pinned, isPublic } = req.body;
@@ -52,7 +50,6 @@ router.post('/', requireRole('admin'), async (req, res) => {
   }
 });
 
-// PUT /api/announcements/:id — admin modifie
 router.put('/:id', requireRole('admin'), async (req, res) => {
   try {
     const { title, content, audience, pinned, isPublic } = req.body;
@@ -66,7 +63,6 @@ router.put('/:id', requireRole('admin'), async (req, res) => {
   }
 });
 
-// DELETE /api/announcements/:id — admin supprime
 router.delete('/:id', requireRole('admin'), async (req, res) => {
   try {
     await prisma.announcement.delete({ where: { id: req.params.id } });
@@ -76,7 +72,6 @@ router.delete('/:id', requireRole('admin'), async (req, res) => {
   }
 });
 
-// POST /api/announcements/:id/react — réagir 👍
 router.post('/:id/react', async (req, res) => {
   try {
     const existing = await prisma.announcementReaction.findUnique({
@@ -95,7 +90,6 @@ router.post('/:id/react', async (req, res) => {
   }
 });
 
-// GET /api/announcements/:id/comments — commentaires
 router.get('/:id/comments', async (req, res) => {
   try {
     const comments = await prisma.announcementComment.findMany({
@@ -109,7 +103,6 @@ router.get('/:id/comments', async (req, res) => {
   }
 });
 
-// POST /api/announcements/:id/comments — commenter
 router.post('/:id/comments', async (req, res) => {
   try {
     const { content } = req.body;

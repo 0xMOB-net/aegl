@@ -13,8 +13,6 @@ function AlertsPage() {
     api.get('/dossiers').then(r => setDossiers(r.data.dossiers || [])).finally(() => setLoading(false));
   }, []);
 
-  // Pour l'hébergeur : dossiers assignés mais pas encore traités
-  // Pour l'étudiant : dossiers rejetés (status host_assigned avec adminNotes)
   const alerts = dossiers.filter(d => {
     if (user?.role === 'host') return d.status === 'host_assigned';
     if (user?.role === 'student') return d.status === 'host_assigned' && d.adminNotes;

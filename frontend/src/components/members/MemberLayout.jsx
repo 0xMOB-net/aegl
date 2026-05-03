@@ -55,13 +55,8 @@ export default function MemberLayout({ children, title }) {
   }[user?.role] || 'bg-white/10 text-white';
 
   return (
-    /* Verrouille la hauteur à 100vh — chaque colonne scroll indépendamment */
     <div className="h-screen bg-gray-50 flex overflow-hidden">
-
-      {/* ===== SIDEBAR ===== */}
       <aside className="w-64 bg-green-950 flex-shrink-0 flex flex-col h-full shadow-2xl">
-
-        {/* Logo — toujours visible */}
         <div className="p-5 border-b border-green-800/50 flex-shrink-0">
           <Link to="/" className="flex items-center gap-3 group">
             <div className="flex-shrink-0 group-hover:scale-105 transition-transform">
@@ -74,7 +69,6 @@ export default function MemberLayout({ children, title }) {
           </Link>
         </div>
 
-        {/* User info — toujours visible */}
         <div className="p-5 border-b border-green-800/50 flex-shrink-0">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-gradient-to-br from-green-600 to-green-800 rounded-xl flex items-center justify-center text-white font-bold text-sm flex-shrink-0 shadow">
@@ -91,7 +85,6 @@ export default function MemberLayout({ children, title }) {
           </div>
         </div>
 
-        {/* Navigation — zone scrollable indépendante */}
         <nav className="flex-1 p-3 space-y-0.5 overflow-y-auto min-h-0">
           {nav.map(({ to, label, icon }) => {
             const active = location.pathname === to;
@@ -108,29 +101,19 @@ export default function MemberLayout({ children, title }) {
           })}
         </nav>
 
-        {/* Bas de sidebar — TOUJOURS VISIBLE, jamais scrollé */}
         <div className="p-3 border-t border-green-800/50 space-y-0.5 flex-shrink-0">
-          <Link
-            to="/"
-            className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-green-400 hover:bg-green-800/60 hover:text-white transition-all"
-          >
+          <Link to="/" className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-green-400 hover:bg-green-800/60 hover:text-white transition-all">
             <span className="text-base flex-shrink-0">🌐</span>
             <span>Site public</span>
           </Link>
-          <button
-            onClick={handleLogout}
-            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-red-400 hover:bg-red-900/30 hover:text-red-300 transition-all"
-          >
+          <button onClick={handleLogout} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-red-400 hover:bg-red-900/30 hover:text-red-300 transition-all">
             <span className="text-base flex-shrink-0">🚪</span>
             <span>Déconnexion</span>
           </button>
         </div>
       </aside>
 
-      {/* ===== CONTENU PRINCIPAL ===== */}
       <div className="flex-1 flex flex-col overflow-hidden min-w-0">
-
-        {/* Top bar — toujours visible */}
         <header className="bg-white border-b border-gray-100 px-8 py-4 flex items-center justify-between flex-shrink-0 shadow-sm z-10">
           <div className="flex items-center gap-3">
             <div className="w-1 h-7 bg-gold-500 rounded-full"/>
@@ -146,7 +129,6 @@ export default function MemberLayout({ children, title }) {
           </div>
         </header>
 
-        {/* Zone de contenu — scroll indépendant */}
         <main className="flex-1 overflow-y-auto min-h-0 p-8">
           {children}
         </main>

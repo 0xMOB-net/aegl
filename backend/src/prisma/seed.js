@@ -7,7 +7,6 @@ const prisma = new PrismaClient();
 async function main() {
   console.log('🌱 Initialisation de la base de données AEGL...\n');
 
-  // Créer le compte admin
   const adminEmail = process.env.ADMIN_EMAIL || 'admin@aegl87.fr';
   const existing = await prisma.user.findUnique({ where: { email: adminEmail } });
 
@@ -29,7 +28,6 @@ async function main() {
     console.log(`✅ Admin créé: ${admin.email}`);
   }
 
-  // Créer un article de bienvenue
   const existingArticle = await prisma.article.findFirst({ where: { slug: { contains: 'bienvenue' } } });
   if (!existingArticle) {
     const admin = await prisma.user.findUnique({ where: { email: adminEmail } });
@@ -50,7 +48,6 @@ N'hésitez pas à nous contacter pour toute question. Bonne route à tous !`,
     console.log('✅ Article de bienvenue créé');
   }
 
-  // Annonce de bienvenue interne
   const existingAnnouncement = await prisma.announcement.findFirst();
   if (!existingAnnouncement) {
     const admin = await prisma.user.findUnique({ where: { email: adminEmail } });

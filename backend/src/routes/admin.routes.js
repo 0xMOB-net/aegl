@@ -6,7 +6,6 @@ const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 router.use(authenticate, requireRole('admin'));
 
-// GET /api/admin/hosts — liste des hébergeurs
 router.get('/hosts', async (req, res) => {
   try {
     const hosts = await prisma.user.findMany({
@@ -24,7 +23,6 @@ router.get('/hosts', async (req, res) => {
   }
 });
 
-// GET /api/admin/students — liste des étudiants
 router.get('/students', async (req, res) => {
   try {
     const students = await prisma.user.findMany({
@@ -42,7 +40,6 @@ router.get('/students', async (req, res) => {
   }
 });
 
-// GET /api/admin/activity — journal d'activité
 router.get('/activity', async (req, res) => {
   try {
     const page = parseInt(req.query.page || '1');
@@ -60,10 +57,8 @@ router.get('/activity', async (req, res) => {
   }
 });
 
-// GET /api/admin/alerts — dossiers urgents
 router.get('/alerts', async (req, res) => {
   try {
-    // Dossiers en attente depuis plus de 7 jours
     const sevenDaysAgo = new Date();
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
@@ -88,7 +83,6 @@ router.get('/alerts', async (req, res) => {
   }
 });
 
-// DELETE /api/admin/users/:id — supprimer un utilisateur
 router.delete('/users/:id', async (req, res) => {
   try {
     if (req.params.id === req.user.id) {

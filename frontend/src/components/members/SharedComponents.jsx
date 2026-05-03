@@ -1,4 +1,3 @@
-// StatusBadge - affiche le statut d'un dossier avec couleur
 export function StatusBadge({ status }) {
   const config = {
     pending:            { label: 'En attente',         className: 'badge-pending' },
@@ -11,7 +10,6 @@ export function StatusBadge({ status }) {
   return <span className={className}>{label}</span>;
 }
 
-// DossierStepper - barre de progression à 4 étapes
 export function DossierStepper({ status }) {
   const steps = [
     { key: 'pending',            label: 'En attente',    short: '1' },
@@ -66,7 +64,6 @@ export function DossierStepper({ status }) {
   );
 }
 
-// StatCard - carte de statistique pour le dashboard admin
 export function StatCard({ label, value, icon, color = 'green' }) {
   const colors = {
     green:  'bg-green-50 text-green-700 border-green-100',

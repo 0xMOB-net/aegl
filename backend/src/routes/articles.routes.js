@@ -6,7 +6,6 @@ const slugify = require('slugify');
 
 const prisma = new PrismaClient();
 
-// GET /api/articles — articles publics
 router.get('/', async (req, res) => {
   try {
     const articles = await prisma.article.findMany({
@@ -20,7 +19,6 @@ router.get('/', async (req, res) => {
   }
 });
 
-// GET /api/articles/:slug — un article
 router.get('/:slug', async (req, res) => {
   try {
     const article = await prisma.article.findUnique({
@@ -34,7 +32,6 @@ router.get('/:slug', async (req, res) => {
   }
 });
 
-// POST /api/articles — admin crée
 router.post('/', authenticate, requireRole('admin'), async (req, res) => {
   try {
     const { title, content, coverImage, published } = req.body;
@@ -57,7 +54,6 @@ router.post('/', authenticate, requireRole('admin'), async (req, res) => {
   }
 });
 
-// PUT /api/articles/:id — admin modifie
 router.put('/:id', authenticate, requireRole('admin'), async (req, res) => {
   try {
     const { title, content, coverImage, published } = req.body;
@@ -79,7 +75,6 @@ router.put('/:id', authenticate, requireRole('admin'), async (req, res) => {
   }
 });
 
-// DELETE /api/articles/:id
 router.delete('/:id', authenticate, requireRole('admin'), async (req, res) => {
   try {
     await prisma.article.delete({ where: { id: req.params.id } });
@@ -89,7 +84,6 @@ router.delete('/:id', authenticate, requireRole('admin'), async (req, res) => {
   }
 });
 
-// GET /api/articles/admin/all — tous les articles (admin)
 router.get('/admin/all', authenticate, requireRole('admin'), async (req, res) => {
   try {
     const articles = await prisma.article.findMany({

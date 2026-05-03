@@ -25,7 +25,6 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     fetchData();
-    // Rafraîchissement auto toutes les 15 secondes
     const interval = setInterval(fetchData, 15000);
     return () => clearInterval(interval);
   }, [fetchData]);

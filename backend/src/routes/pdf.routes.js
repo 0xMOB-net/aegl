@@ -7,7 +7,6 @@ const fs = require('fs');
 const prisma = new PrismaClient();
 router.use(authenticate);
 
-// GET /api/pdf/:dossierId — télécharger le PDF d'un dossier
 router.get('/:dossierId', async (req, res) => {
   try {
     const { user } = req;
@@ -17,7 +16,6 @@ router.get('/:dossierId', async (req, res) => {
     });
     if (!dossier) return res.status(404).json({ error: 'Dossier introuvable' });
 
-    // Vérifier les droits d'accès
     if (user.role === 'student' && dossier.studentId !== user.id) {
       return res.status(403).json({ error: 'Accès refusé' });
     }

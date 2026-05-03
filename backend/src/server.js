@@ -3,7 +3,6 @@ const app = require('./app');
 const fs = require('fs');
 const path = require('path');
 
-// Créer les dossiers nécessaires
 const dirs = [
   process.env.UPLOAD_DIR || './uploads',
   process.env.PDF_OUTPUT_DIR || './pdfs',

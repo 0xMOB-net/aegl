@@ -4,7 +4,6 @@ import { StatusBadge } from '../../components/members/SharedComponents';
 import { Link } from 'react-router-dom';
 import api from '../../api/client';
 
-// ==================== HOSTS PAGE ====================
 export function AdminHosts() {
   const [hosts, setHosts] = useState([]);
   const [students, setStudents] = useState([]);
@@ -77,7 +76,6 @@ export function AdminHosts() {
 
 export default AdminHosts;
 
-// ==================== ACTIVITY PAGE ====================
 export function AdminActivity() {
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -141,7 +139,6 @@ export function AdminActivity() {
   );
 }
 
-// ==================== ALERTS PAGE ====================
 export function AdminAlerts() {
   const [alerts, setAlerts] = useState([]);
   const [loading, setLoading] = useState(true);

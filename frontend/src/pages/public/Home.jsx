@@ -20,7 +20,6 @@ const STATS = [
   { value: '100%', label: 'Gratuit & solidaire' },
 ];
 
-/* Lieux clés de Limoges pour les étudiants */
 const LIMOGES_PLACES = [
   {
     emoji: '🚉',
@@ -123,18 +122,12 @@ export default function Home() {
     <div className="min-h-screen overflow-x-hidden">
       <Navbar />
 
-      {/* ═══════════════════════════════════════════════
-          HERO — Photo Limoges + overlay vert
-          ═══════════════════════════════════════════════ */}
       <section className="relative min-h-screen flex items-center overflow-hidden">
-        {/* Photo de fond */}
         <div className="absolute inset-0">
           <img src={PHOTOS.hero} alt="Limoges" className="w-full h-full object-cover"
             onError={e => { e.target.style.display = 'none'; }}/>
           <div className="absolute inset-0 bg-gradient-to-r from-green-950/95 via-green-950/80 to-green-900/60"/>
         </div>
-
-        {/* Bande drapeau guinée */}
         <div className="absolute bottom-0 left-0 right-0 flag-stripe"/>
 
         <div className="relative max-w-7xl mx-auto px-6 py-36 grid lg:grid-cols-5 gap-12 items-center w-full">
@@ -166,7 +159,6 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Stats flottantes */}
           <div className="lg:col-span-2 grid grid-cols-2 gap-4 animate-fade-in">
             {STATS.map(s => (
               <div key={s.label} className="glass rounded-2xl p-5 border border-white/10 text-center hover:border-gold-500/30 transition-all">
@@ -178,12 +170,8 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ═══════════════════════════════════════════════
-          LA GARE DE LIMOGES — Notre ville
-          ═══════════════════════════════════════════════ */}
       <section className="py-0 overflow-hidden">
         <div className="grid lg:grid-cols-2 min-h-[520px]">
-          {/* Photo Gare de Limoges-Bénédictins */}
           <div className="relative min-h-[360px] lg:min-h-full">
             <img src={PHOTOS.gare} alt="Gare de Limoges-Bénédictins"
               className="w-full h-full object-cover absolute inset-0"
@@ -195,7 +183,6 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Texte */}
           <div className="bg-green-950 flex items-center p-12 lg:p-16">
             <div>
               <div className="inline-flex items-center gap-2 bg-gold-500/15 text-gold-400 text-xs font-semibold px-3 py-1.5 rounded-full mb-6">
@@ -231,9 +218,6 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ═══════════════════════════════════════════════
-          VIE DE L'ASSO — Activités
-          ═══════════════════════════════════════════════ */}
       <section className="py-24 bg-white">
         <div className="max-w-7xl mx-auto px-6">
           <div className="text-center mb-16">
@@ -273,9 +257,6 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ═══════════════════════════════════════════════
-          PHOTOS LIMOGES — Galerie
-          ═══════════════════════════════════════════════ */}
       <section className="py-0 overflow-hidden">
         <div className="grid grid-cols-2 lg:grid-cols-4 h-72">
           {[PHOTOS.city1, PHOTOS.city2, PHOTOS.city3, PHOTOS.city4].map((photo, i) => (
@@ -292,9 +273,6 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ═══════════════════════════════════════════════
-          GUIDE D'ARRIVÉE À LIMOGES
-          ═══════════════════════════════════════════════ */}
       <section className="py-24 bg-gray-50">
         <div className="max-w-7xl mx-auto px-6">
           <div className="grid lg:grid-cols-2 gap-16 items-center">
@@ -349,9 +327,6 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ═══════════════════════════════════════════════
-          COMMENT OBTENIR UNE ATTESTATION
-          ═══════════════════════════════════════════════ */}
       <section className="py-24 bg-white">
         <div className="max-w-5xl mx-auto px-6">
           <div className="text-center mb-16">
@@ -389,9 +364,6 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ═══════════════════════════════════════════════
-          DÉCOUVREZ LIMOGES — Lieux importants
-          ═══════════════════════════════════════════════ */}
       <section className="py-24 bg-white">
         <div className="max-w-7xl mx-auto px-6">
           <div className="text-center mb-16">
@@ -406,8 +378,7 @@ export default function Home() {
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
             {LIMOGES_PLACES.map((place) => (
               <div key={place.name} className="group rounded-2xl overflow-hidden border border-gray-100 bg-white hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col">
-                {/* Photo */}
-                <div className="relative h-44 overflow-hidden bg-gray-100 flex-shrink-0">
+                  <div className="relative h-44 overflow-hidden bg-gray-100 flex-shrink-0">
                   <img
                     src={place.photo}
                     alt={place.name}
@@ -425,7 +396,6 @@ export default function Home() {
                   <span className="absolute bottom-3 left-3 text-2xl">{place.emoji}</span>
                 </div>
 
-                {/* Content */}
                 <div className="p-4 flex flex-col flex-1">
                   <h3 className="font-semibold text-gray-900 text-sm leading-tight mb-2 group-hover:text-green-800 transition-colors">
                     {place.name}
@@ -450,9 +420,6 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ═══════════════════════════════════════════════
-          CTA DUAL
-          ═══════════════════════════════════════════════ */}
       <section className="py-24 hero-bg relative overflow-hidden">
         <div className="absolute inset-0 opacity-5">
           <svg width="100%" height="100%"><defs><pattern id="dotsH" width="30" height="30" patternUnits="userSpaceOnUse"><circle cx="2" cy="2" r="1" fill="white"/></pattern></defs><rect width="100%" height="100%" fill="url(#dotsH)"/></svg>
@@ -480,9 +447,6 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ═══════════════════════════════════════════════
-          ACTUALITÉS
-          ═══════════════════════════════════════════════ */}
       <section className="py-24 bg-white">
         <div className="max-w-7xl mx-auto px-6">
           <div className="flex items-end justify-between mb-12">

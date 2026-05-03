@@ -10,12 +10,10 @@ const generateToken = (userId) =>
     expiresIn: process.env.JWT_EXPIRES_IN || '7d',
   });
 
-// POST /api/auth/register
 const register = async (req, res) => {
   try {
     const { firstName, lastName, email, password, gender, role } = req.body;
 
-    // Validation
     if (!firstName || !lastName || !email || !password || !gender || !role) {
       return res.status(400).json({ error: 'Tous les champs sont obligatoires' });
     }
@@ -47,7 +45,6 @@ const register = async (req, res) => {
   }
 };
 
-// POST /api/auth/login
 const login = async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -71,7 +68,6 @@ const login = async (req, res) => {
   }
 };
 
-// POST /api/auth/reset-password
 const resetPassword = async (req, res) => {
   try {
     const { firstName, lastName, email, newPassword } = req.body;
@@ -101,7 +97,6 @@ const resetPassword = async (req, res) => {
   }
 };
 
-// GET /api/auth/me
 const me = async (req, res) => {
   const { passwordHash, ...safeUser } = req.user;
   res.json({ user: safeUser });
