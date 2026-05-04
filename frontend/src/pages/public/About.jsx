@@ -63,7 +63,7 @@ const bureau = [
     titre: 'Trésorier',
     initiales: 'MO',
     desc: 'Assure la gestion financière, le suivi budgétaire et la transparence des comptes.',
-    photo: null,
+    photo: '/images/tresorier.jpg',
     gradient: 'from-green-500 to-green-700',
     ring: 'ring-green-500/40',
   },
@@ -72,7 +72,7 @@ const bureau = [
     titre: 'Chargée à la communication',
     initiales: 'FD',
     desc: 'Gère la communication, les réseaux sociaux et la visibilité de l\'AEGL.',
-    photo: null,
+    photo: '/images/communication.jpg',
     gradient: 'from-purple-500 to-purple-700',
     ring: 'ring-purple-500/40',
   },
@@ -97,7 +97,7 @@ const bureau = [
 ];
 
 const rencontres = [
-  'https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=600&q=80',
+  '/images/groupe.jpg',
   'https://images.unsplash.com/photo-1511632765486-a01980e01a18?w=600&q=80',
   'https://images.unsplash.com/photo-1528605105345-5344ea20e269?w=600&q=80',
   'https://images.unsplash.com/photo-1491438590914-bc09fcaaf77a?w=600&q=80',
@@ -289,12 +289,17 @@ export default function About() {
               <div key={nom} className="group text-center p-6 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/25 transition-all duration-300 hover:-translate-y-1">
                 <div className="relative mx-auto mb-4 w-16 h-16">
                   {photo ? (
-                    <img src={photo} alt={nom} className={`w-16 h-16 rounded-full object-cover ring-2 ${ring}`} />
-                  ) : (
-                    <div className={`w-16 h-16 bg-gradient-to-br ${gradient} rounded-full flex items-center justify-center text-white font-bold text-sm ring-2 ${ring}`}>
-                      {initiales}
-                    </div>
-                  )}
+                    <img src={photo} alt={nom}
+                      className={`w-16 h-16 rounded-full object-cover object-top ring-2 ${ring}`}
+                      onError={e => {
+                        e.target.style.display = 'none';
+                        e.target.nextSibling.style.display = 'flex';
+                      }}
+                    />
+                  ) : null}
+                  <div className={`w-16 h-16 bg-gradient-to-br ${gradient} rounded-full items-center justify-center text-white font-bold text-sm ring-2 ${ring} ${photo ? 'hidden' : 'flex'}`}>
+                    {initiales}
+                  </div>
                 </div>
                 <p className="text-white font-semibold text-sm mb-1 leading-tight">{nom}</p>
                 <p className="text-gold-500/70 text-[10px] font-semibold uppercase tracking-wider mb-3">{titre}</p>
