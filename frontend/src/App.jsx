@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import ScrollToTop from './components/ScrollToTop';
 
 import Home from './pages/public/Home';
 import About from './pages/public/About';
@@ -57,6 +58,7 @@ function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
+        <ScrollToTop />
         <Routes>
           {/* SITE PUBLIC */}
           <Route path="/" element={<Home />} />

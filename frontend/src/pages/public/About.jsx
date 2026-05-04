@@ -43,9 +43,9 @@ const values = [
 const timeline = [
   { year: '2018', title: 'Fondation', desc: 'Quelques étudiants guinéens à Limoges décident de s\'organiser pour s\'entraider dans les démarches administratives.' },
   { year: '2019', title: 'Premiers partenaires', desc: 'Le réseau d\'hébergeurs bénévoles s\'élargit. Les premières attestations officielles sont délivrées.' },
-  { year: '2021', title: 'Digitalisation', desc: 'Lancement de la première plateforme numérique de gestion des dossiers d\'attestation.' },
   { year: '2023', title: 'Expansion des services', desc: 'L\'AEGL étend son action : guide d\'intégration, événements culturels, soutien académique.' },
-  { year: '2024', title: 'Nouvelle ère', desc: 'Plateforme moderne, communauté soudée, l\'AEGL est un pilier pour les étudiants guinéens à Limoges.' },
+  { year: '2025', title: 'Digitalisation', desc: 'Lancement de la plateforme numérique moderne de gestion des dossiers et de la communauté.' },
+  { year: '2026', title: 'Nouvelle ère', desc: 'Site web complet, espace membres, démarches en ligne — l\'AEGL entre dans l\'ère du numérique.' },
 ];
 
 const bureau = [

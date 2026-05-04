@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 
@@ -28,10 +29,10 @@ const bureauNav = [
 ];
 
 const hostNav = [
-  { to: '/membres/hebergeur/dossiers',    label: 'Mes dossiers',  icon: '📁' },
-  { to: '/membres/hebergeur/attestations',label: 'Attestations',  icon: '📄' },
-  { to: '/membres/hebergeur/alertes',     label: 'Alertes',       icon: '🔔' },
-  { to: '/membres/annonces',              label: 'Annonces',      icon: '💬' },
+  { to: '/membres/hebergeur/dossiers',     label: 'Mes dossiers', icon: '📁' },
+  { to: '/membres/hebergeur/attestations', label: 'Attestations', icon: '📄' },
+  { to: '/membres/hebergeur/alertes',      label: 'Alertes',      icon: '🔔' },
+  { to: '/membres/annonces',               label: 'Annonces',     icon: '💬' },
 ];
 
 const studentNav = [
@@ -42,8 +43,9 @@ const studentNav = [
 
 export default function MemberLayout({ children, title }) {
   const { user, logout, roleName } = useAuth();
-  const location  = useLocation();
-  const navigate  = useNavigate();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const handleLogout = () => { logout(); navigate('/'); };
   const nav = user?.role === 'admin' ? bureauNav : user?.role === 'host' ? hostNav : studentNav;
@@ -54,82 +56,107 @@ export default function MemberLayout({ children, title }) {
     student: 'bg-green-500/20 text-green-300',
   }[user?.role] || 'bg-white/10 text-white';
 
-  return (
-    <div className="h-screen bg-gray-50 flex overflow-hidden">
-      <aside className="w-64 bg-green-950 flex-shrink-0 flex flex-col h-full shadow-2xl">
-        <div className="p-5 border-b border-green-800/50 flex-shrink-0">
-          <Link to="/" className="flex items-center gap-3 group">
-            <div className="flex-shrink-0 group-hover:scale-105 transition-transform">
-              <Logo/>
-            </div>
-            <div>
-              <p className="text-white font-heading font-bold text-lg leading-none">AEGL</p>
-              <p className="text-green-400 text-[10px] tracking-widest uppercase mt-0.5">Espace membres</p>
-            </div>
-          </Link>
-        </div>
+  const SidebarContent = () => (
+    <>
+      <div className="p-5 border-b border-green-800/50 flex-shrink-0">
+        <Link to="/" className="flex items-center gap-3 group" onClick={() => setSidebarOpen(false)}>
+          <div className="flex-shrink-0 group-hover:scale-105 transition-transform">
+            <Logo />
+          </div>
+          <div>
+            <p className="text-white font-heading font-bold text-lg leading-none">AEGL</p>
+            <p className="text-green-400 text-[10px] tracking-widest uppercase mt-0.5">Espace membres</p>
+          </div>
+        </Link>
+      </div>
 
-        <div className="p-5 border-b border-green-800/50 flex-shrink-0">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-gradient-to-br from-green-600 to-green-800 rounded-xl flex items-center justify-center text-white font-bold text-sm flex-shrink-0 shadow">
-              {user?.firstName?.[0]}{user?.lastName?.[0]}
-            </div>
-            <div className="overflow-hidden">
-              <p className="text-white text-sm font-semibold truncate">
-                {user?.firstName} {user?.lastName}
-              </p>
-              <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium mt-1 inline-block ${roleColor}`}>
-                {roleName(user)}
-              </span>
-            </div>
+      <div className="p-5 border-b border-green-800/50 flex-shrink-0">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 bg-gradient-to-br from-green-600 to-green-800 rounded-xl flex items-center justify-center text-white font-bold text-sm flex-shrink-0 shadow">
+            {user?.firstName?.[0]}{user?.lastName?.[0]}
+          </div>
+          <div className="overflow-hidden">
+            <p className="text-white text-sm font-semibold truncate">{user?.firstName} {user?.lastName}</p>
+            <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium mt-1 inline-block ${roleColor}`}>
+              {roleName(user)}
+            </span>
           </div>
         </div>
+      </div>
 
-        <nav className="flex-1 p-3 space-y-0.5 overflow-y-auto min-h-0">
-          {nav.map(({ to, label, icon }) => {
-            const active = location.pathname === to;
-            return (
-              <Link key={to} to={to} className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all duration-150 ${
+      <nav className="flex-1 p-3 space-y-0.5 overflow-y-auto min-h-0">
+        {nav.map(({ to, label, icon }) => {
+          const active = location.pathname === to;
+          return (
+            <Link key={to} to={to} onClick={() => setSidebarOpen(false)}
+              className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all duration-150 ${
                 active
                   ? 'bg-gold-500 text-green-950 font-bold shadow-gold'
                   : 'text-green-200 hover:bg-green-800/60 hover:text-white'
               }`}>
-                <span className="text-base flex-shrink-0">{icon}</span>
-                <span className="truncate">{label}</span>
-              </Link>
-            );
-          })}
-        </nav>
+              <span className="text-base flex-shrink-0">{icon}</span>
+              <span className="truncate">{label}</span>
+            </Link>
+          );
+        })}
+      </nav>
 
-        <div className="p-3 border-t border-green-800/50 space-y-0.5 flex-shrink-0">
-          <Link to="/" className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-green-400 hover:bg-green-800/60 hover:text-white transition-all">
-            <span className="text-base flex-shrink-0">🌐</span>
-            <span>Site public</span>
-          </Link>
-          <button onClick={handleLogout} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-red-400 hover:bg-red-900/30 hover:text-red-300 transition-all">
-            <span className="text-base flex-shrink-0">🚪</span>
-            <span>Déconnexion</span>
-          </button>
-        </div>
+      <div className="p-3 border-t border-green-800/50 space-y-0.5 flex-shrink-0">
+        <Link to="/" className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-green-400 hover:bg-green-800/60 hover:text-white transition-all">
+          <span className="text-base flex-shrink-0">🌐</span>
+          <span>Site public</span>
+        </Link>
+        <button onClick={handleLogout} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-red-400 hover:bg-red-900/30 hover:text-red-300 transition-all">
+          <span className="text-base flex-shrink-0">🚪</span>
+          <span>Déconnexion</span>
+        </button>
+      </div>
+    </>
+  );
+
+  return (
+    <div className="h-screen bg-gray-50 flex overflow-hidden">
+
+      {/* Sidebar desktop */}
+      <aside className="hidden md:flex w-64 bg-green-950 flex-shrink-0 flex-col h-full shadow-2xl">
+        <SidebarContent />
       </aside>
 
+      {/* Sidebar mobile overlay */}
+      {sidebarOpen && (
+        <div className="md:hidden fixed inset-0 z-50 flex">
+          <div className="w-64 bg-green-950 flex flex-col h-full shadow-2xl flex-shrink-0">
+            <SidebarContent />
+          </div>
+          <div className="flex-1 bg-black/50" onClick={() => setSidebarOpen(false)} />
+        </div>
+      )}
+
       <div className="flex-1 flex flex-col overflow-hidden min-w-0">
-        <header className="bg-white border-b border-gray-100 px-8 py-4 flex items-center justify-between flex-shrink-0 shadow-sm z-10">
+        <header className="bg-white border-b border-gray-100 px-4 md:px-8 py-4 flex items-center justify-between flex-shrink-0 shadow-sm z-10">
           <div className="flex items-center gap-3">
-            <div className="w-1 h-7 bg-gold-500 rounded-full"/>
-            <h1 className="font-heading text-xl text-green-900">{title}</h1>
+            <button
+              onClick={() => setSidebarOpen(true)}
+              className="md:hidden p-2 rounded-xl text-green-800 hover:bg-green-50 transition-colors"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16"/>
+              </svg>
+            </button>
+            <div className="w-1 h-7 bg-gold-500 rounded-full hidden md:block"/>
+            <h1 className="font-heading text-lg md:text-xl text-green-900 truncate">{title}</h1>
           </div>
           <div className="flex items-center gap-3">
             <div className="text-xs text-gray-400 hidden sm:block">
               {new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })}
             </div>
-            <div className={`text-xs px-3 py-1 rounded-full font-medium ${roleColor} bg-opacity-100`}>
+            <div className={`text-xs px-3 py-1 rounded-full font-medium ${roleColor}`}>
               {roleName(user)}
             </div>
           </div>
         </header>
 
-        <main className="flex-1 overflow-y-auto min-h-0 p-8">
+        <main className="flex-1 overflow-y-auto min-h-0 p-4 md:p-8">
           {children}
         </main>
       </div>
