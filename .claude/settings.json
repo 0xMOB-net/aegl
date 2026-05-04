@@ -7,7 +7,8 @@
       "WebFetch(domain:unsplash.com)",
       "Bash(grep -rn \"^//\" \"c:\\\\Users\\\\dell\\\\Downloads\\\\aegl-site-complet\\\\aegl\\\\backend\\\\src\" --include=\"*.js\")",
       "Bash(git remote *)",
-      "Bash(git branch *)"
+      "Bash(git branch *)",
+      "Bash(git commit *)"
     ]
   }
 }

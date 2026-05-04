@@ -48,7 +48,7 @@ export default function Footer() {
                   <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z"/>
                 </svg>
               </a>
-              <a href="https://facebook.com" target="_blank" rel="noreferrer"
+              <a href="https://www.facebook.com/share/p/1b3pzu8akb/" target="_blank" rel="noreferrer"
                 className="w-10 h-10 rounded-xl bg-green-800 hover:bg-blue-700 flex items-center justify-center transition-colors group"
                 title="Facebook">
                 <svg className="w-4 h-4 text-green-300 group-hover:text-white transition-colors" fill="currentColor" viewBox="0 0 24 24">
@@ -96,9 +96,9 @@ export default function Footer() {
                 <span className="text-base">📧</span>
                 <a href="mailto:contact@aegl87.fr" className="hover:text-white transition-colors">contact@aegl87.fr</a>
               </li>
-              <li className="flex items-center gap-2.5 text-green-300/80">
-                <span className="text-base">📍</span>
-                <span>Limoges, Haute-Vienne (87), France</span>
+              <li className="flex items-start gap-2.5 text-green-300/80">
+                <span className="text-base mt-0.5">📍</span>
+                <span>185 avenue Albert Thomas,<br/>87000 Limoges, France</span>
               </li>
               <li className="flex items-center gap-2.5 text-green-300/80">
                 <span className="text-base">🏛️</span>

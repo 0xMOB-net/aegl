@@ -16,9 +16,9 @@ const contactInfo = [
   {
     icon: '📍',
     title: 'Localisation',
-    value: 'Limoges, Haute-Vienne (87)',
-    href: null,
-    desc: 'France métropolitaine',
+    value: '185 av. Albert Thomas, 87000 Limoges',
+    href: 'https://maps.google.com/?q=185+avenue+Albert+Thomas+Limoges',
+    desc: 'Haute-Vienne, France',
   },
   {
     icon: '🏛️',
@@ -132,7 +132,7 @@ export default function Contact() {
                   </div>
                 </a>
 
-                <a href="https://facebook.com" target="_blank" rel="noreferrer" className="flex items-center gap-3 p-3 rounded-xl bg-gray-50 hover:bg-blue-50 transition-colors group">
+                <a href="https://www.facebook.com/share/p/1b3pzu8akb/" target="_blank" rel="noreferrer" className="flex items-center gap-3 p-3 rounded-xl bg-gray-50 hover:bg-blue-50 transition-colors group">
                   <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center flex-shrink-0">
                     <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 24 24">
                       <path d="M18 2h-3a5 5 0 00-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 011-1h3z"/>
