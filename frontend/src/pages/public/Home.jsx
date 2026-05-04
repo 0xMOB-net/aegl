@@ -16,8 +16,8 @@ const PHOTOS = {
 const STATS = [
   { value: '150+', label: 'Étudiants accompagnés' },
   { value: '5+',   label: "Années d'expérience" },
-  { value: '10+',  label: 'Hébergeurs bénévoles' },
-  { value: '100%', label: 'Gratuit & solidaire' },
+  { value: '10+',  label: 'Hébergeurs partenaires' },
+  { value: '2026', label: 'Ère de la digitalisation' },
 ];
 
 const LIMOGES_PLACES = [
@@ -145,8 +145,8 @@ export default function Home() {
             </h1>
 
             <p className="text-white/75 text-lg leading-relaxed mb-10 max-w-xl">
-              Attestations d'hébergement, événements culturels, soutien académique,
-              réseau de solidarité — tout ce dont vous avez besoin pour réussir à Limoges.
+              Communauté, événements culturels, soutien académique, accompagnement administratif
+              — l'AEGL est votre maison loin de chez vous à Limoges.
             </p>
 
             <div className="flex flex-wrap gap-4">

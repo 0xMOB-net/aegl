@@ -3,21 +3,27 @@ import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 
 const Logo = ({ light = false }) => (
-  <svg width="38" height="42" viewBox="0 0 38 42" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <svg width="40" height="44" viewBox="0 0 40 44" fill="none" xmlns="http://www.w3.org/2000/svg">
     <defs>
       <clipPath id="shieldNav">
-        <path d="M19 1L37 9V24C37 34 29 39.5 19 42C9 39.5 1 34 1 24V9L19 1Z"/>
+        <path d="M20 2L38 10V26C38 36 30 41.5 20 44C10 41.5 2 36 2 26V10L20 2Z"/>
       </clipPath>
-      <linearGradient id="shieldGrad" x1="0" y1="0" x2="1" y2="1">
-        <stop offset="0%" stopColor="#1f7046"/>
-        <stop offset="100%" stopColor="#0d3321"/>
+      <linearGradient id="shieldGrad" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stopColor="#1a6b41"/>
+        <stop offset="100%" stopColor="#0a2e1a"/>
+      </linearGradient>
+      <linearGradient id="goldGrad" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0%" stopColor="#FFE066"/>
+        <stop offset="100%" stopColor="#FCD116"/>
       </linearGradient>
     </defs>
-    <path d="M19 1L37 9V24C37 34 29 39.5 19 42C9 39.5 1 34 1 24V9L19 1Z" fill="url(#shieldGrad)" stroke="#258553" strokeWidth="0.5"/>
-    <rect x="1" y="30" width="12" height="14" fill="#CE1126" clipPath="url(#shieldNav)"/>
-    <rect x="13" y="30" width="12" height="14" fill="#FCD116" clipPath="url(#shieldNav)"/>
-    <rect x="25" y="30" width="13" height="14" fill="#258553" clipPath="url(#shieldNav)"/>
-    <text x="19" y="25" textAnchor="middle" fill="white" fontFamily="Georgia,serif" fontWeight="bold" fontSize="15">A</text>
+    <path d="M20 2L38 10V26C38 36 30 41.5 20 44C10 41.5 2 36 2 26V10L20 2Z" fill="url(#shieldGrad)"/>
+    <path d="M20 2L38 10V26C38 36 30 41.5 20 44C10 41.5 2 36 2 26V10L20 2Z" fill="none" stroke="#FCD116" strokeWidth="0.8" strokeOpacity="0.5"/>
+    <rect x="2" y="32" width="12" height="14" fill="#CE1126" clipPath="url(#shieldNav)"/>
+    <rect x="14" y="32" width="12" height="14" fill="#FCD116" clipPath="url(#shieldNav)"/>
+    <rect x="26" y="32" width="14" height="14" fill="#258553" clipPath="url(#shieldNav)"/>
+    <circle cx="20" cy="20" r="10" fill="none" stroke="#FCD116" strokeWidth="0.6" strokeOpacity="0.3"/>
+    <text x="20" y="25" textAnchor="middle" fill="url(#goldGrad)" fontFamily="Georgia,serif" fontWeight="bold" fontSize="14" letterSpacing="0.5">A</text>
   </svg>
 );
 

@@ -48,48 +48,59 @@ const timeline = [
   { year: '2024', title: 'Nouvelle ère', desc: 'Plateforme moderne, communauté soudée, l\'AEGL est un pilier pour les étudiants guinéens à Limoges.' },
 ];
 
-/* Vrais membres du bureau */
 const bureau = [
   {
     nom: 'Hadja Fatoumata Dramé',
     titre: 'Présidente',
-    icon: '👑',
     initiales: 'HF',
     desc: 'Dirige l\'association et représente l\'AEGL auprès des institutions et partenaires.',
-    gradient: 'from-gold-500 to-yellow-600',
+    photo: null,
+    gradient: 'from-gold-500 to-yellow-500',
+    ring: 'ring-gold-500/50',
   },
   {
     nom: 'Mamadou Oury Baldé',
     titre: 'Trésorier',
-    icon: '💰',
     initiales: 'MO',
     desc: 'Assure la gestion financière, le suivi budgétaire et la transparence des comptes.',
-    gradient: 'from-green-600 to-green-800',
+    photo: null,
+    gradient: 'from-green-500 to-green-700',
+    ring: 'ring-green-500/40',
   },
   {
     nom: 'Fatimatou Diallo',
     titre: 'Chargée à la communication',
-    icon: '📣',
     initiales: 'FD',
-    desc: 'Gère la communication interne et externe, les réseaux sociaux et la visibilité de l\'AEGL.',
-    gradient: 'from-purple-600 to-purple-800',
+    desc: 'Gère la communication, les réseaux sociaux et la visibilité de l\'AEGL.',
+    photo: null,
+    gradient: 'from-purple-500 to-purple-700',
+    ring: 'ring-purple-500/40',
   },
   {
     nom: 'Mamadou Talibé Diallo',
     titre: 'Secrétaire général',
-    icon: '📝',
     initiales: 'MT',
-    desc: 'Gère l\'administration, les archives, les procès-verbaux et les communications officielles.',
-    gradient: 'from-blue-600 to-blue-800',
+    desc: 'Gère l\'administration, les archives et les communications officielles.',
+    photo: null,
+    gradient: 'from-blue-500 to-blue-700',
+    ring: 'ring-blue-500/40',
   },
   {
     nom: 'Alseny Diallo',
-    titre: 'Chargé aux sports & activités culturelles',
-    icon: '⚽',
+    titre: 'Sports & activités culturelles',
     initiales: 'AD',
-    desc: 'Organise les événements sportifs, culturels et les activités de cohésion de la communauté.',
-    gradient: 'from-red-600 to-red-800',
+    desc: 'Organise les événements sportifs, culturels et de cohésion de la communauté.',
+    photo: null,
+    gradient: 'from-red-500 to-red-700',
+    ring: 'ring-red-500/40',
   },
+];
+
+const rencontres = [
+  'https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=600&q=80',
+  'https://images.unsplash.com/photo-1511632765486-a01980e01a18?w=600&q=80',
+  'https://images.unsplash.com/photo-1528605105345-5344ea20e269?w=600&q=80',
+  'https://images.unsplash.com/photo-1491438590914-bc09fcaaf77a?w=600&q=80',
 ];
 
 export default function About() {
@@ -226,16 +237,24 @@ export default function About() {
         </div>
       </section>
 
-      {/* ===== PHOTOS ===== */}
-      <section className="py-6 px-6">
+      {/* ===== GALERIE ===== */}
+      <section className="py-20 px-6 bg-gray-50">
         <div className="max-w-7xl mx-auto">
-          <div className="grid grid-cols-2 gap-4 rounded-3xl overflow-hidden h-64 md:h-80">
-            <div className="overflow-hidden">
-              <img src={PHOTOS.city1} alt="Limoges" className="w-full h-full object-cover hover:scale-105 transition-transform duration-700" />
-            </div>
-            <div className="overflow-hidden">
-              <img src={PHOTOS.city2} alt="Limoges" className="w-full h-full object-cover hover:scale-105 transition-transform duration-700" />
-            </div>
+          <div className="text-center mb-12">
+            <p className="text-gold-500 font-semibold text-sm tracking-widest uppercase mb-4">Nos moments</p>
+            <h2 className="font-heading text-4xl text-green-950">Nos rencontres & événements</h2>
+            <p className="text-gray-500 text-sm mt-3 max-w-lg mx-auto">La communauté AEGL se retrouve régulièrement pour célébrer, s'entraider et partager.</p>
+          </div>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 rounded-3xl overflow-hidden">
+            {rencontres.map((src, i) => (
+              <div key={i} className="aspect-square overflow-hidden group relative">
+                <img src={src} alt={`AEGL rencontre ${i+1}`}
+                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+                  onError={e => { e.target.parentElement.style.background='#1a5c3a'; e.target.style.display='none'; }}
+                />
+                <div className="absolute inset-0 bg-green-950/20 group-hover:bg-green-950/0 transition-colors" />
+              </div>
+            ))}
           </div>
         </div>
       </section>
@@ -244,46 +263,51 @@ export default function About() {
       <section className="bg-green-950 py-24 px-6">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-16">
-            <div className="inline-flex items-center gap-3 mb-6">
-              <Logo />
-            </div>
+            <p className="text-gold-500 font-semibold text-sm tracking-widest uppercase mb-4">Équipe dirigeante</p>
             <h2 className="font-heading text-4xl text-white mb-4">Le Bureau AEGL</h2>
             <p className="text-green-300/70 max-w-md mx-auto text-sm">
-              Notre bureau exécutif est composé de 5 membres élus par la communauté étudiante guinéenne de Limoges.
+              5 membres élus, engagés au quotidien pour la communauté guinéenne de Limoges.
             </p>
           </div>
 
-          {/* Présidente en avant */}
           <div className="flex justify-center mb-8">
-            <div className="text-center p-8 rounded-3xl bg-gradient-to-br from-gold-500/10 to-gold-500/5 border border-gold-500/30 hover:border-gold-500/60 transition-all duration-300 max-w-xs w-full">
-              <div className="w-20 h-20 bg-gradient-to-br from-gold-500 to-yellow-600 rounded-2xl flex items-center justify-center text-green-950 font-bold text-2xl mx-auto mb-4 shadow-gold">
-                HF
+            <div className="text-center p-8 rounded-3xl bg-gradient-to-br from-gold-500/15 to-yellow-500/5 border border-gold-500/40 hover:border-gold-500/70 transition-all duration-300 max-w-xs w-full group">
+              <div className="relative mx-auto mb-5 w-24 h-24">
+                <div className="w-24 h-24 bg-gradient-to-br from-gold-500 to-yellow-500 rounded-full flex items-center justify-center text-green-950 font-bold text-2xl shadow-gold ring-4 ring-gold-500/30">
+                  HF
+                </div>
+                <div className="absolute -bottom-1 -right-1 w-7 h-7 bg-gold-500 rounded-full flex items-center justify-center text-sm shadow">👑</div>
               </div>
-              <p className="text-2xl mb-2">👑</p>
-              <p className="text-gold-500 font-heading text-xl font-semibold mb-1">Hadja Fatoumata Dramé</p>
-              <p className="text-green-300/60 text-sm">Présidente</p>
-              <p className="text-green-400/50 text-xs mt-2 leading-relaxed">Dirige l'association et représente l'AEGL auprès des institutions</p>
+              <p className="text-gold-400 font-heading text-xl font-bold mb-1">Hadja Fatoumata Dramé</p>
+              <p className="text-gold-500/70 text-xs font-semibold uppercase tracking-widest mb-3">Présidente</p>
+              <p className="text-green-300/50 text-xs leading-relaxed">Dirige l'association et représente l'AEGL auprès des institutions partenaires</p>
             </div>
           </div>
 
-          {/* Autres membres */}
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
-            {bureau.slice(1).map(({ nom, titre, icon, initiales, desc, gradient }) => (
-              <div key={nom} className="text-center p-6 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/8 hover:border-white/20 transition-all duration-300">
-                <div className={`w-14 h-14 bg-gradient-to-br ${gradient} rounded-2xl flex items-center justify-center text-white font-bold text-sm mx-auto mb-3 shadow-lg`}>
-                  {initiales}
+            {bureau.slice(1).map(({ nom, titre, initiales, desc, photo, gradient, ring }) => (
+              <div key={nom} className="group text-center p-6 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/25 transition-all duration-300 hover:-translate-y-1">
+                <div className="relative mx-auto mb-4 w-16 h-16">
+                  {photo ? (
+                    <img src={photo} alt={nom} className={`w-16 h-16 rounded-full object-cover ring-2 ${ring}`} />
+                  ) : (
+                    <div className={`w-16 h-16 bg-gradient-to-br ${gradient} rounded-full flex items-center justify-center text-white font-bold text-sm ring-2 ${ring}`}>
+                      {initiales}
+                    </div>
+                  )}
                 </div>
-                <p className="text-xl mb-2">{icon}</p>
                 <p className="text-white font-semibold text-sm mb-1 leading-tight">{nom}</p>
-                <p className="text-green-400/60 text-xs mb-2">{titre}</p>
-                <p className="text-green-400/40 text-xs leading-relaxed">{desc}</p>
+                <p className="text-gold-500/70 text-[10px] font-semibold uppercase tracking-wider mb-3">{titre}</p>
+                <p className="text-green-400/50 text-xs leading-relaxed">{desc}</p>
               </div>
             ))}
           </div>
 
-          <p className="text-center text-green-400/40 text-xs mt-10">
-            Pour contacter le bureau : contact@aegl87.fr
-          </p>
+          <div className="text-center mt-12">
+            <a href="mailto:contact@aegl87.fr" className="inline-flex items-center gap-2 text-green-400/60 text-sm hover:text-green-300 transition-colors">
+              ✉️ contact@aegl87.fr
+            </a>
+          </div>
         </div>
       </section>
 
