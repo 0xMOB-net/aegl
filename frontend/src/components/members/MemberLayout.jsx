@@ -45,7 +45,7 @@ export default function MemberLayout({ children, title }) {
   const { user, logout, roleName } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [open, setOpen] = useState(false);
 
   const handleLogout = () => { logout(); navigate('/'); };
   const nav = user?.role === 'admin' ? bureauNav : user?.role === 'host' ? hostNav : studentNav;
@@ -56,87 +56,85 @@ export default function MemberLayout({ children, title }) {
     student: 'bg-green-500/20 text-green-300',
   }[user?.role] || 'bg-white/10 text-white';
 
-  const SidebarContent = () => (
-    <>
-      <div className="p-5 border-b border-green-800/50 flex-shrink-0">
-        <Link to="/" className="flex items-center gap-3 group" onClick={() => setSidebarOpen(false)}>
-          <div className="flex-shrink-0 group-hover:scale-105 transition-transform">
-            <Logo />
-          </div>
-          <div>
-            <p className="text-white font-heading font-bold text-lg leading-none">AEGL</p>
-            <p className="text-green-400 text-[10px] tracking-widest uppercase mt-0.5">Espace membres</p>
-          </div>
-        </Link>
-      </div>
-
-      <div className="p-5 border-b border-green-800/50 flex-shrink-0">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-gradient-to-br from-green-600 to-green-800 rounded-xl flex items-center justify-center text-white font-bold text-sm flex-shrink-0 shadow">
-            {user?.firstName?.[0]}{user?.lastName?.[0]}
-          </div>
-          <div className="overflow-hidden">
-            <p className="text-white text-sm font-semibold truncate">{user?.firstName} {user?.lastName}</p>
-            <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium mt-1 inline-block ${roleColor}`}>
-              {roleName(user)}
-            </span>
-          </div>
-        </div>
-      </div>
-
-      <nav className="flex-1 p-3 space-y-0.5 overflow-y-auto min-h-0">
-        {nav.map(({ to, label, icon }) => {
-          const active = location.pathname === to;
-          return (
-            <Link key={to} to={to} onClick={() => setSidebarOpen(false)}
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all duration-150 ${
-                active
-                  ? 'bg-gold-500 text-green-950 font-bold shadow-gold'
-                  : 'text-green-200 hover:bg-green-800/60 hover:text-white'
-              }`}>
-              <span className="text-base flex-shrink-0">{icon}</span>
-              <span className="truncate">{label}</span>
-            </Link>
-          );
-        })}
-      </nav>
-
-      <div className="p-3 border-t border-green-800/50 space-y-0.5 flex-shrink-0">
-        <Link to="/" className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-green-400 hover:bg-green-800/60 hover:text-white transition-all">
-          <span className="text-base flex-shrink-0">🌐</span>
-          <span>Site public</span>
-        </Link>
-        <button onClick={handleLogout} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-red-400 hover:bg-red-900/30 hover:text-red-300 transition-all">
-          <span className="text-base flex-shrink-0">🚪</span>
-          <span>Déconnexion</span>
-        </button>
-      </div>
-    </>
-  );
-
   return (
     <div className="h-screen bg-gray-50 flex overflow-hidden">
 
-      {/* Sidebar desktop */}
-      <aside className="hidden md:flex w-64 bg-green-950 flex-shrink-0 flex-col h-full shadow-2xl">
-        <SidebarContent />
-      </aside>
-
-      {/* Sidebar mobile overlay */}
-      {sidebarOpen && (
-        <div className="md:hidden fixed inset-0 z-50 flex">
-          <div className="w-64 bg-green-950 flex flex-col h-full shadow-2xl flex-shrink-0">
-            <SidebarContent />
-          </div>
-          <div className="flex-1 bg-black/50" onClick={() => setSidebarOpen(false)} />
-        </div>
+      {/* Overlay sombre sur mobile quand sidebar ouverte */}
+      {open && (
+        <div
+          className="fixed inset-0 bg-black/60 z-40 md:hidden"
+          onClick={() => setOpen(false)}
+        />
       )}
 
+      {/* Sidebar — fixée sur mobile (glisse), statique sur desktop */}
+      <aside className={`
+        fixed top-0 left-0 h-full z-50 w-64 bg-green-950 flex flex-col shadow-2xl
+        transition-transform duration-300 ease-in-out
+        md:relative md:translate-x-0 md:flex-shrink-0
+        ${open ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
+      `}>
+        <div className="p-5 border-b border-green-800/50 flex-shrink-0">
+          <Link to="/" className="flex items-center gap-3 group" onClick={() => setOpen(false)}>
+            <div className="flex-shrink-0 group-hover:scale-105 transition-transform">
+              <Logo />
+            </div>
+            <div>
+              <p className="text-white font-heading font-bold text-lg leading-none">AEGL</p>
+              <p className="text-green-400 text-[10px] tracking-widest uppercase mt-0.5">Espace membres</p>
+            </div>
+          </Link>
+        </div>
+
+        <div className="p-5 border-b border-green-800/50 flex-shrink-0">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-gradient-to-br from-green-600 to-green-800 rounded-xl flex items-center justify-center text-white font-bold text-sm flex-shrink-0 shadow">
+              {user?.firstName?.[0]}{user?.lastName?.[0]}
+            </div>
+            <div className="overflow-hidden">
+              <p className="text-white text-sm font-semibold truncate">{user?.firstName} {user?.lastName}</p>
+              <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium mt-1 inline-block ${roleColor}`}>
+                {roleName(user)}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <nav className="flex-1 p-3 space-y-0.5 overflow-y-auto min-h-0">
+          {nav.map(({ to, label, icon }) => {
+            const active = location.pathname === to;
+            return (
+              <Link key={to} to={to} onClick={() => setOpen(false)}
+                className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all duration-150 ${
+                  active
+                    ? 'bg-gold-500 text-green-950 font-bold shadow-gold'
+                    : 'text-green-200 hover:bg-green-800/60 hover:text-white'
+                }`}>
+                <span className="text-base flex-shrink-0">{icon}</span>
+                <span className="truncate">{label}</span>
+              </Link>
+            );
+          })}
+        </nav>
+
+        <div className="p-3 border-t border-green-800/50 space-y-0.5 flex-shrink-0">
+          <Link to="/" className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-green-400 hover:bg-green-800/60 hover:text-white transition-all">
+            <span className="text-base flex-shrink-0">🌐</span>
+            <span>Site public</span>
+          </Link>
+          <button onClick={handleLogout} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-red-400 hover:bg-red-900/30 hover:text-red-300 transition-all">
+            <span className="text-base flex-shrink-0">🚪</span>
+            <span>Déconnexion</span>
+          </button>
+        </div>
+      </aside>
+
+      {/* Contenu principal */}
       <div className="flex-1 flex flex-col overflow-hidden min-w-0">
         <header className="bg-white border-b border-gray-100 px-4 md:px-8 py-4 flex items-center justify-between flex-shrink-0 shadow-sm z-10">
           <div className="flex items-center gap-3">
             <button
-              onClick={() => setSidebarOpen(true)}
+              onClick={() => setOpen(true)}
               className="md:hidden p-2 rounded-xl text-green-800 hover:bg-green-50 transition-colors"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
