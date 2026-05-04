@@ -18,6 +18,9 @@ app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
 
 const allowedOrigins = [
   process.env.FRONTEND_URL || 'http://localhost:5173',
+  'https://aegl87.fr',
+  'https://www.aegl87.fr',
+  'https://aegl.vercel.app',
   'http://localhost:5173',
   'http://localhost:5174',
   'http://localhost:5175',
