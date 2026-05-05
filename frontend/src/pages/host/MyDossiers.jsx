@@ -3,6 +3,19 @@ import MemberLayout from '../../components/members/MemberLayout';
 import { StatusBadge, DossierStepper } from '../../components/members/SharedComponents';
 import api from '../../api/client';
 
+const downloadPDF = async (dossierId, nom) => {
+  const base = import.meta.env.VITE_API_URL || '/api';
+  const token = localStorage.getItem('aegl_token');
+  const res = await fetch(`${base}/pdf/${dossierId}`, { headers: { Authorization: `Bearer ${token}` } });
+  if (!res.ok) return alert('PDF non disponible');
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = `Attestation_AEGL_${nom}.pdf`;
+  document.body.appendChild(a); a.click();
+  document.body.removeChild(a); URL.revokeObjectURL(url);
+};
+
 export default function HostMyDossiers() {
   const [dossiers, setDossiers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -141,9 +154,9 @@ export default function HostMyDossiers() {
               {d.status === 'confirmed' && (
                 <div className="mt-4 bg-green-50 border border-green-200 rounded-xl p-3 flex items-center justify-between">
                   <p className="text-green-800 text-sm font-medium">🎉 Dossier clôturé — attestation envoyée à l'étudiant</p>
-                  <a href={`/api/pdf/${d.id}`} target="_blank" rel="noreferrer" className="text-green-700 text-xs font-medium hover:underline">
+                  <button onClick={() => downloadPDF(d.id, `${d.student.firstName}_${d.student.lastName}`)} className="text-green-700 text-xs font-medium hover:underline">
                     Voir le PDF →
-                  </a>
+                  </button>
                 </div>
               )}
             </div>

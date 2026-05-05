@@ -67,7 +67,31 @@ export default function AdminDossierDetail() {
     }
   };
 
-  const downloadPDF = () => window.open(`/api/pdf/${id}`, '_blank');
+  const downloadPDF = async () => {
+    try {
+      const base = import.meta.env.VITE_API_URL || '/api';
+      const token = localStorage.getItem('aegl_token');
+      const res = await fetch(`${base}/pdf/${id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        showToast(data.error || 'PDF non disponible', 'error');
+        return;
+      }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `Attestation_AEGL_${id}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch {
+      showToast('Erreur lors du téléchargement', 'error');
+    }
+  };
 
   if (loading) return (
     <MemberLayout title="Dossier">

@@ -3,6 +3,19 @@ import MemberLayout from '../../components/members/MemberLayout';
 import { StatusBadge } from '../../components/members/SharedComponents';
 import api from '../../api/client';
 
+const downloadPDF = async (dossierId, nom) => {
+  const base = import.meta.env.VITE_API_URL || '/api';
+  const token = localStorage.getItem('aegl_token');
+  const res = await fetch(`${base}/pdf/${dossierId}`, { headers: { Authorization: `Bearer ${token}` } });
+  if (!res.ok) return alert('PDF non disponible');
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = `Attestation_AEGL_${nom}.pdf`;
+  document.body.appendChild(a); a.click();
+  document.body.removeChild(a); URL.revokeObjectURL(url);
+};
+
 export default function HostAttestations() {
   const [dossiers, setDossiers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -40,13 +53,12 @@ export default function HostAttestations() {
                 <p className="text-gray-400 text-sm">{d.student.email}</p>
                 {d.closedAt && <p className="text-gray-400 text-xs mt-0.5">Clôturé le {new Date(d.closedAt).toLocaleDateString('fr-FR')}</p>}
               </div>
-              <a
-                href={`/api/pdf/${d.id}`}
-                target="_blank" rel="noreferrer"
+              <button
+                onClick={() => downloadPDF(d.id, `${d.student.firstName}_${d.student.lastName}`)}
                 className="btn-primary text-sm flex-shrink-0"
               >
                 ⬇ Télécharger PDF
-              </a>
+              </button>
             </div>
           ))
         )}
