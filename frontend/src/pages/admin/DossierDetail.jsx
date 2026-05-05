@@ -13,8 +13,10 @@ export default function AdminDossierDetail() {
   const [actionLoading, setActionLoading] = useState('');
   const [selectedHost, setSelectedHost] = useState('');
   const [rejectReason, setRejectReason] = useState('');
+  const [studentRejectReason, setStudentRejectReason] = useState('');
   const [notes, setNotes] = useState('');
   const [showRejectModal, setShowRejectModal] = useState(false);
+  const [showStudentRejectModal, setShowStudentRejectModal] = useState(false);
   const [toast, setToast] = useState(null);
 
   const showToast = (msg, type = 'success') => {
@@ -44,20 +46,25 @@ export default function AdminDossierDetail() {
     setActionLoading(type);
     try {
       let res;
-      if (type === 'assign')   res = await api.patch(`/dossiers/${id}/assign-host`, { hostId: selectedHost });
-      if (type === 'revoke')   res = await api.patch(`/dossiers/${id}/revoke-host`);
-      if (type === 'validate') res = await api.patch(`/dossiers/${id}/validate-docs`);
-      if (type === 'reject')   res = await api.patch(`/dossiers/${id}/reject-docs`, { reason: rejectReason });
-      if (type === 'close')    res = await api.patch(`/dossiers/${id}/close`);
-      if (type === 'notes')    res = await api.patch(`/dossiers/${id}/notes`, { adminNotes: notes });
+      if (type === 'assign')         res = await api.patch(`/dossiers/${id}/assign-host`, { hostId: selectedHost });
+      if (type === 'revoke')         res = await api.patch(`/dossiers/${id}/revoke-host`);
+      if (type === 'verify-student') res = await api.patch(`/dossiers/${id}/verify-student-docs`);
+      if (type === 'reject-student') res = await api.patch(`/dossiers/${id}/reject-student-docs`, { reason: studentRejectReason });
+      if (type === 'validate')       res = await api.patch(`/dossiers/${id}/validate-docs`);
+      if (type === 'reject')         res = await api.patch(`/dossiers/${id}/reject-docs`, { reason: rejectReason });
+      if (type === 'close')          res = await api.patch(`/dossiers/${id}/close`);
+      if (type === 'notes')          res = await api.patch(`/dossiers/${id}/notes`, { adminNotes: notes });
       if (res?.data?.dossier) setDossier(res.data.dossier);
       setShowRejectModal(false);
+      setShowStudentRejectModal(false);
       showToast(
-        type === 'assign'   ? 'Hébergeur assigné avec succès' :
-        type === 'revoke'   ? 'Hébergeur révoqué' :
-        type === 'validate' ? 'Documents validés' :
-        type === 'reject'   ? 'Documents rejetés' :
-        type === 'close'    ? 'Dossier clôturé — attestation générée et email envoyé !' :
+        type === 'assign'         ? 'Hébergeur assigné avec succès' :
+        type === 'revoke'         ? 'Hébergeur révoqué' :
+        type === 'verify-student' ? 'Documents étudiant validés' :
+        type === 'reject-student' ? 'Documents étudiant rejetés' :
+        type === 'validate'       ? 'Documents validés' :
+        type === 'reject'         ? 'Documents rejetés' :
+        type === 'close'          ? 'Dossier clôturé — attestation générée et email envoyé !' :
         'Notes sauvegardées'
       );
     } catch (err) {
@@ -119,6 +126,28 @@ export default function AdminDossierDetail() {
           toast.type === 'success' ? 'bg-green-800 text-white' : 'bg-red-600 text-white'
         }`}>
           {toast.msg}
+        </div>
+      )}
+
+      {/* Modal rejet documents étudiant */}
+      {showStudentRejectModal && (
+        <div className="fixed inset-0 z-40 bg-black/40 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-md animate-slide-up">
+            <h3 className="font-heading text-xl text-gray-900 mb-3">Rejeter les documents étudiant</h3>
+            <p className="text-gray-500 text-sm mb-4">Indiquez la raison du rejet. L'étudiant en sera informé.</p>
+            <textarea
+              rows={3} value={studentRejectReason}
+              onChange={e => setStudentRejectReason(e.target.value)}
+              placeholder="Ex : Le passeport est illisible, veuillez resoumettre..."
+              className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-red-500 resize-none mb-4"
+            />
+            <div className="flex gap-3">
+              <button onClick={() => setShowStudentRejectModal(false)} className="flex-1 btn-secondary text-sm">Annuler</button>
+              <button onClick={() => action('reject-student')} disabled={actionLoading === 'reject-student'} className="flex-1 btn-danger text-sm">
+                {actionLoading === 'reject-student' ? '...' : 'Confirmer le rejet'}
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
@@ -209,7 +238,12 @@ export default function AdminDossierDetail() {
             ) : (
               <div>
                 <p className="text-gray-400 text-sm mb-3 italic">Aucun hébergeur assigné</p>
-                {dossier.status === 'pending' && (
+                {dossier.status === 'pending' && !dossier.studentDocsVerified && (
+                  <p className="text-amber-600 text-xs bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+                    ⏳ Vérifiez d'abord les documents de l'étudiant pour pouvoir assigner un hébergeur.
+                  </p>
+                )}
+                {dossier.status === 'pending' && dossier.studentDocsVerified && (
                   <div className="space-y-3">
                     <select
                       value={selectedHost}
@@ -235,6 +269,50 @@ export default function AdminDossierDetail() {
               </div>
             )}
           </div>
+        </div>
+
+        {/* Documents étudiant */}
+        <div className="card">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-semibold text-gray-800">🎓 Documents de l'étudiant</h3>
+            {dossier.studentDocsVerified
+              ? <span className="text-xs font-semibold text-green-700 bg-green-100 px-3 py-1 rounded-full">✔ Vérifiés</span>
+              : <span className="text-xs font-semibold text-amber-700 bg-amber-100 px-3 py-1 rounded-full">⏳ En attente de vérification</span>
+            }
+          </div>
+          <div className="grid sm:grid-cols-3 gap-4">
+            {[
+              { label: '🛂 Passeport', path: dossier.passportPath },
+              { label: '📅 RDV Ambassade', path: dossier.embassyProofPath },
+              { label: '📄 Accord d\'inscription', path: dossier.universityNoticePath },
+            ].map(({ label, path }) => path ? (
+              <a key={label} href={path} target="_blank" rel="noreferrer"
+                className="border border-gray-200 rounded-xl p-4 hover:border-green-400 hover:bg-green-50 transition-all group">
+                <p className="text-sm font-medium text-gray-800 mb-1">{label}</p>
+                <p className="text-xs text-green-700 group-hover:underline">Voir le document →</p>
+              </a>
+            ) : (
+              <div key={label} className="border border-dashed border-gray-200 rounded-xl p-4 opacity-40">
+                <p className="text-sm text-gray-500">{label}</p>
+                <p className="text-xs text-gray-400">Non fourni</p>
+              </div>
+            ))}
+          </div>
+          {dossier.studentDocsRejectedReason && !dossier.studentDocsVerified && (
+            <div className="mt-3 bg-red-50 border border-red-200 rounded-xl p-3">
+              <p className="text-red-700 text-sm">❌ Motif de rejet : {dossier.studentDocsRejectedReason}</p>
+            </div>
+          )}
+          {!dossier.studentDocsVerified && dossier.status === 'pending' && (
+            <div className="flex gap-3 mt-4 pt-4 border-t border-gray-100">
+              <button onClick={() => action('verify-student')} disabled={!!actionLoading} className="btn-primary flex-1 justify-center text-sm">
+                {actionLoading === 'verify-student' ? '...' : '✅ Valider les documents'}
+              </button>
+              <button onClick={() => setShowStudentRejectModal(true)} className="btn-danger flex-1 text-sm">
+                ❌ Rejeter les documents
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Documents hébergeur */}

@@ -62,17 +62,21 @@ model User {
 }
 
 model Dossier {
-  id                  String        @id @default(uuid())
-  studentId           String
-  hostId              String?
-  status              DossierStatus @default(pending)
-  universityNoticePath String?
-  adminNotes          String?
-  pdfVariant          Int?
-  hostAddress         String?
-  closedAt            DateTime?
-  createdAt           DateTime      @default(now())
-  updatedAt           DateTime      @updatedAt
+  id                        String        @id @default(uuid())
+  studentId                 String
+  hostId                    String?
+  status                    DossierStatus @default(pending)
+  universityNoticePath      String?
+  passportPath              String?
+  embassyProofPath          String?
+  studentDocsVerified       Boolean       @default(false)
+  studentDocsRejectedReason String?
+  adminNotes                String?
+  pdfVariant                Int?
+  hostAddress               String?
+  closedAt                  DateTime?
+  createdAt                 DateTime      @default(now())
+  updatedAt                 DateTime      @updatedAt
 
   student      User           @relation("StudentDossiers", fields: [studentId], references: [id])
   host         User?          @relation("HostDossiers", fields: [hostId], references: [id])

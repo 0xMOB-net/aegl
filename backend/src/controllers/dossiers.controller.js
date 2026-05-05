@@ -10,8 +10,13 @@ const dossierSelect = {
   id: true,
   status: true,
   universityNoticePath: true,
+  passportPath: true,
+  embassyProofPath: true,
+  studentDocsVerified: true,
+  studentDocsRejectedReason: true,
   adminNotes: true,
   pdfVariant: true,
+  hostAddress: true,
   closedAt: true,
   createdAt: true,
   updatedAt: true,
@@ -89,14 +94,24 @@ const create = async (req, res) => {
       if (existing) return res.status(409).json({ error: 'Vous avez déjà un dossier en cours' });
     }
 
-    let universityNoticePath = null;
-    if (req.file) {
-      const result = await uploadToCloudinary(req.file.buffer, { folder: 'aegl/notices' });
-      universityNoticePath = result.secure_url;
+    const uploadFile = async (fileArr, folder) => {
+      if (!fileArr?.[0]) return null;
+      const r = await uploadToCloudinary(fileArr[0].buffer, { folder });
+      return r.secure_url;
+    };
+
+    const [universityNoticePath, passportPath, embassyProofPath] = await Promise.all([
+      uploadFile(req.files?.universityNotice, 'aegl/notices'),
+      uploadFile(req.files?.passport, 'aegl/student-docs'),
+      uploadFile(req.files?.embassyProof, 'aegl/student-docs'),
+    ]);
+
+    if (!passportPath || !embassyProofPath) {
+      return res.status(400).json({ error: 'Le passeport et la preuve de RDV à l\'ambassade sont obligatoires' });
     }
 
     const dossier = await prisma.dossier.create({
-      data: { studentId, universityNoticePath },
+      data: { studentId, universityNoticePath, passportPath, embassyProofPath },
       select: dossierSelect,
     });
     await logActivity(user.id, 'create_dossier', { dossierId: dossier.id });
@@ -121,6 +136,9 @@ const assignHost = async (req, res) => {
     if (!dossier) return res.status(404).json({ error: 'Dossier introuvable' });
     if (dossier.status !== 'pending') {
       return res.status(400).json({ error: 'Ce dossier ne peut pas recevoir d\'hébergeur dans son état actuel' });
+    }
+    if (!dossier.studentDocsVerified) {
+      return res.status(400).json({ error: 'Les documents de l\'étudiant doivent être vérifiés avant d\'assigner un hébergeur' });
     }
 
     const updated = await prisma.dossier.update({
@@ -262,6 +280,35 @@ const stats = async (req, res) => {
   }
 };
 
+const verifyStudentDocs = async (req, res) => {
+  try {
+    const updated = await prisma.dossier.update({
+      where: { id: req.params.id },
+      data: { studentDocsVerified: true, studentDocsRejectedReason: null },
+      select: dossierSelect,
+    });
+    await logActivity(req.user.id, 'verify_student_docs', { dossierId: req.params.id });
+    res.json({ dossier: updated });
+  } catch (err) {
+    res.status(500).json({ error: 'Erreur serveur' });
+  }
+};
+
+const rejectStudentDocs = async (req, res) => {
+  try {
+    const { reason } = req.body;
+    const updated = await prisma.dossier.update({
+      where: { id: req.params.id },
+      data: { studentDocsVerified: false, studentDocsRejectedReason: reason || 'Documents non conformes' },
+      select: dossierSelect,
+    });
+    await logActivity(req.user.id, 'reject_student_docs', { dossierId: req.params.id });
+    res.json({ dossier: updated });
+  } catch (err) {
+    res.status(500).json({ error: 'Erreur serveur' });
+  }
+};
+
 const remove = async (req, res) => {
   try {
     const dossier = await prisma.dossier.findUnique({ where: { id: req.params.id } });
@@ -275,4 +322,4 @@ const remove = async (req, res) => {
   }
 };
 
-module.exports = { list, getOne, create, assignHost, revokeHost, validateDocs, rejectDocs, close, updateNotes, stats, remove };
+module.exports = { list, getOne, create, assignHost, revokeHost, validateDocs, rejectDocs, close, updateNotes, stats, remove, verifyStudentDocs, rejectStudentDocs };

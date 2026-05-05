@@ -9,9 +9,15 @@ router.use(authenticate);
 router.get('/stats', requireRole('admin'), ctrl.stats);
 router.get('/', ctrl.list);
 router.get('/:id', ctrl.getOne);
-router.post('/', upload.single('universityNotice'), ctrl.create);
+router.post('/', upload.fields([
+  { name: 'universityNotice', maxCount: 1 },
+  { name: 'passport', maxCount: 1 },
+  { name: 'embassyProof', maxCount: 1 },
+]), ctrl.create);
 router.patch('/:id/assign-host', requireRole('admin'), ctrl.assignHost);
 router.patch('/:id/revoke-host', requireRole('admin'), ctrl.revokeHost);
+router.patch('/:id/verify-student-docs', requireRole('admin'), ctrl.verifyStudentDocs);
+router.patch('/:id/reject-student-docs', requireRole('admin'), ctrl.rejectStudentDocs);
 router.patch('/:id/validate-docs', requireRole('admin'), ctrl.validateDocs);
 router.patch('/:id/reject-docs', requireRole('admin'), ctrl.rejectDocs);
 router.patch('/:id/close', requireRole('admin'), ctrl.close);

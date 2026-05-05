@@ -10,6 +10,8 @@ export default function StudentMyDossier() {
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
   const [noticFile, setNoticeFile] = useState(null);
+  const [passportFile, setPassportFile] = useState(null);
+  const [embassyFile, setEmbassyFile] = useState(null);
   const [showCreate, setShowCreate] = useState(false);
   const [toast, setToast] = useState(null);
   const [downloading, setDownloading] = useState(false);
@@ -44,8 +46,15 @@ export default function StudentMyDossier() {
     e.preventDefault();
     setCreating(true);
     try {
+      if (!passportFile || !embassyFile) {
+        showToast('Le passeport et la preuve de RDV ambassade sont obligatoires', 'error');
+        setCreating(false);
+        return;
+      }
       const fd = new FormData();
       if (noticFile) fd.append('universityNotice', noticFile);
+      fd.append('passport', passportFile);
+      fd.append('embassyProof', embassyFile);
       const res = await api.post('/dossiers', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
       setDossier(res.data.dossier);
       setShowCreate(false);
@@ -56,10 +65,14 @@ export default function StudentMyDossier() {
   };
 
   const statusMessages = {
-    pending: {
-      title: 'Votre dossier est en attente',
-      desc: 'Le Bureau AEGL va vous assigner un hébergeur bénévole. Vous serez notifié(e) dès qu\'un hébergeur est disponible.',
-      icon: '⏳', color: 'bg-amber-50 border-amber-200 text-amber-800',
+    pending: dossier?.studentDocsVerified ? {
+      title: 'Documents vérifiés — en attente d\'hébergeur',
+      desc: 'Vos documents ont été validés. Le Bureau AEGL va vous assigner un hébergeur bénévole.',
+      icon: '✅', color: 'bg-green-50 border-green-200 text-green-800',
+    } : {
+      title: 'Documents en cours de vérification',
+      desc: 'Le Bureau AEGL vérifie vos documents (passeport et RDV ambassade). Vous serez notifié(e) du résultat.',
+      icon: '🔍', color: 'bg-amber-50 border-amber-200 text-amber-800',
     },
     host_assigned: {
       title: 'Un hébergeur vous a été assigné !',
@@ -100,28 +113,26 @@ export default function StudentMyDossier() {
               <p className="text-gray-500 text-sm mt-1">Déposez votre avis d'inscription universitaire pour démarrer</p>
             </div>
             <form onSubmit={handleCreate} className="p-6 space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">📄 Avis d'inscription universitaire (optionnel)</label>
-                <div className={`border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition-all ${noticFile ? 'border-green-400 bg-green-50' : 'border-gray-200 hover:border-green-300'}`}>
-                  <input type="file" accept=".pdf,.jpg,.jpeg,.png" id="notice-file" className="hidden"
-                    onChange={e => setNoticeFile(e.target.files[0])} />
-                  <label htmlFor="notice-file" className="cursor-pointer">
-                    {noticFile ? (
-                      <div>
-                        <p className="text-green-700 font-medium text-sm">{noticFile.name}</p>
-                        <p className="text-green-500 text-xs">Cliquer pour changer</p>
-                      </div>
-                    ) : (
-                      <div>
-                        <p className="text-4xl mb-2">📤</p>
-                        <p className="text-gray-500 text-sm">Cliquez pour choisir un fichier</p>
-                        <p className="text-gray-300 text-xs mt-1">PDF, JPG, PNG</p>
-                      </div>
-                    )}
-                  </label>
+              {[
+                { id: 'passport-file', label: '🛂 Passeport *', file: passportFile, setter: setPassportFile, required: true },
+                { id: 'embassy-file', label: '📅 Preuve de RDV à l\'ambassade *', file: embassyFile, setter: setEmbassyFile, required: true },
+                { id: 'notice-file', label: '📄 Accord préalable d\'inscription universitaire (optionnel)', file: noticFile, setter: setNoticeFile, required: false },
+              ].map(({ id, label, file, setter, required }) => (
+                <div key={id}>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">{label}</label>
+                  <div className={`border-2 border-dashed rounded-xl p-4 text-center cursor-pointer transition-all ${file ? 'border-green-400 bg-green-50' : required ? 'border-red-200 hover:border-green-300' : 'border-gray-200 hover:border-green-300'}`}>
+                    <input type="file" accept=".pdf,.jpg,.jpeg,.png" id={id} className="hidden"
+                      onChange={e => setter(e.target.files[0])} />
+                    <label htmlFor={id} className="cursor-pointer">
+                      {file ? (
+                        <div><p className="text-green-700 font-medium text-sm">{file.name}</p><p className="text-green-500 text-xs">Cliquer pour changer</p></div>
+                      ) : (
+                        <div><p className="text-gray-500 text-sm">Cliquez pour choisir un fichier</p><p className="text-gray-300 text-xs mt-1">PDF, JPG, PNG</p></div>
+                      )}
+                    </label>
+                  </div>
                 </div>
-                <p className="text-gray-400 text-xs mt-1">Vous pouvez créer votre dossier sans ce document et l'ajouter plus tard.</p>
-              </div>
+              ))}
               <div className="flex gap-3 pt-2">
                 <button type="button" onClick={() => setShowCreate(false)} className="flex-1 btn-secondary text-sm">Annuler</button>
                 <button type="submit" disabled={creating} className="flex-1 btn-primary text-sm">
@@ -187,6 +198,15 @@ export default function StudentMyDossier() {
                     <p className="text-gray-400 text-sm">{dossier.host.email}</p>
                   </div>
                 </div>
+              </div>
+            )}
+
+            {/* Rejet documents étudiant */}
+            {dossier.studentDocsRejectedReason && !dossier.studentDocsVerified && (
+              <div className="bg-red-50 border border-red-200 rounded-2xl p-5">
+                <h3 className="font-semibold text-red-800 mb-2">❌ Documents refusés</h3>
+                <p className="text-red-700 text-sm">{dossier.studentDocsRejectedReason}</p>
+                <p className="text-red-500 text-xs mt-2">Contactez l'administration pour plus d'informations.</p>
               </div>
             )}
 
