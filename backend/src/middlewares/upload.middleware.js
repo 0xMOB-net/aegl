@@ -11,7 +11,7 @@ cloudinary.config({
 const uploadToCloudinary = (buffer, options = {}) => {
   return new Promise((resolve, reject) => {
     const stream = cloudinary.uploader.upload_stream(
-      { folder: 'aegl', resource_type: 'auto', ...options },
+      { folder: 'aegl', resource_type: 'auto', type: 'upload', access_mode: 'public', ...options },
       (err, result) => { if (err) reject(err); else resolve(result); }
     );
     Readable.from(buffer).pipe(stream);
