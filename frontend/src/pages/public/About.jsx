@@ -97,10 +97,16 @@ const bureau = [
 ];
 
 const rencontres = [
-  '/images/groupe.jpg',
-  'https://images.unsplash.com/photo-1511632765486-a01980e01a18?w=600&q=80',
-  'https://images.unsplash.com/photo-1528605105345-5344ea20e269?w=600&q=80',
-  'https://images.unsplash.com/photo-1491438590914-bc09fcaaf77a?w=600&q=80',
+  '/images/groupe/groupe.jpg',
+  '/images/groupe/rencontre1.jpg',
+  '/images/groupe/rencontre2.jpg',
+  '/images/groupe/rencontre3.jpg',
+  '/images/groupe/rencontre4.jpg',
+  '/images/groupe/rencontre5.jpg',
+  '/images/groupe/rencontre6.jpg',
+  '/images/groupe/rencontre7.jpg',
+  '/images/groupe/rencontre8.jpg',
+  '/images/groupe/rencontre9.jpg',
 ];
 
 export default function About() {
@@ -245,7 +251,7 @@ export default function About() {
             <h2 className="font-heading text-4xl text-green-950">Nos rencontres & événements</h2>
             <p className="text-gray-500 text-sm mt-3 max-w-lg mx-auto">La communauté AEGL se retrouve régulièrement pour célébrer, s'entraider et partager.</p>
           </div>
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 rounded-3xl overflow-hidden">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 rounded-3xl overflow-hidden">
             {rencontres.map((src, i) => (
               <div key={i} className="aspect-square overflow-hidden group relative">
                 <img src={src} alt={`AEGL rencontre ${i+1}`}
