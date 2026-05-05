@@ -1,7 +1,7 @@
 const { PrismaClient } = require('@prisma/client');
 const { logActivity } = require('../services/activity.service');
 const { sendDossierConfirmedEmail } = require('../services/email.service');
-const { generateAttestation } = require('../services/pdf.service');
+const { generateAttestationBuffer } = require('../services/pdf.service');
 
 const prisma = new PrismaClient();
 
@@ -208,7 +208,7 @@ const close = async (req, res) => {
       return res.status(400).json({ error: 'Les documents doivent être vérifiés avant clôture' });
     }
 
-    const pdfPath = await generateAttestation(dossier);
+    const pdfBuffer = await generateAttestationBuffer(dossier);
 
     const updated = await prisma.dossier.update({
       where: { id: req.params.id },
@@ -216,9 +216,9 @@ const close = async (req, res) => {
       select: dossierSelect,
     });
 
-    await sendDossierConfirmedEmail(dossier.student, pdfPath);
+    await sendDossierConfirmedEmail(dossier.student, pdfBuffer);
     await logActivity(req.user.id, 'close_dossier', { dossierId: req.params.id });
-    res.json({ dossier: updated, pdfPath });
+    res.json({ dossier: updated });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Erreur lors de la clôture du dossier' });

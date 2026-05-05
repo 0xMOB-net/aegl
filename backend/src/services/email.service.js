@@ -1,5 +1,4 @@
 const nodemailer = require('nodemailer');
-const path = require('path');
 
 const createTransporter = () =>
   nodemailer.createTransport({
@@ -13,10 +12,9 @@ const createTransporter = () =>
     tls: { rejectUnauthorized: false },
   });
 
-const sendDossierConfirmedEmail = async (student, pdfPath) => {
+const sendDossierConfirmedEmail = async (student, pdfBuffer) => {
   const transporter = createTransporter();
   const fullName = `${student.firstName} ${student.lastName}`;
-  const attachmentPath = path.resolve(process.env.PDF_OUTPUT_DIR || './pdfs', path.basename(pdfPath));
 
   const htmlContent = `
 <!DOCTYPE html>
@@ -74,7 +72,7 @@ const sendDossierConfirmedEmail = async (student, pdfPath) => {
     attachments: [
       {
         filename: `Attestation_AEGL_${student.lastName}.pdf`,
-        path: attachmentPath,
+        content: pdfBuffer,
         contentType: 'application/pdf',
       },
     ],

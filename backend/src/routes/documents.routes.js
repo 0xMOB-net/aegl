@@ -3,7 +3,6 @@ const { authenticate } = require('../middlewares/auth.middleware');
 const { requireRole } = require('../middlewares/role.middleware');
 const { upload } = require('../middlewares/upload.middleware');
 const { PrismaClient } = require('@prisma/client');
-const { generateAttestation } = require('../services/pdf.service');
 const { logActivity } = require('../services/activity.service');
 
 const prisma = new PrismaClient();
@@ -49,10 +48,8 @@ router.post('/:dossierId', requireRole('host'), upload.fields([
       include: { student: true, host: true, hostDocuments: true },
     });
 
-    const pdfPath = await generateAttestation({ ...updatedDossier, hostAddress: address });
-
     await logActivity(req.user.id, 'upload_documents', { dossierId, address });
-    res.json({ message: 'Documents soumis avec succès', pdfPath, dossier: updatedDossier });
+    res.json({ message: 'Documents soumis avec succès', dossier: updatedDossier });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Erreur lors du dépôt des documents' });
