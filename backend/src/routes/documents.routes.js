@@ -1,7 +1,7 @@
 const router = require('express').Router();
 const { authenticate } = require('../middlewares/auth.middleware');
 const { requireRole } = require('../middlewares/role.middleware');
-const { upload } = require('../middlewares/upload.middleware');
+const { upload, uploadToCloudinary } = require('../middlewares/upload.middleware');
 const { PrismaClient } = require('@prisma/client');
 const { logActivity } = require('../services/activity.service');
 
@@ -35,11 +35,16 @@ router.post('/:dossierId', requireRole('host'), upload.fields([
 
     await prisma.hostDocument.deleteMany({ where: { dossierId } });
 
-    const docEntries = Object.entries(files).map(([type, fileArr]) => ({
-      dossierId,
-      docType: type,
-      filePath: `/uploads/${fileArr[0].filename}`,
-    }));
+    const docEntries = await Promise.all(
+      Object.entries(files).map(async ([type, fileArr]) => {
+        const file = fileArr[0];
+        const result = await uploadToCloudinary(file.buffer, {
+          folder: 'aegl/documents',
+          public_id: `${dossierId}_${type}_${Date.now()}`,
+        });
+        return { dossierId, docType: type, filePath: result.secure_url };
+      })
+    );
     await prisma.hostDocument.createMany({ data: docEntries });
 
     const updatedDossier = await prisma.dossier.update({

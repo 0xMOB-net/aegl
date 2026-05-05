@@ -176,9 +176,15 @@ export default function AdminDossierDetail() {
               <div className="flex justify-between"><dt className="text-gray-400">Dossier créé le</dt><dd className="font-medium">{new Date(dossier.createdAt).toLocaleDateString('fr-FR')}</dd></div>
               {dossier.universityNoticePath && (
                 <div className="pt-2 border-t border-gray-100">
-                  <a href={dossier.universityNoticePath} target="_blank" rel="noreferrer" className="text-green-700 text-xs font-medium hover:underline">
-                    📄 Voir l'avis d'inscription universitaire
-                  </a>
+                  {(() => {
+                    const backendBase = (import.meta.env.VITE_API_URL || '/api').replace(/\/api$/, '');
+                    const url = dossier.universityNoticePath.startsWith('http') ? dossier.universityNoticePath : `${backendBase}${dossier.universityNoticePath}`;
+                    return (
+                      <a href={url} target="_blank" rel="noreferrer" className="text-green-700 text-xs font-medium hover:underline">
+                        📄 Voir l'avis d'inscription universitaire
+                      </a>
+                    );
+                  })()}
                 </div>
               )}
             </dl>
@@ -239,7 +245,7 @@ export default function AdminDossierDetail() {
               {dossier.hostDocuments.map(doc => {
                 const labels = { bail: '📋 Contrat de bail', energy: '⚡ Contrat d\'énergie', identity: '🪪 Pièce d\'identité' };
                 const backendBase = (import.meta.env.VITE_API_URL || '/api').replace(/\/api$/, '');
-                const docUrl = `${backendBase}${doc.filePath}`;
+                const docUrl = doc.filePath.startsWith('http') ? doc.filePath : `${backendBase}${doc.filePath}`;
                 return (
                   <a key={doc.id} href={docUrl} target="_blank" rel="noreferrer"
                     className="border border-gray-200 rounded-xl p-4 hover:border-green-400 hover:bg-green-50 transition-all group">

@@ -2,6 +2,7 @@ const { PrismaClient } = require('@prisma/client');
 const { logActivity } = require('../services/activity.service');
 const { sendDossierConfirmedEmail } = require('../services/email.service');
 const { generateAttestationBuffer } = require('../services/pdf.service');
+const { uploadToCloudinary } = require('../middlewares/upload.middleware');
 
 const prisma = new PrismaClient();
 
@@ -88,7 +89,11 @@ const create = async (req, res) => {
       if (existing) return res.status(409).json({ error: 'Vous avez déjà un dossier en cours' });
     }
 
-    const universityNoticePath = req.file ? `/uploads/${req.file.filename}` : null;
+    let universityNoticePath = null;
+    if (req.file) {
+      const result = await uploadToCloudinary(req.file.buffer, { folder: 'aegl/notices' });
+      universityNoticePath = result.secure_url;
+    }
 
     const dossier = await prisma.dossier.create({
       data: { studentId, universityNoticePath },
