@@ -216,7 +216,7 @@ const close = async (req, res) => {
       select: dossierSelect,
     });
 
-    await sendDossierConfirmedEmail(dossier.student, pdfBuffer);
+    await sendDossierConfirmedEmail(dossier.student, pdfBuffer, dossier.hostDocuments || []);
     await logActivity(req.user.id, 'close_dossier', { dossierId: req.params.id });
     res.json({ dossier: updated });
   } catch (err) {

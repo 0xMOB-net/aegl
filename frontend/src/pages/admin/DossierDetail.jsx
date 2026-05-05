@@ -238,8 +238,10 @@ export default function AdminDossierDetail() {
             <div className="grid sm:grid-cols-3 gap-4">
               {dossier.hostDocuments.map(doc => {
                 const labels = { bail: '📋 Contrat de bail', energy: '⚡ Contrat d\'énergie', identity: '🪪 Pièce d\'identité' };
+                const backendBase = (import.meta.env.VITE_API_URL || '/api').replace(/\/api$/, '');
+                const docUrl = `${backendBase}${doc.filePath}`;
                 return (
-                  <a key={doc.id} href={doc.filePath} target="_blank" rel="noreferrer"
+                  <a key={doc.id} href={docUrl} target="_blank" rel="noreferrer"
                     className="border border-gray-200 rounded-xl p-4 hover:border-green-400 hover:bg-green-50 transition-all group">
                     <p className="text-sm font-medium text-gray-800 mb-1">{labels[doc.docType] || doc.docType}</p>
                     <p className="text-xs text-green-700 group-hover:underline">Voir le document →</p>

@@ -12,9 +12,11 @@ const createTransporter = () =>
     tls: { rejectUnauthorized: false },
   });
 
-const sendDossierConfirmedEmail = async (student, pdfBuffer) => {
+const sendDossierConfirmedEmail = async (student, pdfBuffer, hostDocuments = []) => {
   const transporter = createTransporter();
   const fullName = `${student.firstName} ${student.lastName}`;
+  const backendBase = process.env.RENDER_EXTERNAL_URL || process.env.BACKEND_URL || 'https://aegl-9w4b.onrender.com';
+  const docLabels = { bail: 'Contrat de bail', energy: "Contrat d'énergie", identity: "Pièce d'identité de l'hébergeur" };
 
   const htmlContent = `
 <!DOCTYPE html>
@@ -47,6 +49,11 @@ const sendDossierConfirmedEmail = async (student, pdfBuffer) => {
       <strong>Votre attestation d'hébergement est disponible en pièce jointe de cet email.</strong><br>
       <small>Vous pouvez également la télécharger depuis votre espace membre sur aegl87.fr</small>
     </div>
+    ${hostDocuments.length > 0 ? `
+    <p><strong>Documents de votre hébergeur :</strong></p>
+    <ul style="padding-left:20px;line-height:2">
+      ${hostDocuments.map(doc => `<li><a href="${backendBase}${doc.filePath}" style="color:#1a5c3a">${docLabels[doc.docType] || doc.docType}</a></li>`).join('')}
+    </ul>` : ''}
     <p><strong>Prochaines étapes :</strong></p>
     <div class="steps">
       <div class="step"><div class="step-num">1</div><div>Téléchargez et conservez précieusement votre attestation</div></div>
