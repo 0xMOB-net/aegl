@@ -64,6 +64,12 @@ router.post('/:dossierId', requireRole('host'), upload.fields([
 router.get('/:dossierId', async (req, res) => {
   try {
     const { dossierId } = req.params;
+    const dossier = await prisma.dossier.findUnique({ where: { id: dossierId } });
+    if (!dossier) return res.status(404).json({ error: 'Dossier introuvable' });
+    const isAdmin = req.user.role === 'admin';
+    const isStudent = dossier.studentId === req.user.id;
+    const isHost = dossier.hostId === req.user.id;
+    if (!isAdmin && !isStudent && !isHost) return res.status(403).json({ error: 'Accès refusé' });
     const docs = await prisma.hostDocument.findMany({ where: { dossierId } });
     res.json({ documents: docs });
   } catch (err) {

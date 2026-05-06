@@ -357,7 +357,7 @@ export default function AdminDossierDetail() {
                 <h3 className="font-semibold text-green-900">📄 Attestation PDF</h3>
                 <p className="text-green-700 text-sm mt-1">
                   {dossier.status === 'confirmed'
-                    ? 'Dossier clôturé — attestation envoyée à l\'étudiant'
+                    ? 'Dossier clôturé — notification envoyée, l\'étudiant télécharge depuis son espace'
                     : 'Prévisualisez l\'attestation avant de clôturer'
                   }
                 </p>
@@ -367,7 +367,7 @@ export default function AdminDossierDetail() {
                 {dossier.status === 'documents_verified' && (
                   <button
                     onClick={() => {
-                      if (window.confirm('Clôturer le dossier ? L\'étudiant recevra l\'attestation par email.')) action('close');
+                      if (window.confirm('Clôturer le dossier ? Un email de notification sera envoyé à l\'étudiant pour qu\'il télécharge son attestation depuis son espace membre.')) action('close');
                     }}
                     disabled={actionLoading === 'close'}
                     className="btn-gold text-sm"

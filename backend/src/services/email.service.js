@@ -64,32 +64,40 @@ const sendDossierConfirmedEmail = async (student, pdfBuffer, hostDocuments = [])
 </body>
 </html>`;
 
-  await transporter.sendMail({
-    from: `"${process.env.EMAIL_FROM_NAME || 'AEGL'}" <${process.env.EMAIL_FROM}>`,
-    to: student.email,
-    subject: '✅ Votre attestation d\'hébergement AEGL est prête',
-    html: htmlContent,
-    attachments: [],
-  });
+  try {
+    await transporter.sendMail({
+      from: `"${process.env.EMAIL_FROM_NAME || 'AEGL'}" <${process.env.EMAIL_FROM}>`,
+      to: student.email,
+      subject: '✅ Votre attestation d\'hébergement AEGL est prête',
+      html: htmlContent,
+      attachments: [],
+    });
+  } catch (err) {
+    console.error('Email sending failed (dossierConfirmed):', err.message);
+  }
 };
 
 const sendWelcomeEmail = async (user) => {
   const transporter = createTransporter();
-  await transporter.sendMail({
-    from: `"${process.env.EMAIL_FROM_NAME || 'AEGL'}" <${process.env.EMAIL_FROM}>`,
-    to: user.email,
-    subject: 'Bienvenue dans l\'espace membres AEGL',
-    html: `
-      <div style="font-family:sans-serif;max-width:500px;margin:auto">
-        <h2 style="color:#1a5c3a">Bienvenue, ${user.firstName} !</h2>
-        <p>Votre compte AEGL a été créé avec succès. Vous pouvez maintenant vous connecter à votre espace membre.</p>
-        <a href="${process.env.FRONTEND_URL}/login" style="background:#1a5c3a;color:#FCD116;padding:12px 24px;border-radius:6px;text-decoration:none;display:inline-block">
-          Se connecter
-        </a>
-        <p style="color:#888;font-size:12px;margin-top:20px">AEGL — contact@aegl87.fr</p>
-      </div>
-    `,
-  });
+  try {
+    await transporter.sendMail({
+      from: `"${process.env.EMAIL_FROM_NAME || 'AEGL'}" <${process.env.EMAIL_FROM}>`,
+      to: user.email,
+      subject: 'Bienvenue dans l\'espace membres AEGL',
+      html: `
+        <div style="font-family:sans-serif;max-width:500px;margin:auto">
+          <h2 style="color:#1a5c3a">Bienvenue, ${user.firstName} !</h2>
+          <p>Votre compte AEGL a été créé avec succès. Vous pouvez maintenant vous connecter à votre espace membre.</p>
+          <a href="${process.env.FRONTEND_URL}/login" style="background:#1a5c3a;color:#FCD116;padding:12px 24px;border-radius:6px;text-decoration:none;display:inline-block">
+            Se connecter
+          </a>
+          <p style="color:#888;font-size:12px;margin-top:20px">AEGL — contact@aegl87.fr</p>
+        </div>
+      `,
+    });
+  } catch (err) {
+    console.error('Email sending failed (welcome):', err.message);
+  }
 };
 
 module.exports = { sendDossierConfirmedEmail, sendWelcomeEmail };

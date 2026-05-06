@@ -251,6 +251,8 @@ const close = async (req, res) => {
 const updateNotes = async (req, res) => {
   try {
     const { adminNotes } = req.body;
+    const dossier = await prisma.dossier.findUnique({ where: { id: req.params.id } });
+    if (!dossier) return res.status(404).json({ error: 'Dossier introuvable' });
     const updated = await prisma.dossier.update({
       where: { id: req.params.id },
       data: { adminNotes },

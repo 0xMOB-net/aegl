@@ -144,19 +144,6 @@ export default function Contact() {
                   </div>
                 </a>
 
-                <a href="https://instagram.com" target="_blank" rel="noreferrer" className="flex items-center gap-3 p-3 rounded-xl bg-gray-50 hover:bg-pink-50 transition-colors group">
-                  <div className="w-10 h-10 bg-gradient-to-br from-purple-600 to-pink-600 rounded-xl flex items-center justify-center flex-shrink-0">
-                    <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
-                      <rect x="2" y="2" width="20" height="20" rx="5" ry="5"/>
-                      <path d="M16 11.37A4 4 0 1112.63 8 4 4 0 0116 11.37z"/>
-                      <line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/>
-                    </svg>
-                  </div>
-                  <div>
-                    <p className="text-xs text-gray-400">Instagram</p>
-                    <p className="text-sm font-medium text-pink-700 group-hover:text-pink-600">@aegl_limoges</p>
-                  </div>
-                </a>
               </div>
             </div>
 
