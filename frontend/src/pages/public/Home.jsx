@@ -105,7 +105,7 @@ const ACTIVITES = [
 ];
 
 const GUIDE_LIMOGES = [
-  { emoji: '🚌', titre: 'Transport (TCRM)', texte: 'Bus et tramway à 0,50€ avec la carte étudiant. Navette gratuite Université ↔ Centre-ville.' },
+  { emoji: '🚌', titre: 'Transport (TCRM)', texte: 'Bus à 0,50€ avec la carte étudiant. Navette gratuite Université ↔ Centre-ville.' },
   { emoji: '🏠', titre: 'Logement étudiant', texte: 'CROUS, résidences étudiantes privées, colocation — l\'AEGL vous aide à trouver.' },
   { emoji: '🏥', titre: 'Santé & CPAM', texte: 'Affiliation à la Sécurité Sociale en ligne. Médecin de campus gratuit sur RDV.' },
   { emoji: '🏦', titre: 'Ouvrir un compte', texte: 'Société Générale, BNP, La Banque Postale — l\'attestation AEGL est acceptée partout.' },
