@@ -311,6 +311,45 @@ const rejectStudentDocs = async (req, res) => {
   }
 };
 
+const resubmitStudentDocs = async (req, res) => {
+  try {
+    const { user } = req;
+    const dossier = await prisma.dossier.findUnique({ where: { id: req.params.id } });
+    if (!dossier) return res.status(404).json({ error: 'Dossier introuvable' });
+    if (dossier.studentId !== user.id) return res.status(403).json({ error: 'Accès refusé' });
+    if (dossier.status !== 'pending' || dossier.studentDocsVerified) {
+      return res.status(400).json({ error: 'La re-soumission n\'est possible que si vos documents ont été refusés' });
+    }
+
+    const uploadFile = async (fileArr, folder) => {
+      if (!fileArr?.[0]) return null;
+      const r = await uploadToCloudinary(fileArr[0].buffer, { folder });
+      return r.secure_url;
+    };
+
+    const [universityNoticePath, passportPath, aviPath] = await Promise.all([
+      uploadFile(req.files?.universityNotice, 'aegl/student-docs'),
+      uploadFile(req.files?.passport, 'aegl/student-docs'),
+      uploadFile(req.files?.avi, 'aegl/student-docs'),
+    ]);
+
+    if (!universityNoticePath || !passportPath || !aviPath) {
+      return res.status(400).json({ error: 'Les 3 documents sont obligatoires' });
+    }
+
+    const updated = await prisma.dossier.update({
+      where: { id: req.params.id },
+      data: { universityNoticePath, passportPath, aviPath, studentDocsRejectedReason: null },
+      select: dossierSelect,
+    });
+    await logActivity(user.id, 'resubmit_student_docs', { dossierId: req.params.id });
+    res.json({ dossier: updated });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Erreur lors de la re-soumission' });
+  }
+};
+
 const remove = async (req, res) => {
   try {
     const dossier = await prisma.dossier.findUnique({ where: { id: req.params.id } });
@@ -324,4 +363,4 @@ const remove = async (req, res) => {
   }
 };
 
-module.exports = { list, getOne, create, assignHost, revokeHost, validateDocs, rejectDocs, close, updateNotes, stats, remove, verifyStudentDocs, rejectStudentDocs };
+module.exports = { list, getOne, create, assignHost, revokeHost, validateDocs, rejectDocs, close, updateNotes, stats, remove, verifyStudentDocs, rejectStudentDocs, resubmitStudentDocs };

@@ -18,6 +18,11 @@ router.patch('/:id/assign-host', requireRole('admin'), ctrl.assignHost);
 router.patch('/:id/revoke-host', requireRole('admin'), ctrl.revokeHost);
 router.patch('/:id/verify-student-docs', requireRole('admin'), ctrl.verifyStudentDocs);
 router.patch('/:id/reject-student-docs', requireRole('admin'), ctrl.rejectStudentDocs);
+router.patch('/:id/resubmit-student-docs', upload.fields([
+  { name: 'universityNotice', maxCount: 1 },
+  { name: 'passport', maxCount: 1 },
+  { name: 'avi', maxCount: 1 },
+]), ctrl.resubmitStudentDocs);
 router.patch('/:id/validate-docs', requireRole('admin'), ctrl.validateDocs);
 router.patch('/:id/reject-docs', requireRole('admin'), ctrl.rejectDocs);
 router.patch('/:id/close', requireRole('admin'), ctrl.close);

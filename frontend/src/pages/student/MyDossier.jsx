@@ -13,6 +13,7 @@ export default function StudentMyDossier() {
   const [passportFile, setPassportFile] = useState(null);
   const [aviFile, setAviFile] = useState(null);
   const [showCreate, setShowCreate] = useState(false);
+  const [modalMode, setModalMode] = useState('create');
   const [toast, setToast] = useState(null);
   const [downloading, setDownloading] = useState(false);
 
@@ -42,6 +43,14 @@ export default function StudentMyDossier() {
     }).finally(() => setLoading(false));
   }, []);
 
+  const openModal = (mode) => {
+    setModalMode(mode);
+    setNoticeFile(null);
+    setPassportFile(null);
+    setAviFile(null);
+    setShowCreate(true);
+  };
+
   const handleCreate = async (e) => {
     e.preventDefault();
     setCreating(true);
@@ -55,12 +64,18 @@ export default function StudentMyDossier() {
       fd.append('universityNotice', noticFile);
       fd.append('passport', passportFile);
       fd.append('avi', aviFile);
-      const res = await api.post('/dossiers', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+      let res;
+      if (modalMode === 'resubmit') {
+        res = await api.patch(`/dossiers/${dossier.id}/resubmit-student-docs`, fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+        showToast('Documents re-soumis ! L\'administration va les vérifier à nouveau.');
+      } else {
+        res = await api.post('/dossiers', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+        showToast('Dossier créé avec succès ! L\'administration va traiter votre demande.');
+      }
       setDossier(res.data.dossier);
       setShowCreate(false);
-      showToast('Dossier créé avec succès ! L\'administration va traiter votre demande.');
     } catch (err) {
-      showToast(err.response?.data?.error || 'Erreur lors de la création', 'error');
+      showToast(err.response?.data?.error || 'Erreur lors de l\'envoi', 'error');
     } finally { setCreating(false); }
   };
 
@@ -69,9 +84,13 @@ export default function StudentMyDossier() {
       title: 'Documents vérifiés — en attente d\'hébergeur',
       desc: 'Vos documents ont été validés. Le Bureau AEGL va vous assigner un hébergeur bénévole.',
       icon: '✅', color: 'bg-green-50 border-green-200 text-green-800',
+    } : dossier?.studentDocsRejectedReason ? {
+      title: 'Documents refusés — action requise',
+      desc: 'Vos documents ont été refusés. Consultez le motif ci-dessous et re-soumettez les documents corrigés.',
+      icon: '❌', color: 'bg-red-50 border-red-200 text-red-800',
     } : {
       title: 'Documents en cours de vérification',
-      desc: 'Le Bureau AEGL vérifie vos documents (passeport et RDV ambassade). Vous serez notifié(e) du résultat.',
+      desc: 'Le Bureau AEGL vérifie vos documents. Vous serez notifié(e) du résultat.',
       icon: '🔍', color: 'bg-amber-50 border-amber-200 text-amber-800',
     },
     host_assigned: {
@@ -109,8 +128,14 @@ export default function StudentMyDossier() {
         <div className="fixed inset-0 z-40 bg-black/40 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-md animate-slide-up">
             <div className="p-6 border-b border-gray-100">
-              <h3 className="font-heading text-xl text-green-900">Créer mon dossier</h3>
-              <p className="text-gray-500 text-sm mt-1">3 documents obligatoires : accord préalable, passeport, AVI</p>
+              <h3 className="font-heading text-xl text-green-900">
+                {modalMode === 'resubmit' ? 'Re-soumettre mes documents' : 'Créer mon dossier'}
+              </h3>
+              <p className="text-gray-500 text-sm mt-1">
+                {modalMode === 'resubmit'
+                  ? 'Soumettez à nouveau les 3 documents corrigés pour que l\'administration puisse les vérifier.'
+                  : '3 documents obligatoires : accord préalable, passeport, AVI'}
+              </p>
             </div>
             <form onSubmit={handleCreate} className="p-6 space-y-4">
               {[
@@ -136,7 +161,9 @@ export default function StudentMyDossier() {
               <div className="flex gap-3 pt-2">
                 <button type="button" onClick={() => setShowCreate(false)} className="flex-1 btn-secondary text-sm">Annuler</button>
                 <button type="submit" disabled={creating} className="flex-1 btn-primary text-sm">
-                  {creating ? 'Création...' : '📁 Créer mon dossier'}
+                  {creating
+                    ? (modalMode === 'resubmit' ? 'Envoi...' : 'Création...')
+                    : (modalMode === 'resubmit' ? '📤 Re-soumettre mes documents' : '📁 Créer mon dossier')}
                 </button>
               </div>
             </form>
@@ -156,7 +183,7 @@ export default function StudentMyDossier() {
               Créez votre dossier pour demander une attestation d'hébergement via l'AEGL.
               L'équipe vous assignera un hébergeur bénévole.
             </p>
-            <button onClick={() => setShowCreate(true)} className="btn-primary">
+            <button onClick={() => openModal('create')} className="btn-primary">
               📁 Créer mon dossier →
             </button>
           </div>
@@ -204,9 +231,19 @@ export default function StudentMyDossier() {
             {/* Rejet documents étudiant */}
             {dossier.studentDocsRejectedReason && !dossier.studentDocsVerified && (
               <div className="bg-red-50 border border-red-200 rounded-2xl p-5">
-                <h3 className="font-semibold text-red-800 mb-2">❌ Documents refusés</h3>
-                <p className="text-red-700 text-sm">{dossier.studentDocsRejectedReason}</p>
-                <p className="text-red-500 text-xs mt-2">Contactez l'administration pour plus d'informations.</p>
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <h3 className="font-semibold text-red-800 mb-2">❌ Documents refusés</h3>
+                    <p className="text-red-700 text-sm">{dossier.studentDocsRejectedReason}</p>
+                    <p className="text-red-500 text-xs mt-2">Corrigez les documents mentionnés et soumettez-les à nouveau.</p>
+                  </div>
+                  <button
+                    onClick={() => openModal('resubmit')}
+                    className="flex-shrink-0 btn-primary text-sm whitespace-nowrap"
+                  >
+                    📤 Re-soumettre
+                  </button>
+                </div>
               </div>
             )}
 
