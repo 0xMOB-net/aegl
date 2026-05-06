@@ -282,9 +282,9 @@ export default function AdminDossierDetail() {
           </div>
           <div className="grid sm:grid-cols-3 gap-4">
             {[
+              { label: '📄 Accord préalable d\'inscription', path: dossier.universityNoticePath },
               { label: '🛂 Passeport', path: dossier.passportPath },
-              { label: '📅 RDV Ambassade', path: dossier.embassyProofPath },
-              { label: '📄 Accord d\'inscription', path: dossier.universityNoticePath },
+              { label: '💳 AVI', path: dossier.aviPath },
             ].map(({ label, path }) => path ? (
               <a key={label} href={path} target="_blank" rel="noreferrer"
                 className="border border-gray-200 rounded-xl p-4 hover:border-green-400 hover:bg-green-50 transition-all group">

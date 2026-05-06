@@ -11,7 +11,7 @@ const dossierSelect = {
   status: true,
   universityNoticePath: true,
   passportPath: true,
-  embassyProofPath: true,
+  aviPath: true,
   studentDocsVerified: true,
   studentDocsRejectedReason: true,
   adminNotes: true,
@@ -100,18 +100,18 @@ const create = async (req, res) => {
       return r.secure_url;
     };
 
-    const [universityNoticePath, passportPath, embassyProofPath] = await Promise.all([
-      uploadFile(req.files?.universityNotice, 'aegl/notices'),
+    const [universityNoticePath, passportPath, aviPath] = await Promise.all([
+      uploadFile(req.files?.universityNotice, 'aegl/student-docs'),
       uploadFile(req.files?.passport, 'aegl/student-docs'),
-      uploadFile(req.files?.embassyProof, 'aegl/student-docs'),
+      uploadFile(req.files?.avi, 'aegl/student-docs'),
     ]);
 
-    if (!passportPath || !embassyProofPath) {
-      return res.status(400).json({ error: 'Le passeport et la preuve de RDV à l\'ambassade sont obligatoires' });
+    if (!universityNoticePath || !passportPath || !aviPath) {
+      return res.status(400).json({ error: 'L\'accord préalable, le passeport et l\'AVI sont obligatoires' });
     }
 
     const dossier = await prisma.dossier.create({
-      data: { studentId, universityNoticePath, passportPath, embassyProofPath },
+      data: { studentId, universityNoticePath, passportPath, aviPath },
       select: dossierSelect,
     });
     await logActivity(user.id, 'create_dossier', { dossierId: dossier.id });

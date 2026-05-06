@@ -12,7 +12,7 @@ router.get('/:id', ctrl.getOne);
 router.post('/', upload.fields([
   { name: 'universityNotice', maxCount: 1 },
   { name: 'passport', maxCount: 1 },
-  { name: 'embassyProof', maxCount: 1 },
+  { name: 'avi', maxCount: 1 },
 ]), ctrl.create);
 router.patch('/:id/assign-host', requireRole('admin'), ctrl.assignHost);
 router.patch('/:id/revoke-host', requireRole('admin'), ctrl.revokeHost);

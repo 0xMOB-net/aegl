@@ -15,8 +15,6 @@ const createTransporter = () =>
 const sendDossierConfirmedEmail = async (student, pdfBuffer, hostDocuments = []) => {
   const transporter = createTransporter();
   const fullName = `${student.firstName} ${student.lastName}`;
-  const backendBase = process.env.RENDER_EXTERNAL_URL || process.env.BACKEND_URL || 'https://aegl-9w4b.onrender.com';
-  const docLabels = { bail: 'Contrat de bail', energy: "Contrat d'énergie", identity: "Pièce d'identité de l'hébergeur" };
 
   const htmlContent = `
 <!DOCTYPE html>
@@ -46,19 +44,14 @@ const sendDossierConfirmedEmail = async (student, pdfBuffer, hostDocuments = [])
     <h2>Félicitations, ${fullName} !</h2>
     <p>Nous avons le plaisir de vous informer que votre dossier d'hébergement a été <strong>validé et clôturé</strong> par l'équipe de l'AEGL.</p>
     <div class="highlight">
-      <strong>Votre attestation d'hébergement est disponible en pièce jointe de cet email.</strong><br>
-      <small>Vous pouvez également la télécharger depuis votre espace membre sur aegl87.fr</small>
+      <strong>Vos documents sont prêts et disponibles dans votre espace membre.</strong><br>
+      <small>Connectez-vous sur aegl87.fr pour télécharger votre attestation d'hébergement.</small>
     </div>
-    ${hostDocuments.length > 0 ? `
-    <p><strong>Documents de votre hébergeur :</strong></p>
-    <ul style="padding-left:20px;line-height:2">
-      ${hostDocuments.map(doc => `<li><a href="${backendBase}${doc.filePath}" style="color:#1a5c3a">${docLabels[doc.docType] || doc.docType}</a></li>`).join('')}
-    </ul>` : ''}
     <p><strong>Prochaines étapes :</strong></p>
     <div class="steps">
-      <div class="step"><div class="step-num">1</div><div>Téléchargez et conservez précieusement votre attestation</div></div>
-      <div class="step"><div class="step-num">2</div><div>Présentez-la aux services administratifs de l'Université de Limoges</div></div>
-      <div class="step"><div class="step-num">3</div><div>Confirmez la réception depuis votre espace membre AEGL</div></div>
+      <div class="step"><div class="step-num">1</div><div>Connectez-vous à votre espace membre sur <a href="${process.env.FRONTEND_URL || 'https://aegl87.fr'}/membres" style="color:#1a5c3a">aegl87.fr</a></div></div>
+      <div class="step"><div class="step-num">2</div><div>Téléchargez et conservez précieusement votre attestation d'hébergement</div></div>
+      <div class="step"><div class="step-num">3</div><div>Présentez-la aux services administratifs de l'Université de Limoges</div></div>
     </div>
     <p>L'AEGL reste à votre disposition pour toute question. Nous vous souhaitons pleine réussite dans vos études !</p>
     <p>Cordialement,<br><strong>Le Bureau de l'AEGL</strong></p>
@@ -76,13 +69,7 @@ const sendDossierConfirmedEmail = async (student, pdfBuffer, hostDocuments = [])
     to: student.email,
     subject: '✅ Votre attestation d\'hébergement AEGL est prête',
     html: htmlContent,
-    attachments: [
-      {
-        filename: `Attestation_AEGL_${student.lastName}.pdf`,
-        content: pdfBuffer,
-        contentType: 'application/pdf',
-      },
-    ],
+    attachments: [],
   });
 };
 

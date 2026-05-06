@@ -11,7 +11,7 @@ export default function StudentMyDossier() {
   const [creating, setCreating] = useState(false);
   const [noticFile, setNoticeFile] = useState(null);
   const [passportFile, setPassportFile] = useState(null);
-  const [embassyFile, setEmbassyFile] = useState(null);
+  const [aviFile, setAviFile] = useState(null);
   const [showCreate, setShowCreate] = useState(false);
   const [toast, setToast] = useState(null);
   const [downloading, setDownloading] = useState(false);
@@ -46,15 +46,15 @@ export default function StudentMyDossier() {
     e.preventDefault();
     setCreating(true);
     try {
-      if (!passportFile || !embassyFile) {
-        showToast('Le passeport et la preuve de RDV ambassade sont obligatoires', 'error');
+      if (!noticFile || !passportFile || !aviFile) {
+        showToast('L\'accord préalable, le passeport et l\'AVI sont obligatoires', 'error');
         setCreating(false);
         return;
       }
       const fd = new FormData();
-      if (noticFile) fd.append('universityNotice', noticFile);
+      fd.append('universityNotice', noticFile);
       fd.append('passport', passportFile);
-      fd.append('embassyProof', embassyFile);
+      fd.append('avi', aviFile);
       const res = await api.post('/dossiers', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
       setDossier(res.data.dossier);
       setShowCreate(false);
@@ -110,13 +110,13 @@ export default function StudentMyDossier() {
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-md animate-slide-up">
             <div className="p-6 border-b border-gray-100">
               <h3 className="font-heading text-xl text-green-900">Créer mon dossier</h3>
-              <p className="text-gray-500 text-sm mt-1">Déposez votre avis d'inscription universitaire pour démarrer</p>
+              <p className="text-gray-500 text-sm mt-1">3 documents obligatoires : accord préalable, passeport, AVI</p>
             </div>
             <form onSubmit={handleCreate} className="p-6 space-y-4">
               {[
+                { id: 'notice-file', label: '📄 Accord préalable d\'inscription *', file: noticFile, setter: setNoticeFile, required: true },
                 { id: 'passport-file', label: '🛂 Passeport *', file: passportFile, setter: setPassportFile, required: true },
-                { id: 'embassy-file', label: '📅 Preuve de RDV à l\'ambassade *', file: embassyFile, setter: setEmbassyFile, required: true },
-                { id: 'notice-file', label: '📄 Accord préalable d\'inscription universitaire (optionnel)', file: noticFile, setter: setNoticeFile, required: false },
+                { id: 'avi-file', label: '💳 Attestation de Virement Irrévocable (AVI) *', file: aviFile, setter: setAviFile, required: true },
               ].map(({ id, label, file, setter, required }) => (
                 <div key={id}>
                   <label className="block text-sm font-medium text-gray-700 mb-2">{label}</label>
@@ -226,7 +226,7 @@ export default function StudentMyDossier() {
                     <h3 className="font-semibold text-green-900">📄 Mon attestation d'hébergement</h3>
                     <p className="text-green-700 text-sm mt-1">
                       {dossier.status === 'confirmed'
-                        ? 'Attestation officielle disponible — également envoyée par email'
+                        ? 'Attestation officielle disponible — téléchargez-la ci-dessous'
                         : 'Aperçu disponible en attente de finalisation'}
                     </p>
                   </div>
@@ -271,11 +271,11 @@ export default function StudentMyDossier() {
                 <div className="flex justify-between"><dt className="text-gray-400">N° dossier</dt><dd className="font-mono text-xs font-medium">{dossier.id.substring(0, 8).toUpperCase()}</dd></div>
                 <div className="flex justify-between"><dt className="text-gray-400">Créé le</dt><dd>{new Date(dossier.createdAt).toLocaleDateString('fr-FR')}</dd></div>
                 {dossier.closedAt && <div className="flex justify-between"><dt className="text-gray-400">Clôturé le</dt><dd className="font-medium text-green-700">{new Date(dossier.closedAt).toLocaleDateString('fr-FR')}</dd></div>}
-                {dossier.universityNoticePath && (
-                  <div className="pt-2 border-t border-gray-100">
-                    <a href={dossier.universityNoticePath} target="_blank" rel="noreferrer" className="text-green-700 text-xs font-medium hover:underline">
-                      📄 Mon avis d'inscription →
-                    </a>
+                {(dossier.universityNoticePath || dossier.passportPath || dossier.aviPath) && (
+                  <div className="pt-2 border-t border-gray-100 space-y-1">
+                    {dossier.universityNoticePath && <a href={dossier.universityNoticePath} target="_blank" rel="noreferrer" className="block text-green-700 text-xs font-medium hover:underline">📄 Accord préalable d'inscription →</a>}
+                    {dossier.passportPath && <a href={dossier.passportPath} target="_blank" rel="noreferrer" className="block text-green-700 text-xs font-medium hover:underline">🛂 Passeport →</a>}
+                    {dossier.aviPath && <a href={dossier.aviPath} target="_blank" rel="noreferrer" className="block text-green-700 text-xs font-medium hover:underline">💳 AVI →</a>}
                   </div>
                 )}
               </dl>

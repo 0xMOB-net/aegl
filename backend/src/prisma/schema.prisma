@@ -68,7 +68,7 @@ model Dossier {
   status                    DossierStatus @default(pending)
   universityNoticePath      String?
   passportPath              String?
-  embassyProofPath          String?
+  aviPath                   String?
   studentDocsVerified       Boolean       @default(false)
   studentDocsRejectedReason String?
   adminNotes                String?
