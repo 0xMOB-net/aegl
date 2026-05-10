@@ -7,17 +7,25 @@ const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 router.use(authenticate, requireRole('admin'));
 
-// Extract Cloudinary public_id and resource_type from a stored URL
-const parseCloudinaryUrl = (url) => {
-  const m = url.match(/cloudinary\.com\/[^/]+\/([^/]+)\/[^/]+\/(?:v\d+\/)?(.+)$/);
-  if (!m) return null;
-  const resourceType = m[1]; // image, video, raw
-  let publicId = m[2];
-  if (resourceType !== 'raw') publicId = publicId.replace(/\.[^.]+$/, '');
-  return { publicId, resourceType };
+// Resolve the correct viewable URL for a Cloudinary stored URL:
+// - Old docs uploaded as public (/upload/) → return the URL as-is
+// - New docs uploaded as authenticated (/authenticated/) → generate a signed URL
+const resolveDocUrl = (storedUrl) => {
+  if (!storedUrl) return null;
+  if (storedUrl.includes('/authenticated/')) {
+    // Extract resource_type and public_id then sign
+    const m = storedUrl.match(/cloudinary\.com\/[^/]+\/([^/]+)\/authenticated\/(?:v\d+\/)?(.+)$/);
+    if (!m) return storedUrl;
+    const resourceType = m[1];
+    let publicId = m[2];
+    if (resourceType !== 'raw') publicId = publicId.replace(/\.[^.]+$/, '');
+    return getSignedUrl(publicId, resourceType);
+  }
+  // Public upload — URL is directly accessible
+  return storedUrl;
 };
 
-// Generate a 1-hour signed URL for a student document field
+// Return the viewable URL for a student document field (admin only)
 router.get('/dossiers/:id/signed-url', async (req, res) => {
   try {
     const { field } = req.query; // universityNotice | passport | avi
@@ -29,28 +37,22 @@ router.get('/dossiers/:id/signed-url', async (req, res) => {
     if (!dossier) return res.status(404).json({ error: 'Dossier introuvable' });
     if (!dossier[col]) return res.status(404).json({ error: 'Document non fourni' });
 
-    const parsed = parseCloudinaryUrl(dossier[col]);
-    if (!parsed) return res.status(400).json({ error: 'URL Cloudinary invalide' });
-
-    const signedUrl = getSignedUrl(parsed.publicId, parsed.resourceType);
-    res.json({ url: signedUrl });
+    const url = resolveDocUrl(dossier[col]);
+    res.json({ url });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Erreur serveur' });
   }
 });
 
-// Generate a 1-hour signed URL for a host document
+// Return the viewable URL for a host document (admin only)
 router.get('/host-documents/:docId/signed-url', async (req, res) => {
   try {
     const doc = await prisma.hostDocument.findUnique({ where: { id: req.params.docId } });
     if (!doc) return res.status(404).json({ error: 'Document introuvable' });
 
-    const parsed = parseCloudinaryUrl(doc.filePath);
-    if (!parsed) return res.status(400).json({ error: 'URL Cloudinary invalide' });
-
-    const signedUrl = getSignedUrl(parsed.publicId, parsed.resourceType);
-    res.json({ url: signedUrl });
+    const url = resolveDocUrl(doc.filePath);
+    res.json({ url });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Erreur serveur' });
