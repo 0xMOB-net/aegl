@@ -5,6 +5,15 @@ const { logActivity } = require('../services/activity.service');
 
 const prisma = new PrismaClient();
 
+const validatePassword = (password) => {
+  if (password.length < 8)           return 'Le mot de passe doit contenir au moins 8 caractères';
+  if (!/[A-Z]/.test(password))       return 'Le mot de passe doit contenir au moins une lettre majuscule';
+  if (!/[a-z]/.test(password))       return 'Le mot de passe doit contenir au moins une lettre minuscule';
+  if (!/[0-9]/.test(password))       return 'Le mot de passe doit contenir au moins un chiffre';
+  if (!/[^A-Za-z0-9]/.test(password)) return 'Le mot de passe doit contenir au moins un caractère spécial (ex: !@#$%&*)';
+  return null;
+};
+
 const generateToken = (userId) =>
   jwt.sign({ userId }, process.env.JWT_SECRET, {
     expiresIn: process.env.JWT_EXPIRES_IN || '7d',
@@ -23,9 +32,8 @@ const register = async (req, res) => {
     if (!['host', 'student'].includes(role)) {
       return res.status(400).json({ error: 'Rôle invalide' });
     }
-    if (password.length < 8) {
-      return res.status(400).json({ error: 'Mot de passe trop court (8 caractères minimum)' });
-    }
+    const pwdError = validatePassword(password);
+    if (pwdError) return res.status(400).json({ error: pwdError });
 
     const existing = await prisma.user.findUnique({ where: { email } });
     if (existing) return res.status(409).json({ error: 'Cet email est déjà utilisé' });
@@ -74,9 +82,8 @@ const resetPassword = async (req, res) => {
     if (!firstName || !lastName || !email || !newPassword) {
       return res.status(400).json({ error: 'Tous les champs sont requis' });
     }
-    if (newPassword.length < 8) {
-      return res.status(400).json({ error: 'Mot de passe trop court (8 caractères minimum)' });
-    }
+    const pwdError = validatePassword(newPassword);
+    if (pwdError) return res.status(400).json({ error: pwdError });
 
     const user = await prisma.user.findFirst({
       where: {

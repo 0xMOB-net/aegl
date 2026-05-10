@@ -17,6 +17,73 @@ const Logo = () => (
   </svg>
 );
 
+// Vérifie chaque critère du mot de passe
+const checkPassword = (pwd) => ({
+  length:  pwd.length >= 8,
+  upper:   /[A-Z]/.test(pwd),
+  lower:   /[a-z]/.test(pwd),
+  number:  /[0-9]/.test(pwd),
+  special: /[^A-Za-z0-9]/.test(pwd),
+});
+
+const STRENGTH_LEVELS = [
+  { label: 'Très faible', color: 'bg-red-500',    text: 'text-red-600'    },
+  { label: 'Faible',      color: 'bg-orange-400', text: 'text-orange-600' },
+  { label: 'Moyen',       color: 'bg-yellow-400', text: 'text-yellow-600' },
+  { label: 'Fort',        color: 'bg-green-500',  text: 'text-green-600'  },
+  { label: 'Très fort',   color: 'bg-emerald-500',text: 'text-emerald-600'},
+];
+
+function PasswordStrengthMeter({ password }) {
+  if (!password) return null;
+  const checks = checkPassword(password);
+  const score = Object.values(checks).filter(Boolean).length;
+  const level = STRENGTH_LEVELS[score - 1] || STRENGTH_LEVELS[0];
+
+  const criteria = [
+    { key: 'length',  label: '8 caractères minimum' },
+    { key: 'upper',   label: 'Une lettre majuscule (A-Z)' },
+    { key: 'lower',   label: 'Une lettre minuscule (a-z)' },
+    { key: 'number',  label: 'Un chiffre (0-9)' },
+    { key: 'special', label: 'Un caractère spécial (!@#$%&*)' },
+  ];
+
+  return (
+    <div className="mt-2 space-y-2">
+      {/* Barre de force */}
+      <div className="flex items-center gap-2">
+        <div className="flex gap-1 flex-1">
+          {[1, 2, 3, 4, 5].map(i => (
+            <div
+              key={i}
+              className={`h-1.5 flex-1 rounded-full transition-all duration-300 ${
+                i <= score ? level.color : 'bg-gray-200'
+              }`}
+            />
+          ))}
+        </div>
+        <span className={`text-xs font-semibold whitespace-nowrap ${level.text}`}>
+          {level.label}
+        </span>
+      </div>
+
+      {/* Critères */}
+      <div className="grid grid-cols-1 gap-1">
+        {criteria.map(({ key, label }) => (
+          <div key={key} className="flex items-center gap-2">
+            <span className={`text-xs font-bold flex-shrink-0 ${checks[key] ? 'text-green-600' : 'text-gray-300'}`}>
+              {checks[key] ? '✓' : '○'}
+            </span>
+            <span className={`text-xs transition-colors ${checks[key] ? 'text-green-700 line-through decoration-green-300' : 'text-gray-500'}`}>
+              {label}
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export default function Register() {
   const [params] = useSearchParams();
   const [form, setForm] = useState({
@@ -27,19 +94,24 @@ export default function Register() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPass, setShowPass] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
   const { register } = useAuth();
   const navigate = useNavigate();
+
+  const checks = checkPassword(form.password);
+  const isPasswordValid = Object.values(checks).every(Boolean);
+  const passwordsMatch = form.password === form.confirmPassword;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
-    if (form.password !== form.confirmPassword) {
-      return setError('Les mots de passe ne correspondent pas');
+    if (!isPasswordValid) {
+      return setError('Le mot de passe ne respecte pas tous les critères de sécurité.');
     }
-    if (form.password.length < 8) {
-      return setError('Mot de passe trop court (8 caractères minimum)');
+    if (!passwordsMatch) {
+      return setError('Les mots de passe ne correspondent pas.');
     }
-    if (!form.gender) return setError('Veuillez sélectionner votre genre');
+    if (!form.gender) return setError('Veuillez sélectionner votre genre.');
     setLoading(true);
     try {
       await register({
@@ -61,12 +133,9 @@ export default function Register() {
     <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4 py-12">
       <div className="w-full max-w-lg">
 
-        {/* Header */}
         <div className="text-center mb-8">
           <Link to="/" className="inline-flex items-center gap-3 mb-6 group">
-            <div className="group-hover:scale-105 transition-transform">
-              <Logo />
-            </div>
+            <div className="group-hover:scale-105 transition-transform"><Logo /></div>
             <div className="text-left">
               <p className="font-heading text-green-800 text-xl font-bold leading-none">AEGL</p>
               <p className="text-green-600 text-[10px] tracking-widest uppercase">Limoges</p>
@@ -92,17 +161,12 @@ export default function Register() {
               <div className="grid grid-cols-2 gap-3">
                 {[
                   { value: 'student', label: 'Étudiant(e)', desc: 'Je cherche une attestation', icon: '🎓' },
-                  { value: 'host', label: 'Hébergeur(se)', desc: 'Je veux accueillir', icon: '🏠' },
+                  { value: 'host',    label: 'Hébergeur(se)', desc: 'Je veux accueillir',       icon: '🏠' },
                 ].map(({ value, label, desc, icon }) => (
-                  <button
-                    key={value} type="button"
-                    onClick={() => setForm({ ...form, role: value })}
+                  <button key={value} type="button" onClick={() => setForm({ ...form, role: value })}
                     className={`p-4 rounded-xl border-2 text-left transition-all ${
-                      form.role === value
-                        ? 'border-green-700 bg-green-50 shadow-sm'
-                        : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
-                    }`}
-                  >
+                      form.role === value ? 'border-green-700 bg-green-50 shadow-sm' : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                    }`}>
                     <span className="text-2xl block mb-1.5">{icon}</span>
                     <span className={`text-sm font-semibold block ${form.role === value ? 'text-green-800' : 'text-gray-800'}`}>{label}</span>
                     <span className="text-xs text-gray-400">{desc}</span>
@@ -116,15 +180,10 @@ export default function Register() {
               <label className="block text-sm font-medium text-gray-700 mb-2">Genre <span className="text-red-500">*</span></label>
               <div className="grid grid-cols-2 gap-3">
                 {[{ value: 'M', label: 'Masculin' }, { value: 'F', label: 'Féminin' }].map(({ value, label }) => (
-                  <button
-                    key={value} type="button"
-                    onClick={() => setForm({ ...form, gender: value })}
+                  <button key={value} type="button" onClick={() => setForm({ ...form, gender: value })}
                     className={`py-2.5 rounded-xl border-2 text-sm font-medium transition-all ${
-                      form.gender === value
-                        ? 'border-green-700 bg-green-50 text-green-800'
-                        : 'border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50'
-                    }`}
-                  >
+                      form.gender === value ? 'border-green-700 bg-green-50 text-green-800' : 'border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50'
+                    }`}>
                     {label}
                   </button>
                 ))}
@@ -149,9 +208,12 @@ export default function Register() {
               <input type="email" required value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} placeholder="votre@email.com" className={inputClass} />
             </div>
 
-            {/* Mot de passe */}
+            {/* Mot de passe + jauge */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Mot de passe <span className="text-gray-400 font-normal">(8 car. min)</span></label>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                Mot de passe
+                <span className="ml-1 text-xs text-gray-400 font-normal">— doit respecter tous les critères ci-dessous</span>
+              </label>
               <div className="relative">
                 <input
                   type={showPass ? 'text' : 'password'} required
@@ -159,26 +221,58 @@ export default function Register() {
                   onChange={e => setForm({ ...form, password: e.target.value })}
                   placeholder="••••••••"
                   className={`${inputClass} pr-12`}
+                  autoComplete="new-password"
                 />
-                <button type="button" onClick={() => setShowPass(!showPass)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-xs">
+                <button type="button" onClick={() => setShowPass(!showPass)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-sm">
                   {showPass ? '🙈' : '👁️'}
                 </button>
               </div>
+              <PasswordStrengthMeter password={form.password} />
             </div>
 
-            {/* Confirmer */}
+            {/* Confirmer mot de passe */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1.5">Confirmer le mot de passe</label>
-              <input type="password" required value={form.confirmPassword} onChange={e => setForm({ ...form, confirmPassword: e.target.value })} placeholder="••••••••" className={inputClass} />
+              <div className="relative">
+                <input
+                  type={showConfirm ? 'text' : 'password'} required
+                  value={form.confirmPassword}
+                  onChange={e => setForm({ ...form, confirmPassword: e.target.value })}
+                  placeholder="••••••••"
+                  className={`${inputClass} pr-12 ${
+                    form.confirmPassword && !passwordsMatch ? 'border-red-300 focus:ring-red-400' : ''
+                  }`}
+                  autoComplete="new-password"
+                />
+                <button type="button" onClick={() => setShowConfirm(!showConfirm)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-sm">
+                  {showConfirm ? '🙈' : '👁️'}
+                </button>
+              </div>
+              {form.confirmPassword && !passwordsMatch && (
+                <p className="text-xs text-red-500 mt-1.5 flex items-center gap-1">
+                  <span>✗</span> Les mots de passe ne correspondent pas
+                </p>
+              )}
+              {form.confirmPassword && passwordsMatch && (
+                <p className="text-xs text-green-600 mt-1.5 flex items-center gap-1">
+                  <span>✓</span> Les mots de passe correspondent
+                </p>
+              )}
             </div>
 
-            <button type="submit" disabled={loading} className="btn-primary w-full justify-center py-3.5 text-base mt-2">
+            <button
+              type="submit"
+              disabled={loading || !isPasswordValid || !passwordsMatch}
+              className="btn-primary w-full justify-center py-3.5 text-base mt-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
               {loading ? (
                 <span className="flex items-center gap-2">
                   <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
                   Création du compte...
                 </span>
-              ) : 'Créer mon compte →'}
+              ) : '🔒 Créer mon compte →'}
             </button>
           </form>
 

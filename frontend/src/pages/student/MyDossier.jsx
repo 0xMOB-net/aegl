@@ -17,7 +17,10 @@ export default function StudentMyDossier() {
   const [toast, setToast] = useState(null);
   const [downloading, setDownloading] = useState(false);
 
-  const showToast = (msg, type = 'success') => { setToast({ msg, type }); setTimeout(() => setToast(null), 4000); };
+  const showToast = (msg, type = 'success') => {
+    setToast({ msg, type });
+    setTimeout(() => setToast(null), 4000);
+  };
 
   const downloadPdf = async (dossierId) => {
     setDownloading(true);
@@ -115,6 +118,31 @@ export default function StudentMyDossier() {
     },
   };
 
+  const docFields = [
+    {
+      id: 'notice-file',
+      label: '📄 Accord préalable d\'inscription *',
+      file: noticFile,
+      setter: setNoticeFile,
+      hint: null,
+    },
+    {
+      id: 'passport-file',
+      label: '🛂 Passeport (page identité) *',
+      file: passportFile,
+      setter: setPassportFile,
+      hint: null,
+    },
+    {
+      id: 'avi-file',
+      label: '🔐 Attestation de Virement Irrévocable (AVI) *',
+      file: aviFile,
+      setter: setAviFile,
+      hint: 'Document confidentiel — chiffré et accessible uniquement aux agents AEGL habilités.',
+      isConfidential: true,
+    },
+  ];
+
   return (
     <MemberLayout title="Mon dossier">
       {toast && (
@@ -123,47 +151,89 @@ export default function StudentMyDossier() {
         </div>
       )}
 
-      {/* Modal création */}
+      {/* ── Modal soumission documents ── */}
       {showCreate && (
-        <div className="fixed inset-0 z-40 bg-black/40 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md animate-slide-up">
+        <div className="fixed inset-0 z-40 bg-black/50 flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md animate-slide-up my-4">
             <div className="p-6 border-b border-gray-100">
               <h3 className="font-heading text-xl text-green-900">
                 {modalMode === 'resubmit' ? 'Re-soumettre mes documents' : 'Créer mon dossier'}
               </h3>
               <p className="text-gray-500 text-sm mt-1">
                 {modalMode === 'resubmit'
-                  ? 'Soumettez à nouveau les 3 documents corrigés pour que l\'administration puisse les vérifier.'
+                  ? 'Soumettez à nouveau les 3 documents corrigés pour vérification.'
                   : '3 documents obligatoires : accord préalable, passeport, AVI'}
               </p>
             </div>
+
+            {/* Bandeau sécurité */}
+            <div className="mx-6 mt-5 bg-green-50 border border-green-200 rounded-xl px-4 py-3 flex items-start gap-3">
+              <span className="text-green-600 text-lg flex-shrink-0 mt-0.5">🔒</span>
+              <div>
+                <p className="text-green-800 text-xs font-semibold">Vos documents sont protégés</p>
+                <p className="text-green-700 text-xs mt-0.5 leading-relaxed">
+                  Tous vos fichiers sont <strong>chiffrés</strong> dès l'envoi et stockés sur des serveurs sécurisés.
+                  Seuls les agents AEGL habilités y ont accès. Aucun document n'est partagé avec des tiers.
+                </p>
+              </div>
+            </div>
+
             <form onSubmit={handleCreate} className="p-6 space-y-4">
-              {[
-                { id: 'notice-file', label: '📄 Accord préalable d\'inscription *', file: noticFile, setter: setNoticeFile, required: true },
-                { id: 'passport-file', label: '🛂 Passeport *', file: passportFile, setter: setPassportFile, required: true },
-                { id: 'avi-file', label: '💳 Attestation de Virement Irrévocable (AVI) *', file: aviFile, setter: setAviFile, required: true },
-              ].map(({ id, label, file, setter, required }) => (
+              {docFields.map(({ id, label, file, setter, hint, isConfidential }) => (
                 <div key={id}>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">{label}</label>
-                  <div className={`border-2 border-dashed rounded-xl p-4 text-center cursor-pointer transition-all ${file ? 'border-green-400 bg-green-50' : required ? 'border-red-200 hover:border-green-300' : 'border-gray-200 hover:border-green-300'}`}>
-                    <input type="file" accept=".pdf,.jpg,.jpeg,.png" id={id} className="hidden"
-                      onChange={e => setter(e.target.files[0])} />
-                    <label htmlFor={id} className="cursor-pointer">
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">{label}</label>
+                  {hint && (
+                    <p className={`text-xs mb-2 flex items-center gap-1.5 ${isConfidential ? 'text-amber-600' : 'text-gray-400'}`}>
+                      {isConfidential && <span>⚠️</span>}
+                      {hint}
+                    </p>
+                  )}
+                  <div className={`border-2 border-dashed rounded-xl p-4 text-center cursor-pointer transition-all ${
+                    file
+                      ? isConfidential ? 'border-amber-400 bg-amber-50' : 'border-green-400 bg-green-50'
+                      : 'border-gray-200 hover:border-green-300'
+                  }`}>
+                    <input
+                      type="file"
+                      accept=".pdf,.jpg,.jpeg,.png"
+                      id={id}
+                      className="hidden"
+                      onChange={e => setter(e.target.files[0])}
+                    />
+                    <label htmlFor={id} className="cursor-pointer block">
                       {file ? (
-                        <div><p className="text-green-700 font-medium text-sm">{file.name}</p><p className="text-green-500 text-xs">Cliquer pour changer</p></div>
+                        <div>
+                          <p className={`font-medium text-sm ${isConfidential ? 'text-amber-700' : 'text-green-700'}`}>
+                            🔒 {file.name}
+                          </p>
+                          <p className="text-gray-400 text-xs mt-0.5">Cliquer pour changer</p>
+                        </div>
                       ) : (
-                        <div><p className="text-gray-500 text-sm">Cliquez pour choisir un fichier</p><p className="text-gray-300 text-xs mt-1">PDF, JPG, PNG</p></div>
+                        <div>
+                          <p className="text-gray-500 text-sm">Cliquez pour choisir un fichier</p>
+                          <p className="text-gray-300 text-xs mt-1">PDF, JPG, PNG — max 10 Mo</p>
+                        </div>
                       )}
                     </label>
                   </div>
                 </div>
               ))}
-              <div className="flex gap-3 pt-2">
-                <button type="button" onClick={() => setShowCreate(false)} className="flex-1 btn-secondary text-sm">Annuler</button>
+
+              {/* Engagement confidentialité */}
+              <div className="bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-xs text-gray-500 leading-relaxed">
+                🛡️ En soumettant ce formulaire, vous acceptez que vos documents soient traités
+                exclusivement par l'équipe AEGL dans le cadre de votre demande d'attestation.
+                Vos documents sont supprimés après clôture du dossier.
+              </div>
+
+              <div className="flex gap-3 pt-1">
+                <button type="button" onClick={() => setShowCreate(false)} className="flex-1 btn-secondary text-sm">
+                  Annuler
+                </button>
                 <button type="submit" disabled={creating} className="flex-1 btn-primary text-sm">
                   {creating
-                    ? (modalMode === 'resubmit' ? 'Envoi...' : 'Création...')
-                    : (modalMode === 'resubmit' ? '📤 Re-soumettre mes documents' : '📁 Créer mon dossier')}
+                    ? (modalMode === 'resubmit' ? 'Envoi sécurisé...' : 'Envoi sécurisé...')
+                    : (modalMode === 'resubmit' ? '🔒 Re-soumettre' : '🔒 Envoyer en toute sécurité')}
                 </button>
               </div>
             </form>
@@ -173,24 +243,29 @@ export default function StudentMyDossier() {
 
       <div className="space-y-6 animate-fade-in max-w-2xl">
         {loading ? (
-          <div className="flex justify-center py-16"><div className="w-8 h-8 border-2 border-green-800 border-t-transparent rounded-full animate-spin" /></div>
+          <div className="flex justify-center py-16">
+            <div className="w-8 h-8 border-2 border-green-800 border-t-transparent rounded-full animate-spin" />
+          </div>
         ) : !dossier ? (
-          /* Pas encore de dossier */
           <div className="card text-center py-16">
             <p className="text-5xl mb-4">📁</p>
             <h2 className="font-heading text-2xl text-green-900 mb-3">Commencez votre demande</h2>
-            <p className="text-gray-500 text-sm mb-8 max-w-sm mx-auto">
+            <p className="text-gray-500 text-sm mb-6 max-w-sm mx-auto">
               Créez votre dossier pour demander une attestation d'hébergement via l'AEGL.
               L'équipe vous assignera un hébergeur bénévole.
             </p>
+            {/* Mini sécurité */}
+            <div className="inline-flex items-center gap-2 bg-green-50 border border-green-200 rounded-xl px-4 py-2 text-xs text-green-700 mb-6">
+              🔒 Vos documents sont chiffrés et protégés
+            </div>
+            <br />
             <button onClick={() => openModal('create')} className="btn-primary">
               📁 Créer mon dossier →
             </button>
           </div>
         ) : (
-          /* Dossier existant */
           <>
-            {/* Statut message */}
+            {/* Statut */}
             {statusMessages[dossier.status] && (
               <div className={`border rounded-2xl p-5 ${statusMessages[dossier.status].color}`}>
                 <div className="flex items-start gap-3">
@@ -210,6 +285,43 @@ export default function StudentMyDossier() {
                 <StatusBadge status={dossier.status} />
               </div>
               <DossierStepper status={dossier.status} />
+            </div>
+
+            {/* Documents déposés — indicateurs sans liens exposés */}
+            <div className="card">
+              <h3 className="font-semibold text-gray-800 mb-3 flex items-center gap-2">
+                <span>📎</span> Documents déposés
+                <span className="ml-auto text-xs text-green-600 font-medium flex items-center gap-1">🔒 Sécurisé</span>
+              </h3>
+              <div className="space-y-2">
+                {[
+                  { key: 'hasUniversityNotice', label: 'Accord préalable d\'inscription', icon: '📄' },
+                  { key: 'hasPassport',         label: 'Passeport',                       icon: '🛂' },
+                  { key: 'hasAvi',              label: 'Attestation de Virement Irrévocable (AVI)', icon: '🔐', confidential: true },
+                ].map(({ key, label, icon, confidential }) => (
+                  <div key={key} className="flex items-center justify-between py-2 border-b border-gray-50 last:border-0">
+                    <span className="text-sm text-gray-600 flex items-center gap-2">
+                      {icon} {label}
+                      {confidential && (
+                        <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-medium">Confidentiel</span>
+                      )}
+                    </span>
+                    {dossier[key] ? (
+                      <span className="text-xs bg-green-100 text-green-700 px-3 py-1 rounded-full font-medium flex items-center gap-1">
+                        ✓ Reçu
+                      </span>
+                    ) : (
+                      <span className="text-xs bg-gray-100 text-gray-400 px-3 py-1 rounded-full">
+                        Non soumis
+                      </span>
+                    )}
+                  </div>
+                ))}
+              </div>
+              <p className="text-xs text-gray-400 mt-3 flex items-center gap-1.5">
+                🔒 Vos documents sont chiffrés et accessibles uniquement aux agents AEGL habilités.
+                Ils ne sont jamais partagés avec des tiers.
+              </p>
             </div>
 
             {/* Hébergeur assigné */}
@@ -237,10 +349,7 @@ export default function StudentMyDossier() {
                     <p className="text-red-700 text-sm">{dossier.studentDocsRejectedReason}</p>
                     <p className="text-red-500 text-xs mt-2">Corrigez les documents mentionnés et soumettez-les à nouveau.</p>
                   </div>
-                  <button
-                    onClick={() => openModal('resubmit')}
-                    className="flex-shrink-0 btn-primary text-sm whitespace-nowrap"
-                  >
+                  <button onClick={() => openModal('resubmit')} className="flex-shrink-0 btn-primary text-sm whitespace-nowrap">
                     📤 Re-soumettre
                   </button>
                 </div>
@@ -274,45 +383,22 @@ export default function StudentMyDossier() {
               </div>
             )}
 
-            {/* Documents de l'hébergeur (visibles après validation admin) */}
-            {['documents_verified', 'confirmed'].includes(dossier.status) && dossier.hostDocuments?.length > 0 && (
-              <div className="card">
-                <h3 className="font-semibold text-gray-800 mb-4">📎 Documents de mon hébergeur</h3>
-                <div className="space-y-3">
-                  {dossier.hostDocuments.map(doc => {
-                    const labels = { bail: '📋 Contrat de bail', energy: '⚡ Contrat d\'énergie', identity: '🪪 Pièce d\'identité' };
-                    return (
-                      <div key={doc.id} className="flex items-center justify-between py-2 border-b border-gray-50 last:border-0">
-                        <span className="text-sm text-gray-700">{labels[doc.docType] || doc.docType}</span>
-                        <a href={doc.filePath} target="_blank" rel="noreferrer"
-                          className="text-xs text-green-700 font-medium border border-green-200 rounded-lg px-3 py-1.5 hover:bg-green-50 transition-colors">
-                          Voir le document →
-                        </a>
-                      </div>
-                    );
-                  })}
-                </div>
-                {dossier.hostAddress && (
-                  <div className="mt-4 pt-4 border-t border-gray-100">
-                    <p className="text-xs text-gray-400 mb-1">Adresse d'hébergement</p>
-                    <p className="text-sm font-medium text-gray-700">📍 {dossier.hostAddress}</p>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Infos dossier */}
+            {/* Informations dossier */}
             <div className="card">
               <h3 className="font-semibold text-gray-800 mb-4">📋 Informations du dossier</h3>
               <dl className="space-y-2 text-sm">
-                <div className="flex justify-between"><dt className="text-gray-400">N° dossier</dt><dd className="font-mono text-xs font-medium">{dossier.id.substring(0, 8).toUpperCase()}</dd></div>
-                <div className="flex justify-between"><dt className="text-gray-400">Créé le</dt><dd>{new Date(dossier.createdAt).toLocaleDateString('fr-FR')}</dd></div>
-                {dossier.closedAt && <div className="flex justify-between"><dt className="text-gray-400">Clôturé le</dt><dd className="font-medium text-green-700">{new Date(dossier.closedAt).toLocaleDateString('fr-FR')}</dd></div>}
-                {(dossier.universityNoticePath || dossier.passportPath || dossier.aviPath) && (
-                  <div className="pt-2 border-t border-gray-100 space-y-1">
-                    {dossier.universityNoticePath && <a href={dossier.universityNoticePath} target="_blank" rel="noreferrer" className="block text-green-700 text-xs font-medium hover:underline">📄 Accord préalable d'inscription →</a>}
-                    {dossier.passportPath && <a href={dossier.passportPath} target="_blank" rel="noreferrer" className="block text-green-700 text-xs font-medium hover:underline">🛂 Passeport →</a>}
-                    {dossier.aviPath && <a href={dossier.aviPath} target="_blank" rel="noreferrer" className="block text-green-700 text-xs font-medium hover:underline">💳 AVI →</a>}
+                <div className="flex justify-between">
+                  <dt className="text-gray-400">N° dossier</dt>
+                  <dd className="font-mono text-xs font-medium">{dossier.id.substring(0, 8).toUpperCase()}</dd>
+                </div>
+                <div className="flex justify-between">
+                  <dt className="text-gray-400">Créé le</dt>
+                  <dd>{new Date(dossier.createdAt).toLocaleDateString('fr-FR')}</dd>
+                </div>
+                {dossier.closedAt && (
+                  <div className="flex justify-between">
+                    <dt className="text-gray-400">Clôturé le</dt>
+                    <dd className="font-medium text-green-700">{new Date(dossier.closedAt).toLocaleDateString('fr-FR')}</dd>
                   </div>
                 )}
               </dl>

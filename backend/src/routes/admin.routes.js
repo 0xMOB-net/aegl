@@ -1,10 +1,61 @@
 const router = require('express').Router();
 const { authenticate } = require('../middlewares/auth.middleware');
 const { requireRole } = require('../middlewares/role.middleware');
+const { getSignedUrl } = require('../middlewares/upload.middleware');
 const { PrismaClient } = require('@prisma/client');
 
 const prisma = new PrismaClient();
 router.use(authenticate, requireRole('admin'));
+
+// Extract Cloudinary public_id and resource_type from a stored URL
+const parseCloudinaryUrl = (url) => {
+  const m = url.match(/cloudinary\.com\/[^/]+\/([^/]+)\/[^/]+\/(?:v\d+\/)?(.+)$/);
+  if (!m) return null;
+  const resourceType = m[1]; // image, video, raw
+  let publicId = m[2];
+  if (resourceType !== 'raw') publicId = publicId.replace(/\.[^.]+$/, '');
+  return { publicId, resourceType };
+};
+
+// Generate a 1-hour signed URL for a student document field
+router.get('/dossiers/:id/signed-url', async (req, res) => {
+  try {
+    const { field } = req.query; // universityNotice | passport | avi
+    const fieldMap = { universityNotice: 'universityNoticePath', passport: 'passportPath', avi: 'aviPath' };
+    const col = fieldMap[field];
+    if (!col) return res.status(400).json({ error: 'Champ invalide' });
+
+    const dossier = await prisma.dossier.findUnique({ where: { id: req.params.id } });
+    if (!dossier) return res.status(404).json({ error: 'Dossier introuvable' });
+    if (!dossier[col]) return res.status(404).json({ error: 'Document non fourni' });
+
+    const parsed = parseCloudinaryUrl(dossier[col]);
+    if (!parsed) return res.status(400).json({ error: 'URL Cloudinary invalide' });
+
+    const signedUrl = getSignedUrl(parsed.publicId, parsed.resourceType);
+    res.json({ url: signedUrl });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Erreur serveur' });
+  }
+});
+
+// Generate a 1-hour signed URL for a host document
+router.get('/host-documents/:docId/signed-url', async (req, res) => {
+  try {
+    const doc = await prisma.hostDocument.findUnique({ where: { id: req.params.docId } });
+    if (!doc) return res.status(404).json({ error: 'Document introuvable' });
+
+    const parsed = parseCloudinaryUrl(doc.filePath);
+    if (!parsed) return res.status(400).json({ error: 'URL Cloudinary invalide' });
+
+    const signedUrl = getSignedUrl(parsed.publicId, parsed.resourceType);
+    res.json({ url: signedUrl });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Erreur serveur' });
+  }
+});
 
 router.get('/hosts', async (req, res) => {
   try {

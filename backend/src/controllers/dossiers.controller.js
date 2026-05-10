@@ -6,6 +6,7 @@ const { uploadToCloudinary } = require('../middlewares/upload.middleware');
 
 const prisma = new PrismaClient();
 
+// Full select — admin only (includes raw file URLs)
 const dossierSelect = {
   id: true,
   status: true,
@@ -24,6 +25,19 @@ const dossierSelect = {
   host: { select: { id: true, firstName: true, lastName: true, email: true, gender: true } },
   hostDocuments: true,
 };
+
+// Strip raw document URLs — replace with boolean presence flags for students/hosts
+const sanitizeDocPaths = ({ universityNoticePath, passportPath, aviPath, hostDocuments, ...rest }) => ({
+  ...rest,
+  hasUniversityNotice: !!universityNoticePath,
+  hasPassport: !!passportPath,
+  hasAvi: !!aviPath,
+  // Host documents: strip filePath from each doc for student view
+  hostDocuments: (hostDocuments || []).map(({ filePath, ...doc }) => doc),
+});
+
+const forRole = (role, dossier) =>
+  (role === 'admin') ? dossier : sanitizeDocPaths(dossier);
 
 const list = async (req, res) => {
   try {
@@ -47,7 +61,7 @@ const list = async (req, res) => {
       select: dossierSelect,
       orderBy: { createdAt: 'desc' },
     });
-    res.json({ dossiers });
+    res.json({ dossiers: dossiers.map(d => forRole(user.role, d)) });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Erreur lors de la récupération des dossiers' });
@@ -70,7 +84,7 @@ const getOne = async (req, res) => {
       return res.status(403).json({ error: 'Accès refusé' });
     }
 
-    res.json({ dossier });
+    res.json({ dossier: forRole(user.role, dossier) });
   } catch (err) {
     res.status(500).json({ error: 'Erreur serveur' });
   }
@@ -115,7 +129,7 @@ const create = async (req, res) => {
       select: dossierSelect,
     });
     await logActivity(user.id, 'create_dossier', { dossierId: dossier.id });
-    res.status(201).json({ dossier });
+    res.status(201).json({ dossier: forRole(user.role, dossier) });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Erreur lors de la création du dossier' });
@@ -343,7 +357,7 @@ const resubmitStudentDocs = async (req, res) => {
       select: dossierSelect,
     });
     await logActivity(user.id, 'resubmit_student_docs', { dossierId: req.params.id });
-    res.json({ dossier: updated });
+    res.json({ dossier: forRole(user.role, updated) });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Erreur lors de la re-soumission' });

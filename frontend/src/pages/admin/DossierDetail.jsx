@@ -74,6 +74,24 @@ export default function AdminDossierDetail() {
     }
   };
 
+  const openSignedDoc = async (field) => {
+    try {
+      const res = await api.get(`/admin/dossiers/${id}/signed-url?field=${field}`);
+      window.open(res.data.url, '_blank', 'noreferrer');
+    } catch {
+      showToast('Impossible d\'ouvrir le document', 'error');
+    }
+  };
+
+  const openHostDoc = async (docId) => {
+    try {
+      const res = await api.get(`/admin/host-documents/${docId}/signed-url`);
+      window.open(res.data.url, '_blank', 'noreferrer');
+    } catch {
+      showToast('Impossible d\'ouvrir le document', 'error');
+    }
+  };
+
   const downloadPDF = async () => {
     try {
       const base = import.meta.env.VITE_API_URL || '/api';
@@ -203,19 +221,6 @@ export default function AdminDossierDetail() {
               <div className="flex justify-between"><dt className="text-gray-400">Email</dt><dd className="font-medium">{dossier.student.email}</dd></div>
               <div className="flex justify-between"><dt className="text-gray-400">Genre</dt><dd className="font-medium">{dossier.student.gender === 'F' ? 'Féminin' : 'Masculin'}</dd></div>
               <div className="flex justify-between"><dt className="text-gray-400">Dossier créé le</dt><dd className="font-medium">{new Date(dossier.createdAt).toLocaleDateString('fr-FR')}</dd></div>
-              {dossier.universityNoticePath && (
-                <div className="pt-2 border-t border-gray-100">
-                  {(() => {
-                    const backendBase = (import.meta.env.VITE_API_URL || '/api').replace(/\/api$/, '');
-                    const url = dossier.universityNoticePath.startsWith('http') ? dossier.universityNoticePath : `${backendBase}${dossier.universityNoticePath}`;
-                    return (
-                      <a href={url} target="_blank" rel="noreferrer" className="text-green-700 text-xs font-medium hover:underline">
-                        📄 Voir l'avis d'inscription universitaire
-                      </a>
-                    );
-                  })()}
-                </div>
-              )}
             </dl>
           </div>
 
@@ -282,17 +287,17 @@ export default function AdminDossierDetail() {
           </div>
           <div className="grid sm:grid-cols-3 gap-4">
             {[
-              { label: '📄 Accord préalable d\'inscription', path: dossier.universityNoticePath },
-              { label: '🛂 Passeport', path: dossier.passportPath },
-              { label: '💳 AVI', path: dossier.aviPath },
-            ].map(({ label, path }) => path ? (
-              <a key={label} href={path} target="_blank" rel="noreferrer"
-                className="border border-gray-200 rounded-xl p-4 hover:border-green-400 hover:bg-green-50 transition-all group">
+              { label: '📄 Accord préalable d\'inscription', field: 'universityNotice', present: !!dossier.universityNoticePath },
+              { label: '🛂 Passeport', field: 'passport', present: !!dossier.passportPath },
+              { label: '💳 AVI (confidentiel)', field: 'avi', present: !!dossier.aviPath },
+            ].map(({ label, field, present }) => present ? (
+              <button key={field} type="button" onClick={() => openSignedDoc(field)}
+                className="border border-gray-200 rounded-xl p-4 hover:border-green-400 hover:bg-green-50 transition-all group text-left">
                 <p className="text-sm font-medium text-gray-800 mb-1">{label}</p>
                 <p className="text-xs text-green-700 group-hover:underline">Voir le document →</p>
-              </a>
+              </button>
             ) : (
-              <div key={label} className="border border-dashed border-gray-200 rounded-xl p-4 opacity-40">
+              <div key={field} className="border border-dashed border-gray-200 rounded-xl p-4 opacity-40">
                 <p className="text-sm text-gray-500">{label}</p>
                 <p className="text-xs text-gray-400">Non fourni</p>
               </div>
@@ -322,15 +327,13 @@ export default function AdminDossierDetail() {
             <div className="grid sm:grid-cols-3 gap-4">
               {dossier.hostDocuments.map(doc => {
                 const labels = { bail: '📋 Contrat de bail', energy: '⚡ Contrat d\'énergie', identity: '🪪 Pièce d\'identité' };
-                const backendBase = (import.meta.env.VITE_API_URL || '/api').replace(/\/api$/, '');
-                const docUrl = doc.filePath.startsWith('http') ? doc.filePath : `${backendBase}${doc.filePath}`;
                 return (
-                  <a key={doc.id} href={docUrl} target="_blank" rel="noreferrer"
-                    className="border border-gray-200 rounded-xl p-4 hover:border-green-400 hover:bg-green-50 transition-all group">
+                  <button key={doc.id} type="button" onClick={() => openHostDoc(doc.id)}
+                    className="border border-gray-200 rounded-xl p-4 hover:border-green-400 hover:bg-green-50 transition-all group text-left">
                     <p className="text-sm font-medium text-gray-800 mb-1">{labels[doc.docType] || doc.docType}</p>
                     <p className="text-xs text-green-700 group-hover:underline">Voir le document →</p>
-                    {doc.verified && <span className="text-xs text-green-600 font-medium">✔ Vérifié</span>}
-                  </a>
+                    {doc.verified && <span className="block text-xs text-green-600 font-medium mt-1">✔ Vérifié</span>}
+                  </button>
                 );
               })}
             </div>
