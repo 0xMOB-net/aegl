@@ -3,17 +3,17 @@ const { authenticate } = require('../middlewares/auth.middleware');
 const { requireRole } = require('../middlewares/role.middleware');
 const { getSignedUrl } = require('../middlewares/upload.middleware');
 const { PrismaClient } = require('@prisma/client');
+const axios = require('axios');
 
 const prisma = new PrismaClient();
 router.use(authenticate, requireRole('admin'));
 
-// Resolve the correct viewable URL for a Cloudinary stored URL:
-// - Old docs uploaded as public (/upload/) → return the URL as-is
-// - New docs uploaded as authenticated (/authenticated/) → generate a signed URL
+// Resolve a stored Cloudinary URL to a directly accessible URL.
+// Public uploads (/upload/) → return as-is.
+// Authenticated uploads (/authenticated/) → generate a 1h signed URL.
 const resolveDocUrl = (storedUrl) => {
   if (!storedUrl) return null;
   if (storedUrl.includes('/authenticated/')) {
-    // Extract resource_type and public_id then sign
     const m = storedUrl.match(/cloudinary\.com\/[^/]+\/([^/]+)\/authenticated\/(?:s--[^/]+--\/)?(?:v\d+\/)?(.+)$/);
     if (!m) return storedUrl;
     const resourceType = m[1];
@@ -21,12 +21,25 @@ const resolveDocUrl = (storedUrl) => {
     if (resourceType !== 'raw') publicId = publicId.replace(/\.[^.]+$/, '');
     return getSignedUrl(publicId, resourceType);
   }
-  // Public upload — URL is directly accessible
   return storedUrl;
 };
 
-// Return the viewable URL for a student document field (admin only)
-router.get('/dossiers/:id/signed-url', async (req, res) => {
+// Stream a document through the backend so browsers never block it as a popup.
+const streamDoc = async (res, storedUrl, filename) => {
+  const url = resolveDocUrl(storedUrl);
+  if (!url) return res.status(404).json({ error: 'Document introuvable' });
+  const upstream = await axios.get(url, { responseType: 'stream', timeout: 30000 });
+  const ct = upstream.headers['content-type'] || 'application/octet-stream';
+  res.setHeader('Content-Type', ct);
+  res.setHeader('Content-Disposition', `inline; filename="${filename}"`);
+  if (upstream.headers['content-length']) {
+    res.setHeader('Content-Length', upstream.headers['content-length']);
+  }
+  upstream.data.pipe(res);
+};
+
+// Stream a student document to the admin
+router.get('/dossiers/:id/view-doc', async (req, res) => {
   try {
     const { field } = req.query; // universityNotice | passport | avi
     const fieldMap = { universityNotice: 'universityNoticePath', passport: 'passportPath', avi: 'aviPath' };
@@ -37,25 +50,23 @@ router.get('/dossiers/:id/signed-url', async (req, res) => {
     if (!dossier) return res.status(404).json({ error: 'Dossier introuvable' });
     if (!dossier[col]) return res.status(404).json({ error: 'Document non fourni' });
 
-    const url = resolveDocUrl(dossier[col]);
-    res.json({ url });
+    await streamDoc(res, dossier[col], `${field}_${req.params.id}`);
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: 'Erreur serveur' });
+    if (!res.headersSent) res.status(500).json({ error: 'Erreur lors de la récupération du document' });
   }
 });
 
-// Return the viewable URL for a host document (admin only)
-router.get('/host-documents/:docId/signed-url', async (req, res) => {
+// Stream a host document to the admin
+router.get('/host-documents/:docId/view', async (req, res) => {
   try {
     const doc = await prisma.hostDocument.findUnique({ where: { id: req.params.docId } });
     if (!doc) return res.status(404).json({ error: 'Document introuvable' });
 
-    const url = resolveDocUrl(doc.filePath);
-    res.json({ url });
+    await streamDoc(res, doc.filePath, `${doc.docType}_${doc.dossierId}`);
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: 'Erreur serveur' });
+    if (!res.headersSent) res.status(500).json({ error: 'Erreur lors de la récupération du document' });
   }
 });
 

@@ -75,22 +75,35 @@ export default function AdminDossierDetail() {
     }
   };
 
-  const openSignedDoc = async (field) => {
+  const viewDoc = async (url, filename) => {
     try {
-      const res = await api.get(`/admin/dossiers/${id}/signed-url?field=${field}`);
-      window.open(res.data.url, '_blank', 'noreferrer');
+      const base = import.meta.env.VITE_API_URL || '/api';
+      const token = localStorage.getItem('aegl_token');
+      const res = await fetch(`${base}${url}`, { headers: { Authorization: `Bearer ${token}` } });
+      if (!res.ok) { showToast('Document introuvable ou accès refusé', 'error'); return; }
+      const blob = await res.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = blobUrl;
+      a.target = '_blank';
+      a.rel = 'noreferrer';
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
     } catch {
-      showToast('Impossible d\'ouvrir le document', 'error');
+      showToast('Erreur lors de l\'ouverture du document', 'error');
     }
   };
 
-  const openHostDoc = async (docId) => {
-    try {
-      const res = await api.get(`/admin/host-documents/${docId}/signed-url`);
-      window.open(res.data.url, '_blank', 'noreferrer');
-    } catch {
-      showToast('Impossible d\'ouvrir le document', 'error');
-    }
+  const openSignedDoc = (field) => {
+    const labels = { universityNotice: 'accord_prealable', passport: 'passeport', avi: 'avi' };
+    viewDoc(`/admin/dossiers/${id}/view-doc?field=${field}`, `${labels[field] || field}_${id.substring(0,8)}.pdf`);
+  };
+
+  const openHostDoc = (docId, docType) => {
+    viewDoc(`/admin/host-documents/${docId}/view`, `${docType || 'document'}_${docId.substring(0,8)}.pdf`);
   };
 
   const downloadPDF = async () => {
@@ -352,7 +365,7 @@ export default function AdminDossierDetail() {
                   facture_3:   '⚡ Facture nominative n°3',
                 };
                 return (
-                  <button key={doc.id} type="button" onClick={() => openHostDoc(doc.id)}
+                  <button key={doc.id} type="button" onClick={() => openHostDoc(doc.id, doc.docType)}
                     className="border border-gray-200 rounded-xl p-3 hover:border-green-400 hover:bg-green-50 transition-all group text-left">
                     <p className="text-xs font-medium text-gray-800 mb-1">{labels[doc.docType] || doc.docType}</p>
                     <p className="text-xs text-green-700 group-hover:underline">Voir →</p>
