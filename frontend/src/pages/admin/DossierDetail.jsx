@@ -233,6 +233,20 @@ export default function AdminDossierDetail() {
                   <div className="flex justify-between"><dt className="text-gray-400">Nom</dt><dd className="font-medium">{dossier.host.firstName} {dossier.host.lastName}</dd></div>
                   <div className="flex justify-between"><dt className="text-gray-400">Email</dt><dd className="font-medium">{dossier.host.email}</dd></div>
                   <div className="flex justify-between"><dt className="text-gray-400">Genre</dt><dd className="font-medium">{dossier.host.gender === 'F' ? 'Féminin' : 'Masculin'}</dd></div>
+                  {dossier.host.lodgingSurface && (
+                    <>
+                      <div className="flex justify-between"><dt className="text-gray-400">Surface</dt><dd className="font-medium">{dossier.host.lodgingSurface} m²</dd></div>
+                      <div className="flex justify-between">
+                        <dt className="text-gray-400">Capacité</dt>
+                        <dd className="font-medium">
+                          {(() => {
+                            const avail = Math.floor(dossier.host.lodgingSurface / 9) - (dossier.host.currentOccupants || 0);
+                            return <span className={avail > 0 ? 'text-green-700' : 'text-red-600'}>{avail > 0 ? `+${avail} place${avail > 1 ? 's' : ''} dispo` : 'Complet'}</span>;
+                          })()}
+                        </dd>
+                      </div>
+                    </>
+                  )}
                 </dl>
                 {['pending', 'host_assigned'].includes(dossier.status) && (
                   <button onClick={() => action('revoke')} disabled={actionLoading === 'revoke'} className="mt-3 text-red-600 text-xs hover:underline">
@@ -324,14 +338,23 @@ export default function AdminDossierDetail() {
         {dossier.hostDocuments?.length > 0 && (
           <div className="card">
             <h3 className="font-semibold text-gray-800 mb-4">📁 Documents soumis par l'hébergeur</h3>
-            <div className="grid sm:grid-cols-3 gap-4">
+            <div className="grid sm:grid-cols-4 gap-3">
               {dossier.hostDocuments.map(doc => {
-                const labels = { bail: '📋 Contrat de bail', energy: '⚡ Contrat d\'énergie', identity: '🪪 Pièce d\'identité' };
+                const labels = {
+                  bail:        '📋 Contrat de bail',
+                  identity:    '🪪 Pièce d\'identité / titre de séjour',
+                  quittance_1: '🧾 Quittance de loyer n°1',
+                  quittance_2: '🧾 Quittance de loyer n°2',
+                  quittance_3: '🧾 Quittance de loyer n°3',
+                  facture_1:   '⚡ Facture nominative n°1',
+                  facture_2:   '⚡ Facture nominative n°2',
+                  facture_3:   '⚡ Facture nominative n°3',
+                };
                 return (
                   <button key={doc.id} type="button" onClick={() => openHostDoc(doc.id)}
-                    className="border border-gray-200 rounded-xl p-4 hover:border-green-400 hover:bg-green-50 transition-all group text-left">
-                    <p className="text-sm font-medium text-gray-800 mb-1">{labels[doc.docType] || doc.docType}</p>
-                    <p className="text-xs text-green-700 group-hover:underline">Voir le document →</p>
+                    className="border border-gray-200 rounded-xl p-3 hover:border-green-400 hover:bg-green-50 transition-all group text-left">
+                    <p className="text-xs font-medium text-gray-800 mb-1">{labels[doc.docType] || doc.docType}</p>
+                    <p className="text-xs text-green-700 group-hover:underline">Voir →</p>
                     {doc.verified && <span className="block text-xs text-green-600 font-medium mt-1">✔ Vérifié</span>}
                   </button>
                 );

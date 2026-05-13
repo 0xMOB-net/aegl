@@ -9,22 +9,48 @@ export function AdminHosts() {
   const [students, setStudents] = useState([]);
   const [tab, setTab] = useState('hosts');
   const [loading, setLoading] = useState(true);
+  const [deleting, setDeleting] = useState(null);
+  const [toast, setToast] = useState(null);
 
-  useEffect(() => {
-    (async () => {
-      setLoading(true);
-      try {
-        const [hRes, sRes] = await Promise.all([api.get('/admin/hosts'), api.get('/admin/students')]);
-        setHosts(hRes.data.hosts || []);
-        setStudents(sRes.data.students || []);
-      } finally { setLoading(false); }
-    })();
-  }, []);
+  const showToast = (msg, type = 'success') => {
+    setToast({ msg, type });
+    setTimeout(() => setToast(null), 3500);
+  };
+
+  const fetchAll = async () => {
+    setLoading(true);
+    try {
+      const [hRes, sRes] = await Promise.all([api.get('/admin/hosts'), api.get('/admin/students')]);
+      setHosts(hRes.data.hosts || []);
+      setStudents(sRes.data.students || []);
+    } finally { setLoading(false); }
+  };
+
+  useEffect(() => { fetchAll(); }, []);
+
+  const handleDelete = async (userId, name) => {
+    if (!window.confirm(`Supprimer le compte de ${name} ? Cette action est irréversible et supprimera tous ses dossiers associés.`)) return;
+    setDeleting(userId);
+    try {
+      await api.delete(`/admin/users/${userId}`);
+      showToast(`Compte de ${name} supprimé.`);
+      fetchAll();
+    } catch (err) {
+      showToast(err.response?.data?.error || 'Erreur lors de la suppression', 'error');
+    } finally {
+      setDeleting(null);
+    }
+  };
 
   const data = tab === 'hosts' ? hosts : students;
 
   return (
     <MemberLayout title="Membres">
+      {toast && (
+        <div className={`fixed top-6 right-6 z-50 px-5 py-3.5 rounded-xl shadow-lg text-sm font-medium ${
+          toast.type === 'success' ? 'bg-green-800 text-white' : 'bg-red-600 text-white'
+        }`}>{toast.msg}</div>
+      )}
       <div className="space-y-6 animate-fade-in">
         <div className="flex gap-2">
           <button onClick={() => setTab('hosts')} className={`px-5 py-2.5 rounded-xl text-sm font-medium transition-all ${tab === 'hosts' ? 'bg-green-800 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
@@ -48,22 +74,48 @@ export function AdminHosts() {
                     <th className="px-6 py-3">Nom</th>
                     <th className="px-6 py-3">Email</th>
                     <th className="px-6 py-3">Genre</th>
+                    {tab === 'hosts' && <th className="px-6 py-3">Logement</th>}
                     <th className="px-6 py-3">Dossiers</th>
                     <th className="px-6 py-3">Inscrit le</th>
+                    <th className="px-6 py-3"></th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50">
-                  {data.map(u => (
-                    <tr key={u.id} className="hover:bg-gray-50 transition-colors">
-                      <td className="px-6 py-4 font-medium text-gray-900">{u.firstName} {u.lastName}</td>
-                      <td className="px-6 py-4 text-gray-500">{u.email}</td>
-                      <td className="px-6 py-4 text-gray-500">{u.gender === 'F' ? 'Féminin' : 'Masculin'}</td>
-                      <td className="px-6 py-4">
-                        <span className="font-semibold text-green-800">{u._count?.hostDossiers ?? u._count?.studentDossiers ?? 0}</span>
-                      </td>
-                      <td className="px-6 py-4 text-gray-400">{new Date(u.createdAt).toLocaleDateString('fr-FR')}</td>
-                    </tr>
-                  ))}
+                  {data.map(u => {
+                    const avail = u.lodgingSurface ? Math.floor(u.lodgingSurface / 9) - (u.currentOccupants || 0) : null;
+                    return (
+                      <tr key={u.id} className="hover:bg-gray-50 transition-colors">
+                        <td className="px-6 py-4 font-medium text-gray-900">{u.firstName} {u.lastName}</td>
+                        <td className="px-6 py-4 text-gray-500">{u.email}</td>
+                        <td className="px-6 py-4 text-gray-500">{u.gender === 'F' ? 'Féminin' : 'Masculin'}</td>
+                        {tab === 'hosts' && (
+                          <td className="px-6 py-4 text-gray-500 text-xs">
+                            {u.lodgingSurface ? (
+                              <span>
+                                {u.lodgingSurface} m² · {u.currentOccupants ?? '?'} occ. actuel{' '}
+                                <span className={`font-semibold ${avail > 0 ? 'text-green-700' : 'text-red-600'}`}>
+                                  ({avail > 0 ? `+${avail} dispo` : 'complet'})
+                                </span>
+                              </span>
+                            ) : <span className="text-gray-300">—</span>}
+                          </td>
+                        )}
+                        <td className="px-6 py-4">
+                          <span className="font-semibold text-green-800">{u._count?.hostDossiers ?? u._count?.studentDossiers ?? 0}</span>
+                        </td>
+                        <td className="px-6 py-4 text-gray-400">{new Date(u.createdAt).toLocaleDateString('fr-FR')}</td>
+                        <td className="px-6 py-4">
+                          <button
+                            onClick={() => handleDelete(u.id, `${u.firstName} ${u.lastName}`)}
+                            disabled={deleting === u.id}
+                            className="text-red-500 hover:text-red-700 text-xs font-medium hover:underline disabled:opacity-40"
+                          >
+                            {deleting === u.id ? '...' : '🗑 Supprimer'}
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>

@@ -26,11 +26,6 @@ enum DossierStatus {
   confirmed
 }
 
-enum DocType {
-  bail
-  energy
-  identity
-}
 
 enum Audience {
   all
@@ -39,16 +34,21 @@ enum Audience {
 }
 
 model User {
-  id            String    @id @default(uuid())
-  firstName     String
-  lastName      String
-  email         String    @unique
-  passwordHash  String
-  role          Role
-  gender        Gender
-  emailVerified Boolean   @default(false)
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  id               String    @id @default(uuid())
+  firstName        String
+  lastName         String
+  email            String    @unique
+  passwordHash     String
+  role             Role
+  gender           Gender
+  dateOfBirth      DateTime?
+  birthPlace       String?
+  emailVerified    Boolean   @default(false)
+  // Champs spécifiques aux hébergeurs
+  lodgingSurface   Int?
+  currentOccupants Int?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
 
   studentDossiers  Dossier[]             @relation("StudentDossiers")
   hostDossiers     Dossier[]             @relation("HostDossiers")
@@ -88,7 +88,7 @@ model Dossier {
 model HostDocument {
   id         String   @id @default(uuid())
   dossierId  String
-  docType    DocType
+  docType    String
   filePath   String
   verified   Boolean  @default(false)
   uploadedAt DateTime @default(now())

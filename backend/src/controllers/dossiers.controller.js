@@ -21,8 +21,8 @@ const dossierSelect = {
   closedAt: true,
   createdAt: true,
   updatedAt: true,
-  student: { select: { id: true, firstName: true, lastName: true, email: true, gender: true } },
-  host: { select: { id: true, firstName: true, lastName: true, email: true, gender: true } },
+  student: { select: { id: true, firstName: true, lastName: true, email: true, gender: true, dateOfBirth: true, birthPlace: true } },
+  host: { select: { id: true, firstName: true, lastName: true, email: true, gender: true, dateOfBirth: true, birthPlace: true, lodgingSurface: true, currentOccupants: true } },
   hostDocuments: true,
 };
 

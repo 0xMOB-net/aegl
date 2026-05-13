@@ -21,7 +21,7 @@ const generateToken = (userId) =>
 
 const register = async (req, res) => {
   try {
-    const { firstName, lastName, email, password, gender, role } = req.body;
+    const { firstName, lastName, email, password, gender, role, dateOfBirth, birthPlace, lodgingSurface, currentOccupants } = req.body;
 
     if (!firstName || !lastName || !email || !password || !gender || !role) {
       return res.status(400).json({ error: 'Tous les champs sont obligatoires' });
@@ -35,13 +35,27 @@ const register = async (req, res) => {
     const pwdError = validatePassword(password);
     if (pwdError) return res.status(400).json({ error: pwdError });
 
+    if (role === 'host' && (!lodgingSurface || currentOccupants === undefined || currentOccupants === null || currentOccupants === '')) {
+      return res.status(400).json({ error: 'La surface et le nombre d\'occupants sont requis pour les hébergeurs' });
+    }
+
     const existing = await prisma.user.findUnique({ where: { email } });
     if (existing) return res.status(409).json({ error: 'Cet email est déjà utilisé' });
 
     const passwordHash = await bcrypt.hash(password, 12);
+    const data = {
+      firstName, lastName, email, passwordHash, gender, role, emailVerified: true,
+      dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : null,
+      birthPlace: birthPlace || null,
+    };
+    if (role === 'host') {
+      data.lodgingSurface = parseInt(lodgingSurface) || null;
+      data.currentOccupants = parseInt(currentOccupants) || 0;
+    }
+
     const user = await prisma.user.create({
-      data: { firstName, lastName, email, passwordHash, gender, role, emailVerified: true },
-      select: { id: true, firstName: true, lastName: true, email: true, role: true, gender: true },
+      data,
+      select: { id: true, firstName: true, lastName: true, email: true, role: true, gender: true, dateOfBirth: true, birthPlace: true, lodgingSurface: true, currentOccupants: true },
     });
 
     await logActivity(user.id, 'register', { email });

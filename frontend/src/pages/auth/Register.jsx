@@ -4,11 +4,7 @@ import { useAuth } from '../../context/AuthContext';
 
 const Logo = () => (
   <svg width="40" height="45" viewBox="0 0 38 42" fill="none">
-    <defs>
-      <clipPath id="shieldReg">
-        <path d="M19 1L37 9V24C37 34 29 39.5 19 42C9 39.5 1 34 1 24V9L19 1Z"/>
-      </clipPath>
-    </defs>
+    <defs><clipPath id="shieldReg"><path d="M19 1L37 9V24C37 34 29 39.5 19 42C9 39.5 1 34 1 24V9L19 1Z"/></clipPath></defs>
     <path d="M19 1L37 9V24C37 34 29 39.5 19 42C9 39.5 1 34 1 24V9L19 1Z" fill="#FCD116"/>
     <rect x="1" y="30" width="12" height="14" fill="#CE1126" clipPath="url(#shieldReg)"/>
     <rect x="13" y="30" width="12" height="14" fill="#FCD116" clipPath="url(#shieldReg)"/>
@@ -17,7 +13,6 @@ const Logo = () => (
   </svg>
 );
 
-// Vérifie chaque critère du mot de passe
 const checkPassword = (pwd) => ({
   length:  pwd.length >= 8,
   upper:   /[A-Z]/.test(pwd),
@@ -39,7 +34,6 @@ function PasswordStrengthMeter({ password }) {
   const checks = checkPassword(password);
   const score = Object.values(checks).filter(Boolean).length;
   const level = STRENGTH_LEVELS[score - 1] || STRENGTH_LEVELS[0];
-
   const criteria = [
     { key: 'length',  label: '8 caractères minimum' },
     { key: 'upper',   label: 'Une lettre majuscule (A-Z)' },
@@ -47,36 +41,21 @@ function PasswordStrengthMeter({ password }) {
     { key: 'number',  label: 'Un chiffre (0-9)' },
     { key: 'special', label: 'Un caractère spécial (!@#$%&*)' },
   ];
-
   return (
     <div className="mt-2 space-y-2">
-      {/* Barre de force */}
       <div className="flex items-center gap-2">
         <div className="flex gap-1 flex-1">
-          {[1, 2, 3, 4, 5].map(i => (
-            <div
-              key={i}
-              className={`h-1.5 flex-1 rounded-full transition-all duration-300 ${
-                i <= score ? level.color : 'bg-gray-200'
-              }`}
-            />
+          {[1,2,3,4,5].map(i => (
+            <div key={i} className={`h-1.5 flex-1 rounded-full transition-all duration-300 ${i <= score ? level.color : 'bg-gray-200'}`} />
           ))}
         </div>
-        <span className={`text-xs font-semibold whitespace-nowrap ${level.text}`}>
-          {level.label}
-        </span>
+        <span className={`text-xs font-semibold whitespace-nowrap ${level.text}`}>{level.label}</span>
       </div>
-
-      {/* Critères */}
       <div className="grid grid-cols-1 gap-1">
         {criteria.map(({ key, label }) => (
           <div key={key} className="flex items-center gap-2">
-            <span className={`text-xs font-bold flex-shrink-0 ${checks[key] ? 'text-green-600' : 'text-gray-300'}`}>
-              {checks[key] ? '✓' : '○'}
-            </span>
-            <span className={`text-xs transition-colors ${checks[key] ? 'text-green-700 line-through decoration-green-300' : 'text-gray-500'}`}>
-              {label}
-            </span>
+            <span className={`text-xs font-bold flex-shrink-0 ${checks[key] ? 'text-green-600' : 'text-gray-300'}`}>{checks[key] ? '✓' : '○'}</span>
+            <span className={`text-xs transition-colors ${checks[key] ? 'text-green-700 line-through decoration-green-300' : 'text-gray-500'}`}>{label}</span>
           </div>
         ))}
       </div>
@@ -90,6 +69,8 @@ export default function Register() {
     firstName: '', lastName: '', email: '',
     password: '', confirmPassword: '',
     gender: '', role: params.get('role') === 'host' ? 'host' : 'student',
+    dateOfBirth: '', birthPlace: '',
+    lodgingSurface: '', currentOccupants: '',
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -101,23 +82,26 @@ export default function Register() {
   const checks = checkPassword(form.password);
   const isPasswordValid = Object.values(checks).every(Boolean);
   const passwordsMatch = form.password === form.confirmPassword;
+  const set = (field) => (e) => setForm({ ...form, [field]: e.target.value });
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
-    if (!isPasswordValid) {
-      return setError('Le mot de passe ne respecte pas tous les critères de sécurité.');
+    if (!isPasswordValid) return setError('Le mot de passe ne respecte pas tous les critères de sécurité.');
+    if (!passwordsMatch)  return setError('Les mots de passe ne correspondent pas.');
+    if (!form.gender)     return setError('Veuillez sélectionner votre genre.');
+    if (form.role === 'host' && (!form.lodgingSurface || form.currentOccupants === '')) {
+      return setError('Veuillez renseigner la surface et le nombre d\'occupants actuels.');
     }
-    if (!passwordsMatch) {
-      return setError('Les mots de passe ne correspondent pas.');
-    }
-    if (!form.gender) return setError('Veuillez sélectionner votre genre.');
     setLoading(true);
     try {
       await register({
         firstName: form.firstName, lastName: form.lastName,
         email: form.email, password: form.password,
         gender: form.gender, role: form.role,
+        dateOfBirth: form.dateOfBirth || undefined,
+        birthPlace: form.birthPlace || undefined,
+        ...(form.role === 'host' ? { lodgingSurface: form.lodgingSurface, currentOccupants: form.currentOccupants } : {}),
       });
       navigate('/membres');
     } catch (err) {
@@ -146,7 +130,6 @@ export default function Register() {
         </div>
 
         <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-8">
-
           {error && (
             <div className="flex items-start gap-2 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm mb-6">
               <span className="flex-shrink-0">⚠️</span> {error}
@@ -154,7 +137,6 @@ export default function Register() {
           )}
 
           <form onSubmit={handleSubmit} className="space-y-5">
-
             {/* Rôle */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Je suis</label>
@@ -194,35 +176,71 @@ export default function Register() {
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1.5">Prénom</label>
-                <input type="text" required value={form.firstName} onChange={e => setForm({ ...form, firstName: e.target.value })} placeholder="Mamadou" className={inputClass} />
+                <input type="text" required value={form.firstName} onChange={set('firstName')} placeholder="Mamadou" className={inputClass} />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1.5">Nom</label>
-                <input type="text" required value={form.lastName} onChange={e => setForm({ ...form, lastName: e.target.value })} placeholder="Bah" className={inputClass} />
+                <input type="text" required value={form.lastName} onChange={set('lastName')} placeholder="Bah" className={inputClass} />
+              </div>
+            </div>
+
+            {/* Date de naissance + Lieu */}
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">Date de naissance</label>
+                <input type="date" value={form.dateOfBirth} onChange={set('dateOfBirth')} className={inputClass} />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">Lieu de naissance</label>
+                <input type="text" value={form.birthPlace} onChange={set('birthPlace')} placeholder="Conakry" className={inputClass} />
               </div>
             </div>
 
             {/* Email */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1.5">Email</label>
-              <input type="email" required value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} placeholder="votre@email.com" className={inputClass} />
+              <input type="email" required value={form.email} onChange={set('email')} placeholder="votre@email.com" className={inputClass} />
             </div>
 
-            {/* Mot de passe + jauge */}
+            {/* Logement — hébergeurs seulement */}
+            {form.role === 'host' && (
+              <div className="bg-green-50 border border-green-100 rounded-2xl p-4 space-y-4">
+                <p className="text-sm font-semibold text-green-800">🏠 Informations sur votre logement</p>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                      Surface <span className="text-red-500">*</span> <span className="text-xs text-gray-400 font-normal">(m²)</span>
+                    </label>
+                    <input type="number" min="1" required value={form.lodgingSurface} onChange={set('lodgingSurface')} placeholder="45" className={inputClass} />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                      Occupants actuels <span className="text-red-500">*</span>
+                    </label>
+                    <input type="number" min="0" required value={form.currentOccupants} onChange={set('currentOccupants')} placeholder="1" className={inputClass} />
+                  </div>
+                </div>
+                {form.lodgingSurface && form.currentOccupants !== '' && (() => {
+                  const avail = Math.floor(parseInt(form.lodgingSurface) / 9) - parseInt(form.currentOccupants);
+                  return (
+                    <p className={`text-xs font-medium ${avail > 0 ? 'text-green-700' : 'text-red-600'}`}>
+                      {avail > 0
+                        ? `✓ Capacité estimée : ${avail} place${avail > 1 ? 's' : ''} disponible${avail > 1 ? 's' : ''}`
+                        : '⚠ Logement complet (minimum 9 m² par personne)'}
+                    </p>
+                  );
+                })()}
+              </div>
+            )}
+
+            {/* Mot de passe */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                Mot de passe
-                <span className="ml-1 text-xs text-gray-400 font-normal">— doit respecter tous les critères ci-dessous</span>
+                Mot de passe <span className="ml-1 text-xs text-gray-400 font-normal">— doit respecter tous les critères</span>
               </label>
               <div className="relative">
-                <input
-                  type={showPass ? 'text' : 'password'} required
-                  value={form.password}
-                  onChange={e => setForm({ ...form, password: e.target.value })}
-                  placeholder="••••••••"
-                  className={`${inputClass} pr-12`}
-                  autoComplete="new-password"
-                />
+                <input type={showPass ? 'text' : 'password'} required value={form.password} onChange={set('password')}
+                  placeholder="••••••••" className={`${inputClass} pr-12`} autoComplete="new-password" />
                 <button type="button" onClick={() => setShowPass(!showPass)}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-sm">
                   {showPass ? '🙈' : '👁️'}
@@ -231,42 +249,25 @@ export default function Register() {
               <PasswordStrengthMeter password={form.password} />
             </div>
 
-            {/* Confirmer mot de passe */}
+            {/* Confirmer */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1.5">Confirmer le mot de passe</label>
               <div className="relative">
-                <input
-                  type={showConfirm ? 'text' : 'password'} required
-                  value={form.confirmPassword}
-                  onChange={e => setForm({ ...form, confirmPassword: e.target.value })}
+                <input type={showConfirm ? 'text' : 'password'} required value={form.confirmPassword} onChange={set('confirmPassword')}
                   placeholder="••••••••"
-                  className={`${inputClass} pr-12 ${
-                    form.confirmPassword && !passwordsMatch ? 'border-red-300 focus:ring-red-400' : ''
-                  }`}
-                  autoComplete="new-password"
-                />
+                  className={`${inputClass} pr-12 ${form.confirmPassword && !passwordsMatch ? 'border-red-300 focus:ring-red-400' : ''}`}
+                  autoComplete="new-password" />
                 <button type="button" onClick={() => setShowConfirm(!showConfirm)}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-sm">
                   {showConfirm ? '🙈' : '👁️'}
                 </button>
               </div>
-              {form.confirmPassword && !passwordsMatch && (
-                <p className="text-xs text-red-500 mt-1.5 flex items-center gap-1">
-                  <span>✗</span> Les mots de passe ne correspondent pas
-                </p>
-              )}
-              {form.confirmPassword && passwordsMatch && (
-                <p className="text-xs text-green-600 mt-1.5 flex items-center gap-1">
-                  <span>✓</span> Les mots de passe correspondent
-                </p>
-              )}
+              {form.confirmPassword && !passwordsMatch && <p className="text-xs text-red-500 mt-1.5">✗ Les mots de passe ne correspondent pas</p>}
+              {form.confirmPassword && passwordsMatch  && <p className="text-xs text-green-600 mt-1.5">✓ Les mots de passe correspondent</p>}
             </div>
 
-            <button
-              type="submit"
-              disabled={loading || !isPasswordValid || !passwordsMatch}
-              className="btn-primary w-full justify-center py-3.5 text-base mt-2 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
+            <button type="submit" disabled={loading || !isPasswordValid || !passwordsMatch}
+              className="btn-primary w-full justify-center py-3.5 text-base mt-2 disabled:opacity-50 disabled:cursor-not-allowed">
               {loading ? (
                 <span className="flex items-center gap-2">
                   <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -278,16 +279,12 @@ export default function Register() {
 
           <p className="text-center text-gray-400 text-sm mt-6">
             Déjà un compte ?{' '}
-            <Link to="/login" className="text-green-700 font-semibold hover:text-green-800 hover:underline transition-colors">
-              Se connecter
-            </Link>
+            <Link to="/login" className="text-green-700 font-semibold hover:text-green-800 hover:underline transition-colors">Se connecter</Link>
           </p>
         </div>
 
         <p className="text-center mt-4">
-          <Link to="/" className="text-xs text-gray-400 hover:text-gray-500 transition-colors">
-            ← Retour au site public
-          </Link>
+          <Link to="/" className="text-xs text-gray-400 hover:text-gray-500 transition-colors">← Retour au site public</Link>
         </p>
       </div>
     </div>

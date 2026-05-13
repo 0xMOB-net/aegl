@@ -8,11 +8,21 @@ const { logActivity } = require('../services/activity.service');
 const prisma = new PrismaClient();
 router.use(authenticate);
 
-router.post('/:dossierId', requireRole('host'), upload.fields([
-  { name: 'bail', maxCount: 1 },
-  { name: 'energy', maxCount: 1 },
-  { name: 'identity', maxCount: 1 },
-]), async (req, res) => {
+// Types attendus : bail (1), identity (1), quittance_1/2/3 (3), facture_1/2/3 (3) = 8 fichiers
+const HOST_DOC_FIELDS = [
+  { name: 'bail',        maxCount: 1 },
+  { name: 'identity',   maxCount: 1 },
+  { name: 'quittance_1', maxCount: 1 },
+  { name: 'quittance_2', maxCount: 1 },
+  { name: 'quittance_3', maxCount: 1 },
+  { name: 'facture_1',  maxCount: 1 },
+  { name: 'facture_2',  maxCount: 1 },
+  { name: 'facture_3',  maxCount: 1 },
+];
+
+const REQUIRED_FIELDS = ['bail', 'identity', 'quittance_1', 'quittance_2', 'quittance_3', 'facture_1', 'facture_2', 'facture_3'];
+
+router.post('/:dossierId', requireRole('host'), upload.fields(HOST_DOC_FIELDS), async (req, res) => {
   try {
     const { dossierId } = req.params;
     const { address } = req.body;
@@ -27,9 +37,10 @@ router.post('/:dossierId', requireRole('host'), upload.fields([
       return res.status(400).json({ error: 'Documents déjà soumis ou dossier non assigné' });
     }
 
-    const files = req.files;
-    if (!files.bail || !files.energy || !files.identity) {
-      return res.status(400).json({ error: 'Les 3 documents sont obligatoires (bail, energy, identity)' });
+    const files = req.files || {};
+    const missing = REQUIRED_FIELDS.filter(f => !files[f]);
+    if (missing.length > 0) {
+      return res.status(400).json({ error: `Documents manquants : ${missing.join(', ')}` });
     }
     if (!address) return res.status(400).json({ error: 'L\'adresse complète est obligatoire' });
 

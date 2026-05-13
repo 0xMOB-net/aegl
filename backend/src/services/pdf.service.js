@@ -1,79 +1,46 @@
 const PDFDocument = require('pdfkit');
-const { variants, selectVariant, formatDate } = require('../utils/attestation.variants');
 
-const buildPdfContent = (doc, dossier) => {
-  const variantIndex = selectVariant(dossier.id);
-  const variantFn = variants[variantIndex];
-  const address = dossier.hostAddress || 'Limoges, France';
-  const today = new Date();
+const formatDate = (date) => {
+  const d = date instanceof Date ? date : new Date(date);
+  return d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
+};
 
-  const bodyText = variantFn({
-    host: dossier.host,
-    student: dossier.student,
-    address,
-    dossierId: dossier.id,
-    date: today,
-  });
+const civilite = (gender) => gender === 'F' ? 'Mme' : 'M.';
+const accord = (gender, m, f) => gender === 'F' ? f : m;
 
-  doc.fontSize(10)
-     .font('Helvetica')
-     .fillColor('#000000')
-     .text('ASSOCIATION DES ÉTUDIANTS GUINÉENS DE LIMOGES', { align: 'center' })
-     .text('AEGL', { align: 'center' })
-     .moveDown(0.3)
-     .text('Email : contact@aegl87.fr', { align: 'center' })
-     .moveDown(2);
+const buildAttestationText = (dossier) => {
+  const { host, student, hostAddress } = dossier;
+  const address = hostAddress || 'Limoges, France';
 
-  doc.fontSize(16)
-     .font('Helvetica-Bold')
-     .fillColor('#000000')
-     .text('ATTESTATION D\'HÉBERGEMENT', { align: 'center', underline: true })
-     .moveDown(2);
+  const hostDob = host.dateOfBirth ? `né${accord(host.gender, '', 'e')} le ${formatDate(host.dateOfBirth)}` : '';
+  const hostBirth = host.birthPlace ? ` à ${host.birthPlace}` : '';
+  const hostDobbirth = hostDob ? `${hostDob}${hostBirth}` : '';
 
-  doc.fontSize(12)
-     .font('Helvetica')
-     .fillColor('#000000');
+  const studentDob = student.dateOfBirth ? `né${accord(student.gender, '', 'e')} le ${formatDate(student.dateOfBirth)}` : '';
+  const studentBirth = student.birthPlace ? ` à ${student.birthPlace}` : '';
+  const studentDobbirth = studentDob ? `${studentDob}${studentBirth}` : '';
 
-  const paragraphs = bodyText.trim().split('\n\n').filter(p => p.trim());
-  paragraphs.forEach((paragraph, i) => {
-    const cleanParagraph = paragraph.trim();
-    if (!cleanParagraph) return;
-    if (cleanParagraph === cleanParagraph.toUpperCase() && cleanParagraph.length < 60) {
-      doc.font('Helvetica-Bold').text(cleanParagraph, { align: 'center' }).font('Helvetica');
-    } else {
-      doc.text(cleanParagraph, { align: 'justify', lineGap: 4 });
-    }
-    if (i < paragraphs.length - 1) doc.moveDown(1);
-  });
+  const hostLine = [
+    `Je soussigné${accord(host.gender, '', 'e')}, ${civilite(host.gender)} ${host.firstName.toUpperCase()} ${host.lastName.toUpperCase()}`,
+    hostDobbirth,
+    `demeurant à l'adresse : ${address}`,
+  ].filter(Boolean).join(', ');
 
-  doc.moveDown(3);
-  doc.fontSize(11)
-     .text(`Fait à Limoges, le ${formatDate(today)}`, { align: 'right' })
-     .moveDown(0.5);
+  const studentLine = [
+    `${student.firstName.toUpperCase()} ${student.lastName.toUpperCase()}`,
+    studentDobbirth,
+    'de nationalité guinéenne',
+  ].filter(Boolean).join(', ');
 
-  doc.fontSize(11)
-     .text(`${dossier.host.firstName} ${dossier.host.lastName}`, { align: 'right' })
-     .moveDown(3);
-
-  const pageWidth = doc.page.width - doc.page.margins.left - doc.page.margins.right;
-  const sigLineX = doc.page.margins.left + pageWidth * 0.6;
-  const sigLineY = doc.y;
-  doc.moveTo(sigLineX, sigLineY)
-     .lineTo(sigLineX + pageWidth * 0.35, sigLineY)
-     .strokeColor('#000000')
-     .stroke();
-
-  doc.fontSize(9).text('Signature', { align: 'right' });
-
-  const bottomY = doc.page.height - doc.page.margins.bottom + 20;
-  doc.fontSize(8)
-     .fillColor('#555555')
-     .text(
-       `Document généré par l'AEGL — N° dossier : ${dossier.id.substring(0, 8).toUpperCase()}`,
-       doc.page.margins.left,
-       bottomY,
-       { align: 'center', width: pageWidth }
-     );
+  return [
+    `${hostLine},`,
+    '',
+    `m'engage à héberger à titre gracieux à mon domicile ${accord(student.gender, 'M.', 'Mme')} ${studentLine}, dès son arrivée en France et jusqu'à l'obtention d'un nouveau logement.`,
+    '',
+    `Pièces jointes : mon titre de séjour et les justificatifs de domicile.`,
+    '',
+    `En foi de quoi je lui délivre la présente attestation pour servir et valoir ce que de droit.`,
+  ].join('\n');
 };
 
 const generateAttestationBuffer = (dossier) => {
@@ -84,7 +51,49 @@ const generateAttestationBuffer = (dossier) => {
       doc.on('data', chunk => chunks.push(chunk));
       doc.on('end', () => resolve(Buffer.concat(chunks)));
       doc.on('error', reject);
-      buildPdfContent(doc, dossier);
+
+      const pageWidth = doc.page.width - doc.page.margins.left - doc.page.margins.right;
+      const today = new Date();
+
+      // Titre
+      doc.fontSize(16)
+         .font('Helvetica-Bold')
+         .text('ATTESTATION D\'HÉBERGEMENT', { align: 'center', underline: true })
+         .moveDown(3);
+
+      // Corps
+      const bodyText = buildAttestationText(dossier);
+      doc.fontSize(12).font('Helvetica').text(bodyText, { align: 'justify', lineGap: 6 });
+
+      doc.moveDown(4);
+
+      // Date et lieu
+      doc.fontSize(11).text(`Fait à Limoges, le ${formatDate(today)}`, { align: 'right' });
+      doc.moveDown(0.5);
+      doc.text(`${dossier.host.firstName.toUpperCase()} ${dossier.host.lastName.toUpperCase()}`, { align: 'right' });
+
+      doc.moveDown(4);
+
+      // Ligne de signature
+      const sigLineX = doc.page.margins.left + pageWidth * 0.55;
+      const sigLineY = doc.y;
+      doc.moveTo(sigLineX, sigLineY)
+         .lineTo(sigLineX + pageWidth * 0.38, sigLineY)
+         .strokeColor('#000000')
+         .lineWidth(0.5)
+         .stroke();
+      doc.fontSize(9).text('Signature', { align: 'right' });
+
+      // Pied de page discret
+      const bottomY = doc.page.height - doc.page.margins.bottom + 25;
+      doc.fontSize(7)
+         .fillColor('#888888')
+         .text(
+           `Document généré par l'AEGL — Réf. dossier : ${dossier.id.substring(0, 8).toUpperCase()}`,
+           doc.page.margins.left, bottomY,
+           { align: 'center', width: pageWidth }
+         );
+
       doc.end();
     } catch (err) {
       reject(err);
