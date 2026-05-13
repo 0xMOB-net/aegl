@@ -22,12 +22,10 @@ router.post('/', contactLimiter, async (req, res) => {
     return res.status(400).json({ error: 'Message trop long (3000 caractères max).' });
   }
 
-  try {
-    await sendContactEmail({ name: name.trim(), email: email.trim(), topic: topic?.trim() || '', message: message.trim() });
-    res.json({ message: 'Message envoyé avec succès.' });
-  } catch {
-    res.status(500).json({ error: 'Erreur lors de l\'envoi. Veuillez réessayer ou écrire directement à contact@aegl87.fr' });
-  }
+  // Répondre immédiatement — l'email part en arrière-plan
+  res.json({ message: 'Message envoyé avec succès.' });
+  sendContactEmail({ name: name.trim(), email: email.trim(), topic: topic?.trim() || '', message: message.trim() })
+    .catch(err => console.error('sendContactEmail failed:', err.message));
 });
 
 module.exports = router;

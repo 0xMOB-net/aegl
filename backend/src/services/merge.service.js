@@ -26,20 +26,29 @@ const mergeDocuments = async (attestationBuffer, hostDocUrls) => {
   const attestPages = await merged.copyPages(attestDoc, attestDoc.getPageIndices());
   attestPages.forEach(p => merged.addPage(p));
 
-  // 2. Ajouter chaque document hébergeur
-  for (const url of hostDocUrls) {
+  // 2. Télécharger tous les docs hébergeur EN PARALLÈLE (au lieu de séquentiellement)
+  const buffers = await Promise.all(
+    hostDocUrls.map(url =>
+      fetchBuffer(url).catch(err => {
+        console.error(`merge.service: failed to fetch ${url}:`, err.message);
+        return null;
+      })
+    )
+  );
+
+  // 3. Intégrer chaque buffer dans le PDF fusionné
+  for (const buf of buffers) {
+    if (!buf) continue;
     try {
-      const buf = await fetchBuffer(url);
       if (isPdf(buf)) {
         const doc = await PDFDocument.load(buf, { ignoreEncryption: true });
         const pages = await merged.copyPages(doc, doc.getPageIndices());
         pages.forEach(p => merged.addPage(p));
       } else {
         // Image (JPG / PNG) → nouvelle page A4
-        const page = merged.addPage([595, 842]); // A4 en points
+        const page = merged.addPage([595, 842]);
         let img;
         try {
-          // Essayer PNG d'abord, puis JPG
           img = await merged.embedPng(buf).catch(() => merged.embedJpg(buf));
         } catch {
           img = await merged.embedJpg(buf);
@@ -59,7 +68,7 @@ const mergeDocuments = async (attestationBuffer, hostDocUrls) => {
         });
       }
     } catch (err) {
-      console.error(`merge.service: failed to embed document ${url}:`, err.message);
+      console.error('merge.service: failed to embed buffer:', err.message);
     }
   }
 

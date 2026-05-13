@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Navbar from '../../components/public/Navbar';
 import Footer from '../../components/public/Footer';
 import { Link } from 'react-router-dom';
@@ -50,6 +50,12 @@ export default function Contact() {
   const [sent, setSent] = useState(false);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState('');
+
+  // Ping silencieux au chargement pour réveiller le backend Render (évite le cold start sur l'envoi)
+  useEffect(() => {
+    const base = import.meta.env.VITE_API_URL || '/api';
+    fetch(`${base}/health`).catch(() => {});
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();

@@ -1,19 +1,27 @@
 const nodemailer = require('nodemailer');
 
-const createTransporter = () =>
-  nodemailer.createTransport({
-    host: process.env.SMTP_HOST || 'smtp-relay.brevo.com',
-    port: parseInt(process.env.SMTP_PORT || '587'),
-    secure: false,
-    auth: {
-      user: process.env.SMTP_USER,
-      pass: process.env.SMTP_PASS,
-    },
-    tls: { rejectUnauthorized: false },
-  });
+// Singleton réutilisé pour toutes les requêtes (évite de rouvrir une connexion TCP à chaque email)
+let _transporter = null;
+const getTransporter = () => {
+  if (!_transporter) {
+    _transporter = nodemailer.createTransport({
+      pool: true,
+      maxConnections: 3,
+      host: process.env.SMTP_HOST || 'smtp-relay.brevo.com',
+      port: parseInt(process.env.SMTP_PORT || '587'),
+      secure: false,
+      auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
+      tls: { rejectUnauthorized: false },
+      connectionTimeout: 10000,
+      greetingTimeout: 8000,
+      socketTimeout: 15000,
+    });
+  }
+  return _transporter;
+};
 
 const sendDossierConfirmedEmail = async (student, pdfBuffer, hostDocuments = []) => {
-  const transporter = createTransporter();
+  const transporter = getTransporter();
   const fullName = `${student.firstName} ${student.lastName}`;
 
   const htmlContent = `
@@ -78,7 +86,7 @@ const sendDossierConfirmedEmail = async (student, pdfBuffer, hostDocuments = [])
 };
 
 const sendWelcomeEmail = async (user) => {
-  const transporter = createTransporter();
+  const transporter = getTransporter();
   try {
     await transporter.sendMail({
       from: `"${process.env.EMAIL_FROM_NAME || 'AEGL'}" <${process.env.EMAIL_FROM}>`,
@@ -101,7 +109,7 @@ const sendWelcomeEmail = async (user) => {
 };
 
 const sendAttestationToHostEmail = async (host, student, dossierId, attestationBuffer) => {
-  const transporter = createTransporter();
+  const transporter = getTransporter();
   const frontendUrl = process.env.FRONTEND_URL || 'https://aegl87.fr';
   const hostName = `${host.firstName} ${host.lastName}`;
   const studentName = `${student.firstName} ${student.lastName}`;
@@ -152,7 +160,7 @@ const sendAttestationToHostEmail = async (host, student, dossierId, attestationB
 };
 
 const sendMergedDossierEmail = async (student, mergedPdfBuffer) => {
-  const transporter = createTransporter();
+  const transporter = getTransporter();
   const fullName = `${student.firstName} ${student.lastName}`;
   const frontendUrl = process.env.FRONTEND_URL || 'https://aegl87.fr';
 
@@ -207,7 +215,7 @@ const sendMergedDossierEmail = async (student, mergedPdfBuffer) => {
 };
 
 const sendContactEmail = async ({ name, email, topic, message }) => {
-  const transporter = createTransporter();
+  const transporter = getTransporter();
   const subject = topic ? `[Contact AEGL] ${topic}` : '[Contact AEGL] Message depuis le site';
 
   try {

@@ -265,10 +265,11 @@ const close = async (req, res) => {
       select: dossierSelect,
     });
 
-    // Envoyer l'attestation à l'hébergeur pour qu'il la signe
-    await sendAttestationToHostEmail(dossier.host, dossier.student, dossier.id, pdfBuffer);
     await logActivity(req.user.id, 'close_dossier', { dossierId: req.params.id });
     res.json({ dossier: updated });
+    // Email envoyé en arrière-plan — ne bloque pas la réponse HTTP
+    sendAttestationToHostEmail(dossier.host, dossier.student, dossier.id, pdfBuffer)
+      .catch(err => console.error('sendAttestationToHostEmail failed:', err.message));
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Erreur lors de la clôture du dossier' });
@@ -342,10 +343,11 @@ const signAttestation = async (req, res) => {
       select: dossierSelect,
     });
 
-    // 7. Envoyer le PDF complet à l'étudiant par email
-    await sendMergedDossierEmail(dossier.student, mergedBuffer);
     await logActivity(user.id, 'sign_attestation', { dossierId: req.params.id });
     res.json({ dossier: updated });
+    // Email envoyé en arrière-plan — ne bloque pas la réponse HTTP
+    sendMergedDossierEmail(dossier.student, mergedBuffer)
+      .catch(err => console.error('sendMergedDossierEmail failed:', err.message));
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Erreur lors de la signature' });

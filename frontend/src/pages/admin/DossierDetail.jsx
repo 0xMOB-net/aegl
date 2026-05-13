@@ -409,7 +409,12 @@ export default function AdminDossierDetail() {
                     disabled={actionLoading === 'close'}
                     className="btn-gold text-sm"
                   >
-                    {actionLoading === 'close' ? 'Envoi...' : '✍️ Envoyer à l\'hébergeur'}
+                    {actionLoading === 'close' ? (
+                      <span className="flex items-center gap-2">
+                        <span className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                        Génération PDF...
+                      </span>
+                    ) : '✍️ Envoyer à l\'hébergeur'}
                   </button>
                 )}
               </div>

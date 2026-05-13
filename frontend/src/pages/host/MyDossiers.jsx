@@ -269,13 +269,25 @@ export default function HostMyDossiers() {
                 )}
               </div>
 
+              {submittingSig && (
+                <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 text-sm text-amber-800 flex items-center gap-2">
+                  <span className="w-4 h-4 border-2 border-amber-600 border-t-transparent rounded-full animate-spin flex-shrink-0" />
+                  Génération du PDF en cours — cela peut prendre 15 à 30 secondes, ne fermez pas cette fenêtre.
+                </div>
+              )}
               <div className="flex gap-3 pt-2">
                 <button type="button" onClick={() => { setSigning(null); setSignatureDataUrl(null); }}
-                  className="flex-1 btn-secondary text-sm">Annuler</button>
+                  disabled={submittingSig}
+                  className="flex-1 btn-secondary text-sm disabled:opacity-50">Annuler</button>
                 <button type="button" onClick={handleSign}
                   disabled={submittingSig || !signatureDataUrl}
                   className="flex-1 btn-primary text-sm disabled:opacity-50 disabled:cursor-not-allowed">
-                  {submittingSig ? '⏳ Envoi en cours...' : '✅ Valider ma signature'}
+                  {submittingSig ? (
+                    <span className="flex items-center justify-center gap-2">
+                      <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      Traitement...
+                    </span>
+                  ) : '✅ Valider ma signature'}
                 </button>
               </div>
             </div>
