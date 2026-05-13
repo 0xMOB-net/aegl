@@ -75,36 +75,25 @@ export default function AdminDossierDetail() {
     }
   };
 
-  const viewDoc = async (url, filename) => {
-    try {
-      const base = import.meta.env.VITE_API_URL || '/api';
-      const token = localStorage.getItem('aegl_token');
-      const res = await fetch(`${base}${url}`, { headers: { Authorization: `Bearer ${token}` } });
-      if (!res.ok) { showToast('Document introuvable ou accès refusé', 'error'); return; }
-      const blob = await res.blob();
-      const blobUrl = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = blobUrl;
-      a.target = '_blank';
-      a.rel = 'noreferrer';
-      a.download = filename;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
-    } catch {
-      showToast('Erreur lors de l\'ouverture du document', 'error');
-    }
+  const viewDoc = (url) => {
+    const win = window.open('', '_blank');
+    if (!win) { showToast('Autorisez les popups pour voir les documents', 'error'); return; }
+    const base = import.meta.env.VITE_API_URL || '/api';
+    const token = localStorage.getItem('aegl_token');
+    fetch(`${base}${url}`, { headers: { Authorization: `Bearer ${token}` } })
+      .then(res => {
+        if (!res.ok) { win.close(); showToast('Document introuvable ou accès refusé', 'error'); return null; }
+        return res.blob();
+      })
+      .then(blob => {
+        if (!blob) return;
+        win.location.href = URL.createObjectURL(blob);
+      })
+      .catch(() => { win.close(); showToast('Erreur lors de l\'ouverture du document', 'error'); });
   };
 
-  const openSignedDoc = (field) => {
-    const labels = { universityNotice: 'accord_prealable', passport: 'passeport', avi: 'avi' };
-    viewDoc(`/admin/dossiers/${id}/view-doc?field=${field}`, `${labels[field] || field}_${id.substring(0,8)}.pdf`);
-  };
-
-  const openHostDoc = (docId, docType) => {
-    viewDoc(`/admin/host-documents/${docId}/view`, `${docType || 'document'}_${docId.substring(0,8)}.pdf`);
-  };
+  const openSignedDoc = (field) => viewDoc(`/admin/dossiers/${id}/view-doc?field=${field}`);
+  const openHostDoc = (docId) => viewDoc(`/admin/host-documents/${docId}/view`);
 
   const downloadPDF = async () => {
     try {
@@ -365,7 +354,7 @@ export default function AdminDossierDetail() {
                   facture_3:   '⚡ Facture nominative n°3',
                 };
                 return (
-                  <button key={doc.id} type="button" onClick={() => openHostDoc(doc.id, doc.docType)}
+                  <button key={doc.id} type="button" onClick={() => openHostDoc(doc.id)}
                     className="border border-gray-200 rounded-xl p-3 hover:border-green-400 hover:bg-green-50 transition-all group text-left">
                     <p className="text-xs font-medium text-gray-800 mb-1">{labels[doc.docType] || doc.docType}</p>
                     <p className="text-xs text-green-700 group-hover:underline">Voir →</p>
