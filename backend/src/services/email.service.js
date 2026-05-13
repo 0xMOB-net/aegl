@@ -206,4 +206,41 @@ const sendMergedDossierEmail = async (student, mergedPdfBuffer) => {
   }
 };
 
-module.exports = { sendDossierConfirmedEmail, sendWelcomeEmail, sendAttestationToHostEmail, sendMergedDossierEmail };
+const sendContactEmail = async ({ name, email, topic, message }) => {
+  const transporter = createTransporter();
+  const subject = topic ? `[Contact AEGL] ${topic}` : '[Contact AEGL] Message depuis le site';
+
+  try {
+    await transporter.sendMail({
+      from: `"${process.env.EMAIL_FROM_NAME || 'AEGL'}" <${process.env.EMAIL_FROM}>`,
+      to: process.env.CONTACT_EMAIL || 'contact@aegl87.fr',
+      replyTo: `"${name}" <${email}>`,
+      subject,
+      html: `
+        <div style="font-family:sans-serif;max-width:600px;margin:auto;background:#f9f9f9;padding:30px">
+          <div style="background:#1a5c3a;padding:20px 30px;border-radius:8px 8px 0 0">
+            <h2 style="color:#FCD116;margin:0;font-size:18px">📬 Nouveau message — Site AEGL</h2>
+          </div>
+          <div style="background:#fff;padding:30px;border-radius:0 0 8px 8px;border:1px solid #e5e7eb">
+            <table style="width:100%;border-collapse:collapse;font-size:14px">
+              <tr><td style="color:#6b7280;padding:8px 0;width:120px">Nom</td><td style="font-weight:600;color:#111">${name}</td></tr>
+              <tr><td style="color:#6b7280;padding:8px 0">Email</td><td><a href="mailto:${email}" style="color:#1a5c3a">${email}</a></td></tr>
+              ${topic ? `<tr><td style="color:#6b7280;padding:8px 0">Sujet</td><td style="color:#111">${topic}</td></tr>` : ''}
+            </table>
+            <hr style="border:none;border-top:1px solid #e5e7eb;margin:20px 0">
+            <p style="color:#374151;line-height:1.7;white-space:pre-wrap">${message}</p>
+            <hr style="border:none;border-top:1px solid #e5e7eb;margin:20px 0">
+            <p style="color:#9ca3af;font-size:12px">
+              Répondre directement à cet email répondra à <strong>${name}</strong> (${email}).
+            </p>
+          </div>
+        </div>
+      `,
+    });
+  } catch (err) {
+    console.error('Email sending failed (contact):', err.message);
+    throw err;
+  }
+};
+
+module.exports = { sendDossierConfirmedEmail, sendWelcomeEmail, sendAttestationToHostEmail, sendMergedDossierEmail, sendContactEmail };

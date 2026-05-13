@@ -11,6 +11,7 @@ const announcementRoutes = require('./routes/announcements.routes');
 const articleRoutes = require('./routes/articles.routes');
 const pdfRoutes = require('./routes/pdf.routes');
 const adminRoutes = require('./routes/admin.routes');
+const contactRoutes = require('./routes/contact.routes');
 
 const app = express();
 
@@ -53,6 +54,7 @@ app.use('/api/announcements', announcementRoutes);
 app.use('/api/articles', articleRoutes);
 app.use('/api/pdf', pdfRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/contact', contactRoutes);
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', version: '1.0.0', timestamp: new Date().toISOString() });

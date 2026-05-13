@@ -48,13 +48,28 @@ const topics = [
 export default function Contact() {
   const [form, setForm] = useState({ name: '', email: '', topic: '', message: '' });
   const [sent, setSent] = useState(false);
+  const [sending, setSending] = useState(false);
+  const [error, setError] = useState('');
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    const subject = form.topic || 'Message depuis le site AEGL';
-    const body = `Nom: ${form.name}\nEmail: ${form.email}\nSujet: ${subject}\n\n${form.message}`;
-    window.location.href = `mailto:contact@aegl87.fr?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-    setSent(true);
+    setSending(true);
+    setError('');
+    try {
+      const base = import.meta.env.VITE_API_URL || '/api';
+      const res = await fetch(`${base}/contact`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(form),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Erreur lors de l\'envoi');
+      setSent(true);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setSending(false);
+    }
   };
 
   return (
@@ -172,10 +187,10 @@ export default function Contact() {
 
               {sent ? (
                 <div className="text-center py-12">
-                  <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center text-3xl mx-auto mb-4">✉️</div>
-                  <h3 className="font-heading text-xl text-green-900 mb-2">Votre messagerie s'est ouverte</h3>
-                  <p className="text-gray-500 text-sm mb-6">Finalisez l'envoi depuis votre client email. Nous vous répondrons sous 24–48h.</p>
-                  <button onClick={() => setSent(false)} className="btn-secondary text-sm">
+                  <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center text-3xl mx-auto mb-4">✅</div>
+                  <h3 className="font-heading text-xl text-green-900 mb-2">Message envoyé !</h3>
+                  <p className="text-gray-500 text-sm mb-6">Votre message a bien été transmis à l'équipe AEGL. Nous vous répondrons sous 24–48h.</p>
+                  <button onClick={() => { setSent(false); setForm({ name: '', email: '', topic: '', message: '' }); }} className="btn-secondary text-sm">
                     Envoyer un autre message
                   </button>
                 </div>
@@ -230,12 +245,16 @@ export default function Contact() {
                     />
                   </div>
 
-                  <button type="submit" className="btn-primary w-full justify-center py-4 text-base">
-                    Envoyer le message →
+                  {error && (
+                    <p className="text-red-600 text-sm bg-red-50 border border-red-200 rounded-xl px-4 py-3">{error}</p>
+                  )}
+
+                  <button type="submit" disabled={sending} className="btn-primary w-full justify-center py-4 text-base disabled:opacity-60 disabled:cursor-not-allowed">
+                    {sending ? '⏳ Envoi en cours...' : 'Envoyer le message →'}
                   </button>
 
                   <p className="text-center text-xs text-gray-400">
-                    En envoyant ce message, votre client email s'ouvrira avec les informations pré-remplies.
+                    Votre message sera transmis directement à notre équipe. Nous vous répondrons sous 24–48h.
                   </p>
                 </form>
               )}
