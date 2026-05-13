@@ -23,7 +23,7 @@ export default function HostAttestations() {
   useEffect(() => {
     api.get('/dossiers').then(r => {
       const confirmed = r.data.dossiers?.filter(d =>
-        ['documents_provided', 'documents_verified', 'confirmed'].includes(d.status)
+        ['documents_provided', 'documents_verified', 'attestation_pending', 'confirmed'].includes(d.status)
       ) || [];
       setDossiers(confirmed);
     }).finally(() => setLoading(false));

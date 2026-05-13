@@ -308,7 +308,7 @@ const signAttestation = async (req, res) => {
     const resolveUrl = (storedUrl) => {
       if (!storedUrl) return null;
       if (storedUrl.includes('/authenticated/')) {
-        const m = storedUrl.match(/cloudinary\.com\/[^/]+\/([^/]+)\/authenticated\/(?:v\d+\/)?(.+)$/);
+        const m = storedUrl.match(/cloudinary\.com\/[^/]+\/([^/]+)\/authenticated\/(?:s--[^/]+--\/)?(?:v\d+\/)?(.+)$/);
         if (!m) return storedUrl;
         const resourceType = m[1];
         let publicId = m[2];
