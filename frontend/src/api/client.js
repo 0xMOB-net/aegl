@@ -14,7 +14,8 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (res) => res,
   (err) => {
-    if (err.response?.status === 401) {
+    // Don't redirect on 401 from the login endpoint itself (wrong password)
+    if (err.response?.status === 401 && !err.config?.url?.includes('/auth/login')) {
       localStorage.removeItem('aegl_token');
       localStorage.removeItem('aegl_user');
       window.location.href = '/login';

@@ -138,6 +138,12 @@ h1, h2, h3, h4 { font-family: 'Playfair Display', Georgia, serif; }
   margin: 0 auto 1.5rem;
 }
 
+/* Hide browser native password reveal/clear buttons (Edge, IE) */
+input[type="password"]::-ms-reveal,
+input[type="password"]::-ms-clear {
+  display: none;
+}
+
 /* ================================================
    GRADIENT TEXT
    ================================================ */

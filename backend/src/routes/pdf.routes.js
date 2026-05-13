@@ -14,7 +14,7 @@ const ALLOWED_STATUSES = ['documents_provided', 'documents_verified', 'attestati
 const resolveCloudinaryUrl = (storedUrl) => {
   if (!storedUrl) return null;
   if (storedUrl.includes('/authenticated/')) {
-    const m = storedUrl.match(/cloudinary\.com\/[^/]+\/([^/]+)\/authenticated\/(?:v\d+\/)?(.+)$/);
+    const m = storedUrl.match(/cloudinary\.com\/[^/]+\/([^/]+)\/authenticated\/(?:s--[^/]+--\/)?(?:v\d+\/)?(.+)$/);
     if (!m) return null;
     const resourceType = m[1];
     let publicId = m[2];

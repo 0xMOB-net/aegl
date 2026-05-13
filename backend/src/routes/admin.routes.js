@@ -14,7 +14,7 @@ const resolveDocUrl = (storedUrl) => {
   if (!storedUrl) return null;
   if (storedUrl.includes('/authenticated/')) {
     // Extract resource_type and public_id then sign
-    const m = storedUrl.match(/cloudinary\.com\/[^/]+\/([^/]+)\/authenticated\/(?:v\d+\/)?(.+)$/);
+    const m = storedUrl.match(/cloudinary\.com\/[^/]+\/([^/]+)\/authenticated\/(?:s--[^/]+--\/)?(?:v\d+\/)?(.+)$/);
     if (!m) return storedUrl;
     const resourceType = m[1];
     let publicId = m[2];
