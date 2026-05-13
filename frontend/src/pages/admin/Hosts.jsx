@@ -268,7 +268,9 @@ export function AdminAlerts() {
                       <p className="text-amber-700 text-xs mt-2 font-medium">
                         {d.status === 'pending' ? '⏳ En attente d\'un hébergeur depuis plus de 7 jours'
                           : d.status === 'documents_provided' ? '📋 Documents fournis — en attente de votre vérification'
-                          : '✅ Documents vérifiés — en attente de clôture'}
+                          : d.status === 'documents_verified' ? '✅ Documents vérifiés — en attente de clôture'
+                          : d.status === 'attestation_pending' ? '✍️ Attestation envoyée à l\'hébergeur — en attente de signature depuis plus de 7 jours'
+                          : '⚠️ Dossier nécessite votre attention'}
                       </p>
                     </div>
                     <Link to={`/membres/admin/dossiers/${d.id}`} className="btn-primary text-xs px-4 py-2 flex-shrink-0">

@@ -121,6 +121,7 @@ router.get('/alerts', async (req, res) => {
           { status: 'pending', createdAt: { lt: sevenDaysAgo } },
           { status: 'documents_provided' },
           { status: 'documents_verified' },
+          { status: 'attestation_pending', updatedAt: { lt: sevenDaysAgo } },
         ],
       },
       include: {

@@ -1,10 +1,28 @@
 const router = require('express').Router();
 const { authenticate } = require('../middlewares/auth.middleware');
 const { generateAttestationBuffer } = require('../services/pdf.service');
+const { getSignedUrl } = require('../middlewares/upload.middleware');
 const { PrismaClient } = require('@prisma/client');
+const axios = require('axios');
 
 const prisma = new PrismaClient();
 router.use(authenticate);
+
+const ALLOWED_STATUSES = ['documents_provided', 'documents_verified', 'attestation_pending', 'confirmed'];
+
+// Extrait le public_id d'une URL Cloudinary authenticated et génère une URL signée
+const resolveCloudinaryUrl = (storedUrl) => {
+  if (!storedUrl) return null;
+  if (storedUrl.includes('/authenticated/')) {
+    const m = storedUrl.match(/cloudinary\.com\/[^/]+\/([^/]+)\/authenticated\/(?:v\d+\/)?(.+)$/);
+    if (!m) return null;
+    const resourceType = m[1];
+    let publicId = m[2];
+    if (resourceType !== 'raw') publicId = publicId.replace(/\.[^.]+$/, '');
+    return getSignedUrl(publicId, resourceType);
+  }
+  return storedUrl;
+};
 
 router.get('/:dossierId', async (req, res) => {
   try {
@@ -21,12 +39,27 @@ router.get('/:dossierId', async (req, res) => {
     if (user.role === 'host' && dossier.hostId !== user.id) {
       return res.status(403).json({ error: 'Accès refusé' });
     }
-    if (!['documents_provided', 'documents_verified', 'confirmed'].includes(dossier.status)) {
+    if (!ALLOWED_STATUSES.includes(dossier.status)) {
       return res.status(400).json({ error: "L'attestation n'est pas encore disponible" });
     }
 
-    const buffer = await generateAttestationBuffer(dossier);
     const studentName = `${dossier.student.lastName}_${dossier.student.firstName}`;
+
+    // Pour les dossiers confirmés : servir le PDF fusionné complet (avec signature + docs hébergeur)
+    if (dossier.status === 'confirmed' && dossier.mergedPdfPath) {
+      const signedUrl = resolveCloudinaryUrl(dossier.mergedPdfPath);
+      if (signedUrl) {
+        const response = await axios.get(signedUrl, { responseType: 'arraybuffer', timeout: 30000 });
+        const buffer = Buffer.from(response.data);
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', `attachment; filename="Dossier_complet_AEGL_${studentName}.pdf"`);
+        res.setHeader('Content-Length', buffer.length);
+        return res.send(buffer);
+      }
+    }
+
+    // Fallback : générer l'attestation de base (pour prévisualisation admin / statuts intermédiaires)
+    const buffer = await generateAttestationBuffer(dossier);
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename="Attestation_AEGL_${studentName}.pdf"`);
     res.setHeader('Content-Length', buffer.length);

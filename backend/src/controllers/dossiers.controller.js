@@ -282,24 +282,14 @@ const signAttestation = async (req, res) => {
     }
     if (!req.file) return res.status(400).json({ error: 'Signature manquante' });
 
-    // 1. Uploader la signature PNG sur Cloudinary
-    const sigResult = await uploadToCloudinary(req.file.buffer, {
-      folder: 'aegl/signatures',
-      public_id: `sig_${dossier.id}_${Date.now()}`,
-      resource_type: 'image',
-    });
+    const { PDFDocument } = require('pdf-lib');
 
-    // 2. Re-générer l'attestation avec la signature intégrée
-    const { PDFDocument, rgb } = require('pdf-lib');
-    const axios = require('axios');
+    // 1. Re-générer l'attestation (plus fiable que de la re-télécharger depuis Cloudinary)
+    const attestBuf = await generateAttestationBuffer(dossier);
 
-    const attestBuf = dossier.attestationPath
-      ? Buffer.from((await axios.get(dossier.attestationPath, { responseType: 'arraybuffer' })).data)
-      : await generateAttestationBuffer(dossier);
-
+    // 2. Intégrer la signature PNG directement depuis le buffer multer (pas besoin de Cloudinary)
     const pdfDoc = await PDFDocument.load(attestBuf);
-    const sigBuf = Buffer.from((await axios.get(sigResult.secure_url, { responseType: 'arraybuffer' })).data);
-    const sigImg = await pdfDoc.embedPng(sigBuf).catch(() => pdfDoc.embedJpg(sigBuf));
+    const sigImg = await pdfDoc.embedPng(req.file.buffer).catch(() => pdfDoc.embedJpg(req.file.buffer));
     const lastPage = pdfDoc.getPages()[pdfDoc.getPageCount() - 1];
     const { width } = lastPage.getSize();
     const sigDims = sigImg.scale(0.35);
@@ -327,10 +317,10 @@ const signAttestation = async (req, res) => {
 
     const hostDocUrls = dossier.hostDocuments.map(d => resolveUrl(d.filePath)).filter(Boolean);
 
-    // 4. Fusionner attestation signée + 8 documents hébergeur
+    // 4. Fusionner attestation signée + documents hébergeur
     const mergedBuffer = await mergeDocuments(signedAttestation, hostDocUrls);
 
-    // 5. Uploader le PDF fusionné
+    // 5. Uploader le PDF fusionné sur Cloudinary
     const mergedUrl = await uploadBuffer(
       mergedBuffer,
       'aegl/dossiers-complets',
@@ -344,7 +334,7 @@ const signAttestation = async (req, res) => {
       select: dossierSelect,
     });
 
-    // 7. Envoyer le PDF complet à l'étudiant
+    // 7. Envoyer le PDF complet à l'étudiant par email
     await sendMergedDossierEmail(dossier.student, mergedBuffer);
     await logActivity(user.id, 'sign_attestation', { dossierId: req.params.id });
     res.json({ dossier: updated });
@@ -372,17 +362,18 @@ const updateNotes = async (req, res) => {
 
 const stats = async (req, res) => {
   try {
-    const [total, pending, hostAssigned, docsProvided, docsVerified, confirmed] = await Promise.all([
+    const [total, pending, hostAssigned, docsProvided, docsVerified, attestationPending, confirmed] = await Promise.all([
       prisma.dossier.count(),
       prisma.dossier.count({ where: { status: 'pending' } }),
       prisma.dossier.count({ where: { status: 'host_assigned' } }),
       prisma.dossier.count({ where: { status: 'documents_provided' } }),
       prisma.dossier.count({ where: { status: 'documents_verified' } }),
+      prisma.dossier.count({ where: { status: 'attestation_pending' } }),
       prisma.dossier.count({ where: { status: 'confirmed' } }),
     ]);
     const totalStudents = await prisma.user.count({ where: { role: 'student' } });
     const totalHosts = await prisma.user.count({ where: { role: 'host' } });
-    res.json({ total, pending, hostAssigned, docsProvided, docsVerified, confirmed, totalStudents, totalHosts });
+    res.json({ total, pending, hostAssigned, docsProvided, docsVerified, attestationPending, confirmed, totalStudents, totalHosts });
   } catch (err) {
     res.status(500).json({ error: 'Erreur statistiques' });
   }

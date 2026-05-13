@@ -108,8 +108,13 @@ export default function StudentMyDossier() {
     },
     documents_verified: {
       title: 'Documents validés !',
-      desc: 'Vos documents ont été vérifiés. Le Bureau AEGL va clôturer votre dossier et vous envoyer l\'attestation.',
+      desc: 'Tous les documents ont été validés. Le Bureau AEGL va générer l\'attestation et l\'envoyer à votre hébergeur pour signature.',
       icon: '✅', color: 'bg-green-50 border-green-200 text-green-800',
+    },
+    attestation_pending: {
+      title: '✍️ Votre hébergeur signe l\'attestation',
+      desc: 'L\'attestation a été envoyée à votre hébergeur par email. Dès qu\'il l\'aura signée, vous recevrez votre dossier complet par email.',
+      icon: '⏳', color: 'bg-orange-50 border-orange-200 text-orange-800',
     },
     confirmed: {
       title: '🎉 Votre attestation est prête !',
@@ -365,18 +370,16 @@ export default function StudentMyDossier() {
             )}
 
             {/* Téléchargement PDF */}
-            {['documents_provided', 'documents_verified', 'confirmed'].includes(dossier.status) && (
-              <div className="card bg-green-50 border-green-100">
-                <div className="flex items-center justify-between">
+            {dossier.status === 'confirmed' && (
+              <div className="card bg-emerald-50 border-emerald-100">
+                <div className="flex items-center justify-between gap-4">
                   <div>
-                    <h3 className="font-semibold text-green-900">📄 Mon attestation d'hébergement</h3>
-                    <p className="text-green-700 text-sm mt-1">
-                      {dossier.status === 'confirmed'
-                        ? 'Attestation officielle disponible — téléchargez-la ci-dessous'
-                        : 'Aperçu disponible en attente de finalisation'}
+                    <h3 className="font-semibold text-emerald-900">📄 Mon dossier complet</h3>
+                    <p className="text-emerald-700 text-sm mt-1">
+                      Votre dossier complet (attestation signée + documents hébergeur) est disponible
                     </p>
                   </div>
-                  <button onClick={() => downloadPdf(dossier.id)} disabled={downloading} className="btn-primary">
+                  <button onClick={() => downloadPdf(dossier.id)} disabled={downloading} className="btn-primary flex-shrink-0">
                     {downloading ? '⏳ Chargement...' : '⬇ Télécharger'}
                   </button>
                 </div>
