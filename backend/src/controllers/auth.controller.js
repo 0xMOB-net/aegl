@@ -123,4 +123,29 @@ const me = async (req, res) => {
   res.json({ user: safeUser });
 };
 
-module.exports = { register, login, resetPassword, me };
+const updateProfile = async (req, res) => {
+  try {
+    const { user } = req;
+    const { dateOfBirth, birthPlace, lodgingSurface, currentOccupants } = req.body;
+
+    const data = {};
+    if (dateOfBirth !== undefined) data.dateOfBirth = dateOfBirth ? new Date(dateOfBirth) : null;
+    if (birthPlace !== undefined) data.birthPlace = birthPlace || null;
+    if (user.role === 'host') {
+      if (lodgingSurface !== undefined) data.lodgingSurface = lodgingSurface ? parseInt(lodgingSurface) : null;
+      if (currentOccupants !== undefined) data.currentOccupants = (currentOccupants !== null && currentOccupants !== '') ? parseInt(currentOccupants) : 0;
+    }
+
+    const updated = await prisma.user.update({
+      where: { id: user.id },
+      data,
+      select: { id: true, firstName: true, lastName: true, email: true, role: true, gender: true, dateOfBirth: true, birthPlace: true, lodgingSurface: true, currentOccupants: true },
+    });
+    res.json({ user: updated });
+  } catch (err) {
+    console.error('updateProfile error:', err);
+    res.status(500).json({ error: err.message || 'Erreur serveur' });
+  }
+};
+
+module.exports = { register, login, resetPassword, me, updateProfile };

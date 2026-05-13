@@ -53,6 +53,11 @@ export const AuthProvider = ({ children }) => {
     setUser(null);
   };
 
+  const updateUser = (updatedUser) => {
+    setUser(updatedUser);
+    localStorage.setItem('aegl_user', JSON.stringify(updatedUser));
+  };
+
   const roleName = (user) => {
     if (!user) return '';
     if (user.role === 'admin') return 'Bureau AEGL';
@@ -62,7 +67,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout, roleName }}>
+    <AuthContext.Provider value={{ user, loading, login, register, logout, updateUser, roleName }}>
       {children}
     </AuthContext.Provider>
   );

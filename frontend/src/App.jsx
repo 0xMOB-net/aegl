@@ -25,6 +25,7 @@ import AdminAlerts from './pages/admin/Alerts';
 import HostDossiers from './pages/host/MyDossiers';
 import HostAttestations from './pages/host/Attestations';
 import HostAlerts from './pages/host/Alerts';
+import HostProfile from './pages/host/Profile';
 
 import StudentDossier from './pages/student/MyDossier';
 import StudentAlerts from './pages/student/Alerts';
@@ -90,6 +91,7 @@ function App() {
           <Route path="/membres/hebergeur/dossiers" element={<ProtectedRoute roles={['host']}><HostDossiers /></ProtectedRoute>} />
           <Route path="/membres/hebergeur/attestations" element={<ProtectedRoute roles={['host']}><HostAttestations /></ProtectedRoute>} />
           <Route path="/membres/hebergeur/alertes" element={<ProtectedRoute roles={['host']}><HostAlerts /></ProtectedRoute>} />
+          <Route path="/membres/hebergeur/profil" element={<ProtectedRoute roles={['host']}><HostProfile /></ProtectedRoute>} />
 
           {/* STUDENT */}
           <Route path="/membres/etudiant/dossier" element={<ProtectedRoute roles={['student']}><StudentDossier /></ProtectedRoute>} />

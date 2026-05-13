@@ -32,6 +32,7 @@ const hostNav = [
   { to: '/membres/hebergeur/dossiers',     label: 'Mes dossiers', icon: '📁' },
   { to: '/membres/hebergeur/attestations', label: 'Attestations', icon: '📄' },
   { to: '/membres/hebergeur/alertes',      label: 'Alertes',      icon: '🔔' },
+  { to: '/membres/hebergeur/profil',       label: 'Mon profil',   icon: '🏠' },
   { to: '/membres/annonces',               label: 'Annonces',     icon: '💬' },
 ];
 

@@ -77,6 +77,7 @@ router.get('/hosts', async (req, res) => {
       select: {
         id: true, firstName: true, lastName: true,
         email: true, gender: true, createdAt: true,
+        lodgingSurface: true, currentOccupants: true,
         _count: { select: { hostDossiers: true } },
       },
       orderBy: { createdAt: 'desc' },
