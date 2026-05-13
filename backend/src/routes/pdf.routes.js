@@ -65,8 +65,8 @@ router.get('/:dossierId', async (req, res) => {
     res.setHeader('Content-Length', buffer.length);
     res.send(buffer);
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Erreur lors du téléchargement' });
+    console.error('PDF route error:', err);
+    if (!res.headersSent) res.status(500).json({ error: err.message || 'Erreur lors du téléchargement' });
   }
 });
 

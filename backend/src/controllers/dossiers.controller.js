@@ -87,7 +87,8 @@ const getOne = async (req, res) => {
 
     res.json({ dossier: forRole(user.role, dossier) });
   } catch (err) {
-    res.status(500).json({ error: 'Erreur serveur' });
+    console.error('getOne error:', err);
+    res.status(500).json({ error: err.message || 'Erreur serveur' });
   }
 };
 
@@ -164,7 +165,8 @@ const assignHost = async (req, res) => {
     await logActivity(req.user.id, 'assign_host', { dossierId: req.params.id, hostId });
     res.json({ dossier: updated });
   } catch (err) {
-    res.status(500).json({ error: 'Erreur serveur' });
+    console.error('assignHost error:', err);
+    res.status(500).json({ error: err.message || 'Erreur serveur' });
   }
 };
 
@@ -181,7 +183,8 @@ const revokeHost = async (req, res) => {
     await logActivity(req.user.id, 'revoke_host', { dossierId: req.params.id });
     res.json({ dossier: updated });
   } catch (err) {
-    res.status(500).json({ error: 'Erreur serveur' });
+    console.error('revokeHost error:', err);
+    res.status(500).json({ error: err.message || 'Erreur serveur' });
   }
 };
 
@@ -209,7 +212,8 @@ const validateDocs = async (req, res) => {
     await logActivity(req.user.id, 'validate_docs', { dossierId: req.params.id });
     res.json({ dossier: updated });
   } catch (err) {
-    res.status(500).json({ error: 'Erreur serveur' });
+    console.error('validateDocs error:', err);
+    res.status(500).json({ error: err.message || 'Erreur serveur' });
   }
 };
 
@@ -227,7 +231,8 @@ const rejectDocs = async (req, res) => {
     await logActivity(req.user.id, 'reject_docs', { dossierId: req.params.id, reason });
     res.json({ dossier: updated });
   } catch (err) {
-    res.status(500).json({ error: 'Erreur serveur' });
+    console.error('rejectDocs error:', err);
+    res.status(500).json({ error: err.message || 'Erreur serveur' });
   }
 };
 
@@ -359,7 +364,8 @@ const updateNotes = async (req, res) => {
     });
     res.json({ dossier: updated });
   } catch (err) {
-    res.status(500).json({ error: 'Erreur serveur' });
+    console.error('updateNotes error:', err);
+    res.status(500).json({ error: err.message || 'Erreur serveur' });
   }
 };
 
@@ -378,7 +384,8 @@ const stats = async (req, res) => {
     const totalHosts = await prisma.user.count({ where: { role: 'host' } });
     res.json({ total, pending, hostAssigned, docsProvided, docsVerified, attestationPending, confirmed, totalStudents, totalHosts });
   } catch (err) {
-    res.status(500).json({ error: 'Erreur statistiques' });
+    console.error('stats error:', err);
+    res.status(500).json({ error: err.message || 'Erreur statistiques' });
   }
 };
 
@@ -392,7 +399,8 @@ const verifyStudentDocs = async (req, res) => {
     await logActivity(req.user.id, 'verify_student_docs', { dossierId: req.params.id });
     res.json({ dossier: updated });
   } catch (err) {
-    res.status(500).json({ error: 'Erreur serveur' });
+    console.error('verifyStudentDocs error:', err);
+    res.status(500).json({ error: err.message || 'Erreur serveur' });
   }
 };
 
@@ -407,7 +415,8 @@ const rejectStudentDocs = async (req, res) => {
     await logActivity(req.user.id, 'reject_student_docs', { dossierId: req.params.id });
     res.json({ dossier: updated });
   } catch (err) {
-    res.status(500).json({ error: 'Erreur serveur' });
+    console.error('rejectStudentDocs error:', err);
+    res.status(500).json({ error: err.message || 'Erreur serveur' });
   }
 };
 
