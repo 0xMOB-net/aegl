@@ -62,11 +62,12 @@ h1, h2, h3, h4 { font-family: 'Playfair Display', Georgia, serif; }
 /* ================================================
    BADGES DE STATUT
    ================================================ */
-.badge-pending     { @apply bg-amber-100 text-amber-800 text-xs font-semibold px-3 py-1 rounded-full; }
-.badge-assigned    { @apply bg-blue-100 text-blue-800 text-xs font-semibold px-3 py-1 rounded-full; }
-.badge-provided    { @apply bg-purple-100 text-purple-800 text-xs font-semibold px-3 py-1 rounded-full; }
-.badge-verified    { @apply bg-green-100 text-green-800 text-xs font-semibold px-3 py-1 rounded-full; }
-.badge-confirmed   { @apply bg-emerald-100 text-emerald-800 text-xs font-semibold px-3 py-1 rounded-full; }
+.badge-pending      { @apply bg-amber-100 text-amber-800 text-xs font-semibold px-3 py-1 rounded-full; }
+.badge-assigned     { @apply bg-blue-100 text-blue-800 text-xs font-semibold px-3 py-1 rounded-full; }
+.badge-provided     { @apply bg-purple-100 text-purple-800 text-xs font-semibold px-3 py-1 rounded-full; }
+.badge-verified     { @apply bg-green-100 text-green-800 text-xs font-semibold px-3 py-1 rounded-full; }
+.badge-attestation  { @apply bg-orange-100 text-orange-800 text-xs font-semibold px-3 py-1 rounded-full; }
+.badge-confirmed    { @apply bg-emerald-100 text-emerald-800 text-xs font-semibold px-3 py-1 rounded-full; }
 
 /* ================================================
    CARDS

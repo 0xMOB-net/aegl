@@ -53,6 +53,7 @@ export default function AdminDossierDetail() {
       if (type === 'validate')       res = await api.patch(`/dossiers/${id}/validate-docs`);
       if (type === 'reject')         res = await api.patch(`/dossiers/${id}/reject-docs`, { reason: rejectReason });
       if (type === 'close')          res = await api.patch(`/dossiers/${id}/close`);
+
       if (type === 'notes')          res = await api.patch(`/dossiers/${id}/notes`, { adminNotes: notes });
       if (res?.data?.dossier) setDossier(res.data.dossier);
       setShowRejectModal(false);
@@ -64,7 +65,7 @@ export default function AdminDossierDetail() {
         type === 'reject-student' ? 'Documents étudiant rejetés' :
         type === 'validate'       ? 'Documents validés' :
         type === 'reject'         ? 'Documents rejetés' :
-        type === 'close'          ? 'Dossier clôturé — attestation générée et email envoyé !' :
+        type === 'close'          ? '✍️ Attestation générée — email envoyé à l\'hébergeur pour signature' :
         'Notes sauvegardées'
       );
     } catch (err) {
@@ -376,15 +377,23 @@ export default function AdminDossierDetail() {
         )}
 
         {/* PDF & clôture */}
-        {['documents_provided', 'documents_verified', 'confirmed'].includes(dossier.status) && (
-          <div className="card bg-green-50 border-green-100">
+        {['documents_provided', 'documents_verified', 'attestation_pending', 'confirmed'].includes(dossier.status) && (
+          <div className={`card border ${
+            dossier.status === 'attestation_pending'
+              ? 'bg-orange-50 border-orange-200'
+              : 'bg-green-50 border-green-100'
+          }`}>
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <div>
-                <h3 className="font-semibold text-green-900">📄 Attestation PDF</h3>
-                <p className="text-green-700 text-sm mt-1">
+                <h3 className={`font-semibold ${dossier.status === 'attestation_pending' ? 'text-orange-900' : 'text-green-900'}`}>
+                  📄 Attestation d'hébergement
+                </h3>
+                <p className={`text-sm mt-1 ${dossier.status === 'attestation_pending' ? 'text-orange-700' : 'text-green-700'}`}>
                   {dossier.status === 'confirmed'
-                    ? 'Dossier clôturé — notification envoyée, l\'étudiant télécharge depuis son espace'
-                    : 'Prévisualisez l\'attestation avant de clôturer'
+                    ? 'Dossier clôturé — dossier complet envoyé à l\'étudiant par email'
+                    : dossier.status === 'attestation_pending'
+                    ? '✍️ Attestation envoyée à l\'hébergeur — en attente de sa signature'
+                    : 'Prévisualisez l\'attestation avant d\'envoyer à l\'hébergeur pour signature'
                   }
                 </p>
               </div>
@@ -393,12 +402,12 @@ export default function AdminDossierDetail() {
                 {dossier.status === 'documents_verified' && (
                   <button
                     onClick={() => {
-                      if (window.confirm('Clôturer le dossier ? Un email de notification sera envoyé à l\'étudiant pour qu\'il télécharge son attestation depuis son espace membre.')) action('close');
+                      if (window.confirm('Envoyer l\'attestation à l\'hébergeur pour signature ? L\'hébergeur recevra un email avec l\'attestation en pièce jointe et un lien pour la signer depuis son espace membre.')) action('close');
                     }}
                     disabled={actionLoading === 'close'}
                     className="btn-gold text-sm"
                   >
-                    {actionLoading === 'close' ? 'Envoi...' : '🎉 Clôturer & envoyer'}
+                    {actionLoading === 'close' ? 'Envoi...' : '✍️ Envoyer à l\'hébergeur'}
                   </button>
                 )}
               </div>

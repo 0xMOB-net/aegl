@@ -10,6 +10,7 @@ export function AdminHosts() {
   const [tab, setTab] = useState('hosts');
   const [loading, setLoading] = useState(true);
   const [deleting, setDeleting] = useState(null);
+  const [confirmDelete, setConfirmDelete] = useState(null); // { id, name }
   const [toast, setToast] = useState(null);
 
   const showToast = (msg, type = 'success') => {
@@ -28,8 +29,14 @@ export function AdminHosts() {
 
   useEffect(() => { fetchAll(); }, []);
 
-  const handleDelete = async (userId, name) => {
-    if (!window.confirm(`Supprimer le compte de ${name} ? Cette action est irréversible et supprimera tous ses dossiers associés.`)) return;
+  const handleDelete = (userId, name) => {
+    setConfirmDelete({ id: userId, name });
+  };
+
+  const confirmDeletion = async () => {
+    if (!confirmDelete) return;
+    const { id: userId, name } = confirmDelete;
+    setConfirmDelete(null);
     setDeleting(userId);
     try {
       await api.delete(`/admin/users/${userId}`);
@@ -50,6 +57,36 @@ export function AdminHosts() {
         <div className={`fixed top-6 right-6 z-50 px-5 py-3.5 rounded-xl shadow-lg text-sm font-medium ${
           toast.type === 'success' ? 'bg-green-800 text-white' : 'bg-red-600 text-white'
         }`}>{toast.msg}</div>
+      )}
+
+      {/* Modale de confirmation de suppression */}
+      {confirmDelete && (
+        <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-sm">
+            <div className="text-center mb-4">
+              <p className="text-4xl mb-3">⚠️</p>
+              <h3 className="font-heading text-lg text-gray-900 mb-2">Supprimer ce compte ?</h3>
+              <p className="text-gray-500 text-sm">
+                Vous êtes sur le point de supprimer le compte de <strong>{confirmDelete.name}</strong>.
+                Cette action est <strong>irréversible</strong> et supprimera tous les dossiers associés.
+              </p>
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setConfirmDelete(null)}
+                className="flex-1 px-4 py-2.5 text-sm font-medium text-gray-700 bg-gray-100 rounded-xl hover:bg-gray-200 transition-colors"
+              >
+                Annuler
+              </button>
+              <button
+                onClick={confirmDeletion}
+                className="flex-1 px-4 py-2.5 text-sm font-medium text-white bg-red-600 rounded-xl hover:bg-red-700 transition-colors"
+              >
+                Supprimer définitivement
+              </button>
+            </div>
+          </div>
+        </div>
       )}
       <div className="space-y-6 animate-fade-in">
         <div className="flex gap-2">

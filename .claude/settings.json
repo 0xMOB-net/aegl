@@ -8,7 +8,16 @@
       "Bash(grep -rn \"^//\" \"c:\\\\Users\\\\dell\\\\Downloads\\\\aegl-site-complet\\\\aegl\\\\backend\\\\src\" --include=\"*.js\")",
       "Bash(git remote *)",
       "Bash(git branch *)",
-      "Bash(git commit *)"
+      "Bash(git commit *)",
+      "Read(//c/Users/dell/Downloads/logidia/backend/src/controllers/**)",
+      "Read(//c/Users/dell/Downloads/logidia/backend/src/routes/**)",
+      "Read(//c/Users/dell/Downloads/logidia/frontend/src/pages/admin/**)",
+      "Read(//c/Users/dell/Downloads/logidia/backend/src/**)",
+      "Read(//c/Users/dell/Downloads/logidia/frontend/src/pages/student/**)",
+      "Read(//c/Users/dell/Downloads/logidia/frontend/src/pages/super/**)",
+      "Read(//c/Users/dell/Downloads/logidia/frontend/src/**)",
+      "Read(//c/Users/dell/Downloads/logidia/**)",
+      "Bash(node -e ' *)"
     ]
   }
 }

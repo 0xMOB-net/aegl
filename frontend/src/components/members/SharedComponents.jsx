@@ -1,10 +1,11 @@
 export function StatusBadge({ status }) {
   const config = {
-    pending:            { label: 'En attente',         className: 'badge-pending' },
-    host_assigned:      { label: 'Hébergeur assigné',  className: 'badge-assigned' },
-    documents_provided: { label: 'Documents fournis',  className: 'badge-provided' },
-    documents_verified: { label: 'Documents vérifiés', className: 'badge-verified' },
-    confirmed:          { label: 'Confirmé ✓',         className: 'badge-confirmed' },
+    pending:             { label: 'En attente',            className: 'badge-pending' },
+    host_assigned:       { label: 'Hébergeur assigné',     className: 'badge-assigned' },
+    documents_provided:  { label: 'Documents fournis',     className: 'badge-provided' },
+    documents_verified:  { label: 'Documents vérifiés',    className: 'badge-verified' },
+    attestation_pending: { label: '✍️ Signature en attente', className: 'badge-attestation' },
+    confirmed:           { label: 'Confirmé ✓',            className: 'badge-confirmed' },
   };
   const { label, className } = config[status] || { label: status, className: 'badge-pending' };
   return <span className={className}>{label}</span>;
@@ -15,14 +16,19 @@ export function DossierStepper({ status }) {
     { key: 'pending',            label: 'En attente',    short: '1' },
     { key: 'host_assigned',      label: 'Hébergeur',     short: '2' },
     { key: 'documents_provided', label: 'Documents',     short: '3' },
-    { key: 'confirmed',          label: 'Confirmé',      short: '4' },
+    { key: 'attestation_pending', label: 'Signature',    short: '4' },
+    { key: 'confirmed',          label: 'Confirmé',      short: '5' },
   ];
 
-  const order = ['pending', 'host_assigned', 'documents_provided', 'documents_verified', 'confirmed'];
-  const currentIdx = order.indexOf(status);
-
   const stepStatus = (stepKey) => {
-    const stepOrder = { pending: 0, host_assigned: 1, documents_provided: 2, documents_verified: 2, confirmed: 3 };
+    const stepOrder = {
+      pending: 0,
+      host_assigned: 1,
+      documents_provided: 2,
+      documents_verified: 2,
+      attestation_pending: 3,
+      confirmed: 4,
+    };
     const stepIdx = stepOrder[stepKey] ?? 0;
     const curr = stepOrder[status] ?? 0;
     if (curr > stepIdx) return 'done';

@@ -23,6 +23,7 @@ enum DossierStatus {
   host_assigned
   documents_provided
   documents_verified
+  attestation_pending
   confirmed
 }
 
@@ -74,6 +75,8 @@ model Dossier {
   adminNotes                String?
   pdfVariant                Int?
   hostAddress               String?
+  attestationPath           String?
+  mergedPdfPath             String?
   closedAt                  DateTime?
   createdAt                 DateTime      @default(now())
   updatedAt                 DateTime      @updatedAt

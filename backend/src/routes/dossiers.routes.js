@@ -26,6 +26,7 @@ router.patch('/:id/resubmit-student-docs', upload.fields([
 router.patch('/:id/validate-docs', requireRole('admin'), ctrl.validateDocs);
 router.patch('/:id/reject-docs', requireRole('admin'), ctrl.rejectDocs);
 router.patch('/:id/close', requireRole('admin'), ctrl.close);
+router.post('/:id/sign-attestation', requireRole('host'), upload.single('signature'), ctrl.signAttestation);
 router.patch('/:id/notes', requireRole('admin'), ctrl.updateNotes);
 router.delete('/:id', requireRole('admin'), ctrl.remove);
 

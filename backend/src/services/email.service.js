@@ -100,4 +100,110 @@ const sendWelcomeEmail = async (user) => {
   }
 };
 
-module.exports = { sendDossierConfirmedEmail, sendWelcomeEmail };
+const sendAttestationToHostEmail = async (host, student, dossierId, attestationBuffer) => {
+  const transporter = createTransporter();
+  const frontendUrl = process.env.FRONTEND_URL || 'https://aegl87.fr';
+  const hostName = `${host.firstName} ${host.lastName}`;
+  const studentName = `${student.firstName} ${student.lastName}`;
+
+  try {
+    await transporter.sendMail({
+      from: `"${process.env.EMAIL_FROM_NAME || 'AEGL'}" <${process.env.EMAIL_FROM}>`,
+      to: host.email,
+      subject: `✍️ Veuillez signer l'attestation d'hébergement pour ${studentName}`,
+      html: `
+<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><style>
+  body { font-family: Georgia, serif; background: #f9f9f9; color: #222; margin: 0; padding: 0; }
+  .container { max-width: 600px; margin: 40px auto; background: #fff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 12px rgba(0,0,0,0.08); }
+  .header { background: #1a5c3a; padding: 30px; text-align: center; }
+  .header h1 { color: #FCD116; font-size: 22px; margin: 0 0 4px; }
+  .header p { color: #9fd4b5; font-size: 13px; margin: 0; }
+  .body { padding: 32px; }
+  .body h2 { color: #1a5c3a; }
+  .body p { line-height: 1.7; color: #444; }
+  .btn { display: inline-block; background: #1a5c3a; color: #FCD116 !important; padding: 14px 28px; border-radius: 8px; text-decoration: none; font-weight: bold; margin: 20px 0; }
+  .footer { background: #f5f5f5; padding: 20px; text-align: center; font-size: 12px; color: #888; }
+</style></head>
+<body>
+<div class="container">
+  <div class="header"><h1>✍️ AEGL</h1><p>Association des Étudiants Guinéens de Limoges</p></div>
+  <div class="body">
+    <h2>Bonjour, ${hostName} !</h2>
+    <p>L'administration de l'AEGL a validé tous les documents du dossier de <strong>${studentName}</strong>.</p>
+    <p>L'attestation d'hébergement à votre nom a été générée. <strong>Vous devez la signer depuis votre espace membre</strong> avant qu'elle soit transmise à l'étudiant(e).</p>
+    <p>L'attestation d'hébergement est jointe à cet email pour que vous puissiez la prévisualiser.</p>
+    <a href="${frontendUrl}/membres" class="btn">✍️ Signer l'attestation →</a>
+    <p style="color:#888;font-size:13px">Cette étape est obligatoire. Sans votre signature, l'étudiant(e) ne pourra pas recevoir son dossier complet.</p>
+  </div>
+  <div class="footer"><p>contact@aegl87.fr &bull; aegl87.fr</p></div>
+</div>
+</body></html>`,
+      attachments: [
+        {
+          filename: `Attestation_hebergement_${studentName.replace(/\s/g, '_')}.pdf`,
+          content: attestationBuffer,
+          contentType: 'application/pdf',
+        },
+      ],
+    });
+  } catch (err) {
+    console.error('Email sending failed (attestationToHost):', err.message);
+  }
+};
+
+const sendMergedDossierEmail = async (student, mergedPdfBuffer) => {
+  const transporter = createTransporter();
+  const fullName = `${student.firstName} ${student.lastName}`;
+  const frontendUrl = process.env.FRONTEND_URL || 'https://aegl87.fr';
+
+  try {
+    await transporter.sendMail({
+      from: `"${process.env.EMAIL_FROM_NAME || 'AEGL'}" <${process.env.EMAIL_FROM}>`,
+      to: student.email,
+      subject: '✅ Votre dossier complet d\'hébergement AEGL est prêt',
+      html: `
+<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><style>
+  body { font-family: Georgia, serif; background: #f9f9f9; color: #222; margin: 0; }
+  .container { max-width: 600px; margin: 40px auto; background: #fff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 12px rgba(0,0,0,0.08); }
+  .header { background: #1a5c3a; padding: 30px; text-align: center; }
+  .header h1 { color: #FCD116; font-size: 22px; margin: 0 0 4px; }
+  .header p { color: #9fd4b5; font-size: 13px; margin: 0; }
+  .body { padding: 32px; }
+  .highlight { background: #f0f8f4; border-left: 4px solid #1a5c3a; padding: 12px 16px; border-radius: 4px; margin: 16px 0; }
+  .footer { background: #f5f5f5; padding: 20px; text-align: center; font-size: 12px; color: #888; }
+</style></head>
+<body>
+<div class="container">
+  <div class="header"><h1>🎓 AEGL</h1><p>Association des Étudiants Guinéens de Limoges</p></div>
+  <div class="body">
+    <h2 style="color:#1a5c3a">Félicitations, ${fullName} !</h2>
+    <p>Votre dossier d'hébergement est <strong>complet et validé</strong>. Vous trouverez en pièce jointe un seul PDF contenant :</p>
+    <div class="highlight">
+      <ul style="margin:0;padding-left:20px;line-height:2">
+        <li>L'attestation d'hébergement signée par votre hébergeur</li>
+        <li>Le contrat de bail</li>
+        <li>La pièce d'identité / titre de séjour de l'hébergeur</li>
+        <li>Les 3 dernières quittances de loyer</li>
+        <li>Les 3 factures nominatives</li>
+      </ul>
+    </div>
+    <p>Présentez ce document complet auprès du consulat ou des services administratifs concernés.</p>
+    <p>Cordialement,<br><strong>Le Bureau de l'AEGL</strong></p>
+  </div>
+  <div class="footer"><p>contact@aegl87.fr &bull; aegl87.fr</p></div>
+</div>
+</body></html>`,
+      attachments: [
+        {
+          filename: `Dossier_complet_AEGL_${fullName.replace(/\s/g, '_')}.pdf`,
+          content: mergedPdfBuffer,
+          contentType: 'application/pdf',
+        },
+      ],
+    });
+  } catch (err) {
+    console.error('Email sending failed (mergedDossier):', err.message);
+  }
+};
+
+module.exports = { sendDossierConfirmedEmail, sendWelcomeEmail, sendAttestationToHostEmail, sendMergedDossierEmail };

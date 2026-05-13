@@ -138,12 +138,45 @@ router.get('/alerts', async (req, res) => {
 
 router.delete('/users/:id', async (req, res) => {
   try {
-    if (req.params.id === req.user.id) {
+    const targetId = req.params.id;
+    if (targetId === req.user.id) {
       return res.status(400).json({ error: 'Vous ne pouvez pas vous supprimer vous-même' });
     }
-    await prisma.user.delete({ where: { id: req.params.id } });
+
+    const user = await prisma.user.findUnique({ where: { id: targetId } });
+    if (!user) return res.status(404).json({ error: 'Utilisateur introuvable' });
+
+    await prisma.$transaction(async (tx) => {
+      // Supprimer les logs d'activité
+      await tx.activityLog.deleteMany({ where: { userId: targetId } });
+
+      // Supprimer les réactions et commentaires sur les annonces
+      await tx.announcementReaction.deleteMany({ where: { userId: targetId } });
+      await tx.announcementComment.deleteMany({ where: { authorId: targetId } });
+
+      if (user.role === 'student') {
+        // Supprimer les dossiers de l'étudiant (HostDocument cascade via schema)
+        await tx.dossier.deleteMany({ where: { studentId: targetId } });
+      } else if (user.role === 'host') {
+        // Remettre les dossiers assignés à cet hébergeur en état pending
+        await tx.dossier.updateMany({
+          where: { hostId: targetId },
+          data: { hostId: null, status: 'pending', studentDocsVerified: false },
+        });
+        // Supprimer les dossiers dont l'hébergeur est l'auteur unique (aucun étudiant lié ne doit être impacté)
+      }
+
+      // Supprimer les annonces et articles créés par l'utilisateur
+      await tx.announcement.deleteMany({ where: { authorId: targetId } });
+      await tx.article.deleteMany({ where: { authorId: targetId } });
+
+      // Supprimer l'utilisateur
+      await tx.user.delete({ where: { id: targetId } });
+    });
+
     res.json({ message: 'Utilisateur supprimé' });
   } catch (err) {
+    console.error('Delete user error:', err);
     res.status(500).json({ error: 'Erreur serveur' });
   }
 });

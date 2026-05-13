@@ -1,8 +1,9 @@
 const { PrismaClient } = require('@prisma/client');
 const { logActivity } = require('../services/activity.service');
-const { sendDossierConfirmedEmail } = require('../services/email.service');
+const { sendAttestationToHostEmail, sendMergedDossierEmail } = require('../services/email.service');
 const { generateAttestationBuffer } = require('../services/pdf.service');
-const { uploadToCloudinary } = require('../middlewares/upload.middleware');
+const { mergeDocuments, uploadBuffer } = require('../services/merge.service');
+const { uploadToCloudinary, getSignedUrl } = require('../middlewares/upload.middleware');
 
 const prisma = new PrismaClient();
 
@@ -230,35 +231,126 @@ const rejectDocs = async (req, res) => {
   }
 };
 
+// Admin : génère l'attestation, l'envoie à l'hébergeur pour signature
 const close = async (req, res) => {
   try {
     const dossier = await prisma.dossier.findUnique({
       where: { id: req.params.id },
-      include: {
-        student: true,
-        host: true,
-        hostDocuments: true,
-      },
+      include: { student: true, host: true, hostDocuments: true },
     });
     if (!dossier) return res.status(404).json({ error: 'Dossier introuvable' });
     if (dossier.status !== 'documents_verified') {
       return res.status(400).json({ error: 'Les documents doivent être vérifiés avant clôture' });
     }
 
+    // Générer l'attestation PDF et l'uploader sur Cloudinary
     const pdfBuffer = await generateAttestationBuffer(dossier);
+    const attestationUrl = await uploadBuffer(
+      pdfBuffer,
+      'aegl/attestations',
+      `attestation_${req.params.id}_${Date.now()}`
+    );
 
     const updated = await prisma.dossier.update({
       where: { id: req.params.id },
-      data: { status: 'confirmed', closedAt: new Date() },
+      data: { status: 'attestation_pending', attestationPath: attestationUrl },
       select: dossierSelect,
     });
 
-    await sendDossierConfirmedEmail(dossier.student, pdfBuffer, dossier.hostDocuments || []);
+    // Envoyer l'attestation à l'hébergeur pour qu'il la signe
+    await sendAttestationToHostEmail(dossier.host, dossier.student, dossier.id, pdfBuffer);
     await logActivity(req.user.id, 'close_dossier', { dossierId: req.params.id });
     res.json({ dossier: updated });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Erreur lors de la clôture du dossier' });
+  }
+};
+
+// Hébergeur : soumet sa signature → fusionne tout et envoie à l'étudiant
+const signAttestation = async (req, res) => {
+  try {
+    const { user } = req;
+    const dossier = await prisma.dossier.findUnique({
+      where: { id: req.params.id },
+      include: { student: true, host: true, hostDocuments: true },
+    });
+    if (!dossier) return res.status(404).json({ error: 'Dossier introuvable' });
+    if (dossier.hostId !== user.id) return res.status(403).json({ error: 'Accès refusé' });
+    if (dossier.status !== 'attestation_pending') {
+      return res.status(400).json({ error: 'Aucune attestation en attente de signature' });
+    }
+    if (!req.file) return res.status(400).json({ error: 'Signature manquante' });
+
+    // 1. Uploader la signature PNG sur Cloudinary
+    const sigResult = await uploadToCloudinary(req.file.buffer, {
+      folder: 'aegl/signatures',
+      public_id: `sig_${dossier.id}_${Date.now()}`,
+      resource_type: 'image',
+    });
+
+    // 2. Re-générer l'attestation avec la signature intégrée
+    const { PDFDocument, rgb } = require('pdf-lib');
+    const axios = require('axios');
+
+    const attestBuf = dossier.attestationPath
+      ? Buffer.from((await axios.get(dossier.attestationPath, { responseType: 'arraybuffer' })).data)
+      : await generateAttestationBuffer(dossier);
+
+    const pdfDoc = await PDFDocument.load(attestBuf);
+    const sigBuf = Buffer.from((await axios.get(sigResult.secure_url, { responseType: 'arraybuffer' })).data);
+    const sigImg = await pdfDoc.embedPng(sigBuf).catch(() => pdfDoc.embedJpg(sigBuf));
+    const lastPage = pdfDoc.getPages()[pdfDoc.getPageCount() - 1];
+    const { width } = lastPage.getSize();
+    const sigDims = sigImg.scale(0.35);
+    lastPage.drawImage(sigImg, {
+      x: width - sigDims.width - 70,
+      y: 115,
+      width: sigDims.width,
+      height: sigDims.height,
+    });
+    const signedAttestation = Buffer.from(await pdfDoc.save());
+
+    // 3. Résoudre les URLs des documents hébergeur (signées si authenticated)
+    const resolveUrl = (storedUrl) => {
+      if (!storedUrl) return null;
+      if (storedUrl.includes('/authenticated/')) {
+        const m = storedUrl.match(/cloudinary\.com\/[^/]+\/([^/]+)\/authenticated\/(?:v\d+\/)?(.+)$/);
+        if (!m) return storedUrl;
+        const resourceType = m[1];
+        let publicId = m[2];
+        if (resourceType !== 'raw') publicId = publicId.replace(/\.[^.]+$/, '');
+        return getSignedUrl(publicId, resourceType);
+      }
+      return storedUrl;
+    };
+
+    const hostDocUrls = dossier.hostDocuments.map(d => resolveUrl(d.filePath)).filter(Boolean);
+
+    // 4. Fusionner attestation signée + 8 documents hébergeur
+    const mergedBuffer = await mergeDocuments(signedAttestation, hostDocUrls);
+
+    // 5. Uploader le PDF fusionné
+    const mergedUrl = await uploadBuffer(
+      mergedBuffer,
+      'aegl/dossiers-complets',
+      `dossier_complet_${dossier.id}_${Date.now()}`
+    );
+
+    // 6. Mettre à jour le dossier
+    const updated = await prisma.dossier.update({
+      where: { id: req.params.id },
+      data: { status: 'confirmed', mergedPdfPath: mergedUrl, closedAt: new Date() },
+      select: dossierSelect,
+    });
+
+    // 7. Envoyer le PDF complet à l'étudiant
+    await sendMergedDossierEmail(dossier.student, mergedBuffer);
+    await logActivity(user.id, 'sign_attestation', { dossierId: req.params.id });
+    res.json({ dossier: updated });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Erreur lors de la signature' });
   }
 };
 
@@ -377,4 +469,4 @@ const remove = async (req, res) => {
   }
 };
 
-module.exports = { list, getOne, create, assignHost, revokeHost, validateDocs, rejectDocs, close, updateNotes, stats, remove, verifyStudentDocs, rejectStudentDocs, resubmitStudentDocs };
+module.exports = { list, getOne, create, assignHost, revokeHost, validateDocs, rejectDocs, close, signAttestation, updateNotes, stats, remove, verifyStudentDocs, rejectStudentDocs, resubmitStudentDocs };
