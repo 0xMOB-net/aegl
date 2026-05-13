@@ -242,6 +242,9 @@ const close = async (req, res) => {
     if (dossier.status !== 'documents_verified') {
       return res.status(400).json({ error: 'Les documents doivent être vérifiés avant clôture' });
     }
+    if (!dossier.host) {
+      return res.status(400).json({ error: 'Aucun hébergeur assigné à ce dossier' });
+    }
 
     // Générer l'attestation PDF et l'uploader sur Cloudinary
     const pdfBuffer = await generateAttestationBuffer(dossier);

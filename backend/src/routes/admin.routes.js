@@ -159,12 +159,24 @@ router.delete('/users/:id', async (req, res) => {
         // Supprimer les dossiers de l'étudiant (HostDocument cascade via schema)
         await tx.dossier.deleteMany({ where: { studentId: targetId } });
       } else if (user.role === 'host') {
-        // Remettre les dossiers assignés à cet hébergeur en état pending
+        // Supprimer les documents hébergeur des dossiers assignés (les dossiers eux-mêmes restent pour l'étudiant)
+        const hostDossiers = await tx.dossier.findMany({ where: { hostId: targetId }, select: { id: true } });
+        const dossierIds = hostDossiers.map(d => d.id);
+        if (dossierIds.length > 0) {
+          await tx.hostDocument.deleteMany({ where: { dossierId: { in: dossierIds } } });
+        }
+        // Remettre les dossiers en attente et effacer les données liées à cet hébergeur
         await tx.dossier.updateMany({
           where: { hostId: targetId },
-          data: { hostId: null, status: 'pending', studentDocsVerified: false },
+          data: {
+            hostId: null,
+            status: 'pending',
+            studentDocsVerified: false,
+            hostAddress: null,
+            attestationPath: null,
+            mergedPdfPath: null,
+          },
         });
-        // Supprimer les dossiers dont l'hébergeur est l'auteur unique (aucun étudiant lié ne doit être impacté)
       }
 
       // Supprimer les annonces et articles créés par l'utilisateur
