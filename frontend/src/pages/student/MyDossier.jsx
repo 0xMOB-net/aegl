@@ -29,11 +29,12 @@ export default function StudentMyDossier() {
       const url = window.URL.createObjectURL(new Blob([res.data], { type: 'application/pdf' }));
       const link = document.createElement('a');
       link.href = url;
-      link.setAttribute('download', 'Attestation_AEGL.pdf');
+      link.setAttribute('download', 'Dossier_complet_AEGL.pdf');
       document.body.appendChild(link);
       link.click();
       link.remove();
       window.URL.revokeObjectURL(url);
+      showToast('Dossier téléchargé avec succès — conservez-le précieusement !');
     } catch {
       showToast('Erreur lors du téléchargement du PDF', 'error');
     } finally { setDownloading(false); }
@@ -117,9 +118,9 @@ export default function StudentMyDossier() {
       icon: '⏳', color: 'bg-orange-50 border-orange-200 text-orange-800',
     },
     confirmed: {
-      title: '🎉 Votre attestation est prête !',
-      desc: 'Félicitations ! Votre attestation d\'hébergement a été générée. Téléchargez-la ci-dessous.',
-      icon: '🎉', color: 'bg-emerald-50 border-emerald-200 text-emerald-800',
+      title: '✅ Dossier clôturé avec succès !',
+      desc: 'Félicitations ! Votre dossier d\'hébergement est complet et clôturé. Téléchargez-le ci-dessous depuis votre espace membre.',
+      icon: '✅', color: 'bg-emerald-50 border-emerald-200 text-emerald-800',
     },
   };
 
@@ -371,15 +372,27 @@ export default function StudentMyDossier() {
 
             {/* Téléchargement PDF */}
             {dossier.status === 'confirmed' && (
-              <div className="card bg-emerald-50 border-emerald-100">
-                <div className="flex items-center justify-between gap-4">
+              <div className="card border-2 border-emerald-300 bg-emerald-50">
+                <div className="flex items-start justify-between gap-4">
                   <div>
-                    <h3 className="font-semibold text-emerald-900">📄 Mon dossier complet</h3>
-                    <p className="text-emerald-700 text-sm mt-1">
-                      Votre dossier complet (attestation signée + documents hébergeur) est disponible
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-emerald-600 text-lg">📄</span>
+                      <h3 className="font-semibold text-emerald-900">Dossier clôturé avec succès</h3>
+                    </div>
+                    <p className="text-emerald-700 text-sm">
+                      Votre dossier complet est disponible. Téléchargez-le et conservez-le pour vos démarches administratives.
                     </p>
+                    {dossier.closedAt && (
+                      <p className="text-emerald-500 text-xs mt-1.5">
+                        Clôturé le {new Date(dossier.closedAt).toLocaleDateString('fr-FR')}
+                      </p>
+                    )}
                   </div>
-                  <button onClick={() => downloadPdf(dossier.id)} disabled={downloading} className="btn-primary flex-shrink-0">
+                  <button
+                    onClick={() => downloadPdf(dossier.id)}
+                    disabled={downloading}
+                    className="btn-primary flex-shrink-0 whitespace-nowrap"
+                  >
                     {downloading ? '⏳ Chargement...' : '⬇ Télécharger'}
                   </button>
                 </div>
