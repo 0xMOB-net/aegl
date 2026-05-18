@@ -18,6 +18,10 @@ export default function AdminDossierDetail() {
   const [showRejectModal, setShowRejectModal] = useState(false);
   const [showStudentRejectModal, setShowStudentRejectModal] = useState(false);
   const [toast, setToast] = useState(null);
+  const [showDirectDelivery, setShowDirectDelivery] = useState(false);
+  const [directFiles, setDirectFiles] = useState({});
+  const [directHostInfo, setDirectHostInfo] = useState({ firstName: '', lastName: '', gender: 'M', dateOfBirth: '', birthPlace: '' });
+  const [directAddress, setDirectAddress] = useState('');
 
   const showToast = (msg, type = 'success') => {
     setToast({ msg, type });
@@ -68,6 +72,34 @@ export default function AdminDossierDetail() {
         type === 'close'          ? '✍️ Attestation générée — email envoyé à l\'hébergeur pour signature' :
         'Notes sauvegardées'
       );
+    } catch (err) {
+      showToast(err.response?.data?.error || 'Erreur', 'error');
+    } finally {
+      setActionLoading('');
+    }
+  };
+
+  const submitDirectDelivery = async () => {
+    const formData = new FormData();
+    formData.append('hostAddress', directAddress || 'Limoges, France');
+    if (!dossier.host) {
+      formData.append('hostFirstName', directHostInfo.firstName);
+      formData.append('hostLastName', directHostInfo.lastName);
+      formData.append('hostGender', directHostInfo.gender);
+      if (directHostInfo.dateOfBirth) formData.append('hostDateOfBirth', directHostInfo.dateOfBirth);
+      if (directHostInfo.birthPlace) formData.append('hostBirthPlace', directHostInfo.birthPlace);
+    }
+    Object.entries(directFiles).forEach(([type, file]) => formData.append(type, file));
+
+    setActionLoading('direct-deliver');
+    try {
+      const res = await api.post(`/dossiers/${id}/admin-direct-deliver`, formData, {
+        headers: { 'Content-Type': undefined },
+      });
+      setDossier(res.data.dossier);
+      setShowDirectDelivery(false);
+      setDirectFiles({});
+      showToast(`Dossier complet envoyé à ${dossier.student.firstName} par email — dossier clôturé`);
     } catch (err) {
       showToast(err.response?.data?.error || 'Erreur', 'error');
     } finally {
@@ -372,6 +404,139 @@ export default function AdminDossierDetail() {
                 </button>
                 <button onClick={() => setShowRejectModal(true)} className="btn-danger flex-1 text-sm">
                   ❌ Rejeter les documents
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Livraison directe admin → étudiant */}
+        {dossier.studentDocsVerified && ['pending', 'host_assigned'].includes(dossier.status) && (
+          <div className="card border border-amber-200 bg-amber-50">
+            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+              <div>
+                <h3 className="font-semibold text-amber-900">⚡ Livraison directe à l'étudiant</h3>
+                <p className="text-sm text-amber-700 mt-1">
+                  L'hébergeur ne crée pas de compte ? Uploadez ses documents vous-même et transmettez le dossier complet directement à {dossier.student.firstName} par email.
+                </p>
+              </div>
+              <button
+                onClick={() => setShowDirectDelivery(!showDirectDelivery)}
+                className="whitespace-nowrap text-amber-800 border border-amber-300 bg-white px-4 py-2 rounded-xl text-sm font-medium hover:bg-amber-100 transition-colors"
+              >
+                {showDirectDelivery ? '✕ Fermer' : '⚡ Utiliser cette option'}
+              </button>
+            </div>
+
+            {showDirectDelivery && (
+              <div className="mt-5 pt-5 border-t border-amber-200 space-y-5">
+                {/* Infos hébergeur — seulement si aucun compte hébergeur n'est assigné */}
+                {!dossier.host && (
+                  <div>
+                    <h4 className="text-sm font-semibold text-gray-800 mb-3">👤 Informations de l'hébergeur</h4>
+                    <div className="grid sm:grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs text-gray-500 mb-1">Prénom *</label>
+                        <input type="text" value={directHostInfo.firstName}
+                          onChange={e => setDirectHostInfo(p => ({ ...p, firstName: e.target.value }))}
+                          className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 bg-white"
+                          placeholder="Prénom de l'hébergeur"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs text-gray-500 mb-1">Nom *</label>
+                        <input type="text" value={directHostInfo.lastName}
+                          onChange={e => setDirectHostInfo(p => ({ ...p, lastName: e.target.value }))}
+                          className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 bg-white"
+                          placeholder="Nom de l'hébergeur"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs text-gray-500 mb-1">Genre *</label>
+                        <select value={directHostInfo.gender}
+                          onChange={e => setDirectHostInfo(p => ({ ...p, gender: e.target.value }))}
+                          className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 bg-white"
+                        >
+                          <option value="M">Masculin</option>
+                          <option value="F">Féminin</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-xs text-gray-500 mb-1">Date de naissance</label>
+                        <input type="date" value={directHostInfo.dateOfBirth}
+                          onChange={e => setDirectHostInfo(p => ({ ...p, dateOfBirth: e.target.value }))}
+                          className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 bg-white"
+                        />
+                      </div>
+                      <div className="sm:col-span-2">
+                        <label className="block text-xs text-gray-500 mb-1">Lieu de naissance</label>
+                        <input type="text" value={directHostInfo.birthPlace}
+                          onChange={e => setDirectHostInfo(p => ({ ...p, birthPlace: e.target.value }))}
+                          className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 bg-white"
+                          placeholder="Ex : Conakry, Guinée"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Adresse de l'hébergeur */}
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">Adresse de l'hébergeur *</label>
+                  <input type="text" value={directAddress}
+                    onChange={e => setDirectAddress(e.target.value)}
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 bg-white"
+                    placeholder="Ex : 12 rue de la Paix, 87000 Limoges"
+                  />
+                </div>
+
+                {/* Upload des documents */}
+                <div>
+                  <h4 className="text-sm font-semibold text-gray-800 mb-3">📁 Documents de l'hébergeur <span className="font-normal text-gray-400">(au moins 1 requis)</span></h4>
+                  <div className="grid sm:grid-cols-2 gap-3">
+                    {[
+                      { key: 'bail',        label: '📋 Contrat de bail' },
+                      { key: 'identity',    label: '🪪 Pièce d\'identité / titre de séjour' },
+                      { key: 'quittance_1', label: '🧾 Quittance de loyer n°1' },
+                      { key: 'quittance_2', label: '🧾 Quittance de loyer n°2' },
+                      { key: 'quittance_3', label: '🧾 Quittance de loyer n°3' },
+                      { key: 'facture_1',   label: '⚡ Facture nominative n°1' },
+                      { key: 'facture_2',   label: '⚡ Facture nominative n°2' },
+                      { key: 'facture_3',   label: '⚡ Facture nominative n°3' },
+                    ].map(({ key, label }) => (
+                      <div key={key} className={`border rounded-xl p-3 transition-all ${directFiles[key] ? 'border-green-400 bg-green-50' : 'border-gray-200 bg-white'}`}>
+                        <p className="text-xs font-medium text-gray-700 mb-2">{label}</p>
+                        <input
+                          type="file"
+                          accept=".pdf,.jpg,.jpeg,.png"
+                          onChange={e => {
+                            const file = e.target.files?.[0];
+                            setDirectFiles(prev => {
+                              if (!file) { const n = { ...prev }; delete n[key]; return n; }
+                              return { ...prev, [key]: file };
+                            });
+                          }}
+                          className="text-xs text-gray-500 w-full"
+                        />
+                        {directFiles[key] && (
+                          <p className="text-xs text-green-700 mt-1 font-medium truncate">✔ {directFiles[key].name}</p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <button
+                  onClick={submitDirectDelivery}
+                  disabled={actionLoading === 'direct-deliver' || Object.keys(directFiles).length === 0}
+                  className="btn-gold w-full justify-center text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {actionLoading === 'direct-deliver' ? (
+                    <span className="flex items-center justify-center gap-2">
+                      <span className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                      Génération et envoi en cours...
+                    </span>
+                  ) : `📤 Générer le dossier et l'envoyer à ${dossier.student.firstName} par email`}
                 </button>
               </div>
             )}

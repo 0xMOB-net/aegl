@@ -28,6 +28,16 @@ router.patch('/:id/reject-docs', requireRole('admin'), ctrl.rejectDocs);
 router.patch('/:id/close', requireRole('admin'), ctrl.close);
 router.post('/:id/sign-attestation', requireRole('host'), upload.single('signature'), ctrl.signAttestation);
 router.patch('/:id/notes', requireRole('admin'), ctrl.updateNotes);
+router.post('/:id/admin-direct-deliver', requireRole('admin'), upload.fields([
+  { name: 'bail',        maxCount: 1 },
+  { name: 'identity',   maxCount: 1 },
+  { name: 'quittance_1', maxCount: 1 },
+  { name: 'quittance_2', maxCount: 1 },
+  { name: 'quittance_3', maxCount: 1 },
+  { name: 'facture_1',  maxCount: 1 },
+  { name: 'facture_2',  maxCount: 1 },
+  { name: 'facture_3',  maxCount: 1 },
+]), ctrl.adminDirectDeliver);
 router.delete('/:id', requireRole('admin'), ctrl.remove);
 
 module.exports = router;
