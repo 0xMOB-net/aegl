@@ -35,7 +35,7 @@ export default function StudentMyDossier() {
       link.click();
       link.remove();
       window.URL.revokeObjectURL(url);
-      showToast('Dossier téléchargé avec succès — conservez-le précieusement !');
+      showToast('Téléchargement réussi');
     } catch {
       showToast('Erreur lors du téléchargement du PDF', 'error');
     } finally { setDownloading(false); }
@@ -47,6 +47,17 @@ export default function StudentMyDossier() {
       setDossier(all.find(d => d.student?.id === user?.id) || all[0] || null);
     }).finally(() => setLoading(false));
   }, []);
+
+  const confirmDossier = async () => {
+    setConfirming(true);
+    try {
+      const res = await api.patch(`/dossiers/${dossier.id}/student-confirm`);
+      setDossier(res.data.dossier);
+      showToast('Dossier clôturé');
+    } catch (err) {
+      showToast(err.response?.data?.error || 'Erreur', 'error');
+    } finally { setConfirming(false); }
+  };
 
   const openModal = (mode) => {
     setModalMode(mode);
@@ -119,13 +130,13 @@ export default function StudentMyDossier() {
       icon: '⏳', color: 'bg-orange-50 border-orange-200 text-orange-800',
     },
     documents_ready: {
-      title: 'Votre dossier est prêt',
-      desc: 'Téléchargez votre dossier ci-dessous puis confirmez la réception pour le clôturer.',
+      title: 'Votre dossier est disponible',
+      desc: 'Téléchargez-le et confirmez la réception.',
       icon: '📥', color: 'bg-blue-50 border-blue-200 text-blue-800',
     },
     confirmed: {
-      title: '✅ Dossier clôturé avec succès !',
-      desc: 'Félicitations ! Votre dossier d\'hébergement est complet et clôturé. Téléchargez-le ci-dessous depuis votre espace membre.',
+      title: 'Dossier clôturé',
+      desc: 'Votre dossier d\'hébergement est complet. Téléchargez-le ci-dessous.',
       icon: '✅', color: 'bg-emerald-50 border-emerald-200 text-emerald-800',
     },
   };
@@ -243,9 +254,7 @@ export default function StudentMyDossier() {
                   Annuler
                 </button>
                 <button type="submit" disabled={creating} className="flex-1 btn-primary text-sm">
-                  {creating
-                    ? (modalMode === 'resubmit' ? 'Envoi sécurisé...' : 'Envoi sécurisé...')
-                    : (modalMode === 'resubmit' ? '🔒 Re-soumettre' : '🔒 Envoyer en toute sécurité')}
+                  {creating ? 'Envoi...' : modalMode === 'resubmit' ? '🔒 Re-soumettre' : '🔒 Envoyer'}
                 </button>
               </div>
             </form>
@@ -392,16 +401,7 @@ export default function StudentMyDossier() {
                     {downloading ? '⏳ Chargement...' : '⬇ Télécharger'}
                   </button>
                   <button
-                    onClick={async () => {
-                      setConfirming(true);
-                      try {
-                        const res = await api.patch(`/dossiers/${dossier.id}/student-confirm`);
-                        setDossier(res.data.dossier);
-                        showToast('Dossier clôturé avec succès !');
-                      } catch (err) {
-                        showToast(err.response?.data?.error || 'Erreur', 'error');
-                      } finally { setConfirming(false); }
-                    }}
+                    onClick={confirmDossier}
                     disabled={confirming}
                     className="btn-primary flex-1 justify-center"
                   >

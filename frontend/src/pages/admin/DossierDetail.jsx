@@ -1,12 +1,11 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import MemberLayout from '../../components/members/MemberLayout';
 import { StatusBadge, DossierStepper } from '../../components/members/SharedComponents';
 import api from '../../api/client';
 
 export default function AdminDossierDetail() {
   const { id } = useParams();
-  const navigate = useNavigate();
   const [dossier, setDossier] = useState(null);
   const [hosts, setHosts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -44,7 +43,7 @@ export default function AdminDossierDetail() {
 
   useEffect(() => { fetchDossier(); }, [id]);
 
-  const action = async (type, body = {}) => {
+  const action = async (type) => {
     setActionLoading(type);
     try {
       let res;
@@ -509,21 +508,31 @@ export default function AdminDossierDetail() {
         {/* PDF & clôture */}
         {['documents_provided', 'documents_verified', 'attestation_pending', 'documents_ready', 'confirmed'].includes(dossier.status) && (
           <div className={`card border ${
-            dossier.status === 'attestation_pending'
-              ? 'bg-orange-50 border-orange-200'
-              : 'bg-green-50 border-green-100'
+            dossier.status === 'attestation_pending' ? 'bg-orange-50 border-orange-200'
+            : dossier.status === 'documents_ready'   ? 'bg-blue-50 border-blue-200'
+            : 'bg-green-50 border-green-100'
           }`}>
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <div>
-                <h3 className={`font-semibold ${dossier.status === 'attestation_pending' ? 'text-orange-900' : 'text-green-900'}`}>
+                <h3 className={`font-semibold ${
+                  dossier.status === 'attestation_pending' ? 'text-orange-900'
+                  : dossier.status === 'documents_ready'   ? 'text-blue-900'
+                  : 'text-green-900'
+                }`}>
                   📄 Attestation d'hébergement
                 </h3>
-                <p className={`text-sm mt-1 ${dossier.status === 'attestation_pending' ? 'text-orange-700' : 'text-green-700'}`}>
+                <p className={`text-sm mt-1 ${
+                  dossier.status === 'attestation_pending' ? 'text-orange-700'
+                  : dossier.status === 'documents_ready'   ? 'text-blue-700'
+                  : 'text-green-700'
+                }`}>
                   {dossier.status === 'confirmed'
-                    ? 'Dossier clôturé — dossier complet envoyé à l\'étudiant par email'
+                    ? 'Dossier clôturé'
+                    : dossier.status === 'documents_ready'
+                    ? 'Documents déposés — en attente de confirmation de l\'étudiant'
                     : dossier.status === 'attestation_pending'
-                    ? '✍️ Attestation envoyée à l\'hébergeur — en attente de sa signature'
-                    : 'Prévisualisez l\'attestation avant d\'envoyer à l\'hébergeur pour signature'
+                    ? 'Attestation envoyée à l\'hébergeur — en attente de signature'
+                    : 'Prévisualisez l\'attestation avant d\'envoyer à l\'hébergeur'
                   }
                 </p>
               </div>
@@ -532,7 +541,7 @@ export default function AdminDossierDetail() {
                 {dossier.status === 'documents_verified' && (
                   <button
                     onClick={() => {
-                      if (window.confirm('Envoyer l\'attestation à l\'hébergeur pour signature ? L\'hébergeur recevra un email avec l\'attestation en pièce jointe et un lien pour la signer depuis son espace membre.')) action('close');
+                      if (window.confirm('Envoyer l\'attestation à l\'hébergeur pour signature ?')) action('close');
                     }}
                     disabled={actionLoading === 'close'}
                     className="btn-gold text-sm"
