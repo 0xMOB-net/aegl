@@ -24,6 +24,7 @@ enum DossierStatus {
   documents_provided
   documents_verified
   attestation_pending
+  documents_ready
   confirmed
 }
 

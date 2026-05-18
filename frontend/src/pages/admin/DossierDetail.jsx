@@ -89,7 +89,7 @@ export default function AdminDossierDetail() {
       setDossier(res.data.dossier);
       setShowDirectDelivery(false);
       setDirectFiles({});
-      showToast(`Dossier disponible dans le compte de ${dossier.student.firstName} — dossier clôturé`);
+      showToast(`Documents déposés — en attente de confirmation de ${dossier.student.firstName}`);
     } catch (err) {
       showToast(err.response?.data?.error || 'Erreur', 'error');
     } finally {
@@ -507,7 +507,7 @@ export default function AdminDossierDetail() {
         )}
 
         {/* PDF & clôture */}
-        {['documents_provided', 'documents_verified', 'attestation_pending', 'confirmed'].includes(dossier.status) && (
+        {['documents_provided', 'documents_verified', 'attestation_pending', 'documents_ready', 'confirmed'].includes(dossier.status) && (
           <div className={`card border ${
             dossier.status === 'attestation_pending'
               ? 'bg-orange-50 border-orange-200'

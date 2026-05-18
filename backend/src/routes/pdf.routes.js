@@ -8,7 +8,7 @@ const axios = require('axios');
 const prisma = new PrismaClient();
 router.use(authenticate);
 
-const ALLOWED_STATUSES = ['documents_provided', 'documents_verified', 'attestation_pending', 'confirmed'];
+const ALLOWED_STATUSES = ['documents_provided', 'documents_verified', 'attestation_pending', 'documents_ready', 'confirmed'];
 
 // Extrait le public_id d'une URL Cloudinary authenticated et génère une URL signée
 const resolveCloudinaryUrl = (storedUrl) => {

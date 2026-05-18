@@ -5,6 +5,7 @@ export function StatusBadge({ status }) {
     documents_provided:  { label: 'Documents fournis',     className: 'badge-provided' },
     documents_verified:  { label: 'Documents vérifiés',    className: 'badge-verified' },
     attestation_pending: { label: '✍️ Signature en attente', className: 'badge-attestation' },
+    documents_ready:     { label: 'À confirmer',            className: 'badge-attestation' },
     confirmed:           { label: 'Confirmé ✓',            className: 'badge-confirmed' },
   };
   const { label, className } = config[status] || { label: status, className: 'badge-pending' };
@@ -27,6 +28,7 @@ export function DossierStepper({ status }) {
       documents_provided: 2,
       documents_verified: 2,
       attestation_pending: 3,
+      documents_ready: 3,
       confirmed: 4,
     };
     const stepIdx = stepOrder[stepKey] ?? 0;

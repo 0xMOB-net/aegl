@@ -511,12 +511,9 @@ const adminDirectDeliver = async (req, res) => {
       `dossier_complet_${dossier.id}_${Date.now()}`
     );
 
-    const updateData = { status: 'confirmed', mergedPdfPath: mergedUrl, closedAt: new Date() };
-    if (req.body.hostAddress) updateData.hostAddress = req.body.hostAddress;
-
     const updated = await prisma.dossier.update({
       where: { id: dossier.id },
-      data: updateData,
+      data: { status: 'documents_ready', mergedPdfPath: mergedUrl },
       select: dossierSelect,
     });
 
@@ -524,6 +521,28 @@ const adminDirectDeliver = async (req, res) => {
     res.json({ dossier: updated });
   } catch (err) {
     console.error('adminDirectDeliver error:', err);
+    res.status(500).json({ error: err.message || 'Erreur serveur' });
+  }
+};
+
+const studentConfirmDossier = async (req, res) => {
+  try {
+    const { user } = req;
+    const dossier = await prisma.dossier.findUnique({ where: { id: req.params.id } });
+    if (!dossier) return res.status(404).json({ error: 'Dossier introuvable' });
+    if (dossier.studentId !== user.id) return res.status(403).json({ error: 'Accès refusé' });
+    if (dossier.status !== 'documents_ready') {
+      return res.status(400).json({ error: 'Aucun document en attente de confirmation' });
+    }
+    const updated = await prisma.dossier.update({
+      where: { id: req.params.id },
+      data: { status: 'confirmed', closedAt: new Date() },
+      select: dossierSelect,
+    });
+    await logActivity(user.id, 'student_confirm_dossier', { dossierId: req.params.id });
+    res.json({ dossier: updated });
+  } catch (err) {
+    console.error('studentConfirmDossier error:', err);
     res.status(500).json({ error: err.message || 'Erreur serveur' });
   }
 };
@@ -541,4 +560,4 @@ const remove = async (req, res) => {
   }
 };
 
-module.exports = { list, getOne, create, assignHost, revokeHost, validateDocs, rejectDocs, close, signAttestation, updateNotes, stats, remove, verifyStudentDocs, rejectStudentDocs, resubmitStudentDocs, adminDirectDeliver };
+module.exports = { list, getOne, create, assignHost, revokeHost, validateDocs, rejectDocs, close, signAttestation, updateNotes, stats, remove, verifyStudentDocs, rejectStudentDocs, resubmitStudentDocs, adminDirectDeliver, studentConfirmDossier };

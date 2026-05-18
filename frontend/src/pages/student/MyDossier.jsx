@@ -16,6 +16,7 @@ export default function StudentMyDossier() {
   const [modalMode, setModalMode] = useState('create');
   const [toast, setToast] = useState(null);
   const [downloading, setDownloading] = useState(false);
+  const [confirming, setConfirming] = useState(false);
 
   const showToast = (msg, type = 'success') => {
     setToast({ msg, type });
@@ -116,6 +117,11 @@ export default function StudentMyDossier() {
       title: '✍️ Votre hébergeur signe l\'attestation',
       desc: 'L\'attestation a été envoyée à votre hébergeur par email. Dès qu\'il l\'aura signée, vous recevrez votre dossier complet par email.',
       icon: '⏳', color: 'bg-orange-50 border-orange-200 text-orange-800',
+    },
+    documents_ready: {
+      title: 'Votre dossier est prêt',
+      desc: 'Téléchargez votre dossier ci-dessous puis confirmez la réception pour le clôturer.',
+      icon: '📥', color: 'bg-blue-50 border-blue-200 text-blue-800',
     },
     confirmed: {
       title: '✅ Dossier clôturé avec succès !',
@@ -367,6 +373,41 @@ export default function StudentMyDossier() {
               <div className="bg-amber-50 border border-amber-200 rounded-2xl p-5">
                 <h3 className="font-semibold text-amber-800 mb-2">📝 Message de l'administration</h3>
                 <p className="text-amber-700 text-sm">{dossier.adminNotes}</p>
+              </div>
+            )}
+
+            {/* Documents prêts — en attente de confirmation étudiant */}
+            {dossier.status === 'documents_ready' && (
+              <div className="card border-2 border-blue-300 bg-blue-50">
+                <h3 className="font-semibold text-blue-900 mb-1">📥 Votre dossier est disponible</h3>
+                <p className="text-blue-700 text-sm mb-4">
+                  Téléchargez-le, vérifiez son contenu, puis confirmez la réception pour clôturer votre dossier.
+                </p>
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <button
+                    onClick={() => downloadPdf(dossier.id)}
+                    disabled={downloading}
+                    className="btn-secondary flex-1 justify-center"
+                  >
+                    {downloading ? '⏳ Chargement...' : '⬇ Télécharger'}
+                  </button>
+                  <button
+                    onClick={async () => {
+                      setConfirming(true);
+                      try {
+                        const res = await api.patch(`/dossiers/${dossier.id}/student-confirm`);
+                        setDossier(res.data.dossier);
+                        showToast('Dossier clôturé avec succès !');
+                      } catch (err) {
+                        showToast(err.response?.data?.error || 'Erreur', 'error');
+                      } finally { setConfirming(false); }
+                    }}
+                    disabled={confirming}
+                    className="btn-primary flex-1 justify-center"
+                  >
+                    {confirming ? '...' : '✅ Confirmer la réception'}
+                  </button>
+                </div>
               </div>
             )}
 
