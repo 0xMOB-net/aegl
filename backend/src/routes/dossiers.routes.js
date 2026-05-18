@@ -29,6 +29,7 @@ router.patch('/:id/close', requireRole('admin'), ctrl.close);
 router.post('/:id/sign-attestation', requireRole('host'), upload.single('signature'), ctrl.signAttestation);
 router.patch('/:id/notes', requireRole('admin'), ctrl.updateNotes);
 router.post('/:id/admin-direct-deliver', requireRole('admin'), upload.fields([
+  { name: 'attestation', maxCount: 1 },
   { name: 'bail',        maxCount: 1 },
   { name: 'identity',   maxCount: 1 },
   { name: 'quittance_1', maxCount: 1 },

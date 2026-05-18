@@ -461,13 +461,13 @@ const resubmitStudentDocs = async (req, res) => {
   }
 };
 
-// Admin bypasses host account — uploads docs directly and delivers merged PDF to student
+// Admin uploads a ready-made attestation PDF + optional host docs → stored in student account (no email, no auto-generation)
 const adminDirectDeliver = async (req, res) => {
   try {
     const { user } = req;
     const dossier = await prisma.dossier.findUnique({
       where: { id: req.params.id },
-      include: { student: true, host: true, hostDocuments: true },
+      include: { student: true, hostDocuments: true },
     });
     if (!dossier) return res.status(404).json({ error: 'Dossier introuvable' });
     if (!dossier.studentDocsVerified) {
@@ -477,21 +477,13 @@ const adminDirectDeliver = async (req, res) => {
       return res.status(400).json({ error: 'Cette action n\'est disponible que pour les dossiers en attente ou avec hébergeur assigné' });
     }
 
-    // Use assigned host info OR manual fields provided by admin
-    const hostInfo = dossier.host || {
-      firstName: req.body.hostFirstName,
-      lastName: req.body.hostLastName,
-      gender: req.body.hostGender,
-      dateOfBirth: req.body.hostDateOfBirth ? new Date(req.body.hostDateOfBirth) : null,
-      birthPlace: req.body.hostBirthPlace || null,
-    };
-    if (!hostInfo.firstName || !hostInfo.lastName || !hostInfo.gender) {
-      return res.status(400).json({ error: 'Prénom, nom et genre de l\'hébergeur sont obligatoires' });
+    // Attestation PDF uploadée par l'admin est obligatoire
+    const attestationFile = req.files?.['attestation']?.[0];
+    if (!attestationFile) {
+      return res.status(400).json({ error: 'L\'attestation PDF est obligatoire' });
     }
 
-    const hostAddress = req.body.hostAddress || dossier.hostAddress || 'Limoges, France';
-
-    // Upload all documents provided by the admin
+    // Upload des documents hébergeur optionnels
     const docTypes = ['bail', 'identity', 'quittance_1', 'quittance_2', 'quittance_3', 'facture_1', 'facture_2', 'facture_3'];
     const newDocs = [];
     for (const docType of docTypes) {
@@ -500,39 +492,36 @@ const adminDirectDeliver = async (req, res) => {
       const r = await uploadToCloudinary(fileArr[0].buffer, { folder: 'aegl/host-docs' });
       newDocs.push({ dossierId: dossier.id, docType, filePath: r.secure_url, verified: true });
     }
-    if (newDocs.length === 0) {
-      return res.status(400).json({ error: 'Au moins un document hébergeur est requis' });
+    if (newDocs.length > 0) {
+      await prisma.hostDocument.createMany({ data: newDocs });
     }
 
-    await prisma.hostDocument.createMany({ data: newDocs });
-    await prisma.dossier.update({ where: { id: dossier.id }, data: { hostAddress } });
-
-    // Reload all host documents (existing + newly uploaded)
+    // Recharger tous les docs hébergeur (anciens + nouveaux) pour la fusion
     const allHostDocs = await prisma.hostDocument.findMany({ where: { dossierId: dossier.id } });
+    const hostDocUrls = allHostDocs.map(d => d.filePath).filter(Boolean);
 
-    // Build a dossier object with the correct host info for PDF generation
-    const dossierForPdf = { ...dossier, host: hostInfo, hostAddress };
-
-    const attestBuf = await generateAttestationBuffer(dossierForPdf);
-    const mergedBuffer = await mergeDocuments(attestBuf, allHostDocs.map(d => d.filePath).filter(Boolean));
+    // Fusionner attestation + docs hébergeur si présents, sinon utiliser l'attestation seule
+    const finalBuffer = hostDocUrls.length > 0
+      ? await mergeDocuments(attestationFile.buffer, hostDocUrls)
+      : attestationFile.buffer;
 
     const mergedUrl = await uploadBuffer(
-      mergedBuffer,
+      finalBuffer,
       'aegl/dossiers-complets',
       `dossier_complet_${dossier.id}_${Date.now()}`
     );
 
+    const updateData = { status: 'confirmed', mergedPdfPath: mergedUrl, closedAt: new Date() };
+    if (req.body.hostAddress) updateData.hostAddress = req.body.hostAddress;
+
     const updated = await prisma.dossier.update({
       where: { id: dossier.id },
-      data: { status: 'confirmed', mergedPdfPath: mergedUrl, closedAt: new Date() },
+      data: updateData,
       select: dossierSelect,
     });
 
     await logActivity(user.id, 'admin_direct_deliver', { dossierId: dossier.id });
     res.json({ dossier: updated });
-
-    sendMergedDossierEmail(dossier.student, mergedBuffer)
-      .catch(err => console.error('adminDirectDeliver email failed:', err.message));
   } catch (err) {
     console.error('adminDirectDeliver error:', err);
     res.status(500).json({ error: err.message || 'Erreur serveur' });

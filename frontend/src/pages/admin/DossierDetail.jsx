@@ -20,7 +20,6 @@ export default function AdminDossierDetail() {
   const [toast, setToast] = useState(null);
   const [showDirectDelivery, setShowDirectDelivery] = useState(false);
   const [directFiles, setDirectFiles] = useState({});
-  const [directHostInfo, setDirectHostInfo] = useState({ firstName: '', lastName: '', gender: 'M', dateOfBirth: '', birthPlace: '' });
   const [directAddress, setDirectAddress] = useState('');
 
   const showToast = (msg, type = 'success') => {
@@ -81,14 +80,7 @@ export default function AdminDossierDetail() {
 
   const submitDirectDelivery = async () => {
     const formData = new FormData();
-    formData.append('hostAddress', directAddress || 'Limoges, France');
-    if (!dossier.host) {
-      formData.append('hostFirstName', directHostInfo.firstName);
-      formData.append('hostLastName', directHostInfo.lastName);
-      formData.append('hostGender', directHostInfo.gender);
-      if (directHostInfo.dateOfBirth) formData.append('hostDateOfBirth', directHostInfo.dateOfBirth);
-      if (directHostInfo.birthPlace) formData.append('hostBirthPlace', directHostInfo.birthPlace);
-    }
+    if (directAddress) formData.append('hostAddress', directAddress);
     Object.entries(directFiles).forEach(([type, file]) => formData.append(type, file));
 
     setActionLoading('direct-deliver');
@@ -99,7 +91,7 @@ export default function AdminDossierDetail() {
       setDossier(res.data.dossier);
       setShowDirectDelivery(false);
       setDirectFiles({});
-      showToast(`Dossier complet envoyé à ${dossier.student.firstName} par email — dossier clôturé`);
+      showToast(`Dossier disponible dans le compte de ${dossier.student.firstName} — dossier clôturé`);
     } catch (err) {
       showToast(err.response?.data?.error || 'Erreur', 'error');
     } finally {
@@ -430,69 +422,44 @@ export default function AdminDossierDetail() {
 
             {showDirectDelivery && (
               <div className="mt-5 pt-5 border-t border-amber-200 space-y-5">
-                {/* Infos hébergeur — seulement si aucun compte hébergeur n'est assigné */}
-                {!dossier.host && (
-                  <div>
-                    <h4 className="text-sm font-semibold text-gray-800 mb-3">👤 Informations de l'hébergeur</h4>
-                    <div className="grid sm:grid-cols-2 gap-3">
-                      <div>
-                        <label className="block text-xs text-gray-500 mb-1">Prénom *</label>
-                        <input type="text" value={directHostInfo.firstName}
-                          onChange={e => setDirectHostInfo(p => ({ ...p, firstName: e.target.value }))}
-                          className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 bg-white"
-                          placeholder="Prénom de l'hébergeur"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-xs text-gray-500 mb-1">Nom *</label>
-                        <input type="text" value={directHostInfo.lastName}
-                          onChange={e => setDirectHostInfo(p => ({ ...p, lastName: e.target.value }))}
-                          className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 bg-white"
-                          placeholder="Nom de l'hébergeur"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-xs text-gray-500 mb-1">Genre *</label>
-                        <select value={directHostInfo.gender}
-                          onChange={e => setDirectHostInfo(p => ({ ...p, gender: e.target.value }))}
-                          className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 bg-white"
-                        >
-                          <option value="M">Masculin</option>
-                          <option value="F">Féminin</option>
-                        </select>
-                      </div>
-                      <div>
-                        <label className="block text-xs text-gray-500 mb-1">Date de naissance</label>
-                        <input type="date" value={directHostInfo.dateOfBirth}
-                          onChange={e => setDirectHostInfo(p => ({ ...p, dateOfBirth: e.target.value }))}
-                          className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 bg-white"
-                        />
-                      </div>
-                      <div className="sm:col-span-2">
-                        <label className="block text-xs text-gray-500 mb-1">Lieu de naissance</label>
-                        <input type="text" value={directHostInfo.birthPlace}
-                          onChange={e => setDirectHostInfo(p => ({ ...p, birthPlace: e.target.value }))}
-                          className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 bg-white"
-                          placeholder="Ex : Conakry, Guinée"
-                        />
-                      </div>
-                    </div>
-                  </div>
-                )}
 
-                {/* Adresse de l'hébergeur */}
+                {/* Attestation PDF — obligatoire */}
                 <div>
-                  <label className="block text-xs text-gray-500 mb-1">Adresse de l'hébergeur *</label>
-                  <input type="text" value={directAddress}
-                    onChange={e => setDirectAddress(e.target.value)}
-                    className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 bg-white"
-                    placeholder="Ex : 12 rue de la Paix, 87000 Limoges"
-                  />
+                  <h4 className="text-sm font-semibold text-gray-800 mb-1">
+                    📄 Attestation d'hébergement <span className="text-red-500">*</span>
+                  </h4>
+                  <p className="text-xs text-gray-400 mb-3">PDF déjà préparé et signé — sera mis dans le compte de l'étudiant</p>
+                  <div className={`border-2 border-dashed rounded-xl p-4 text-center transition-all ${directFiles['attestation'] ? 'border-green-400 bg-green-50' : 'border-amber-300 bg-white hover:border-amber-400'}`}>
+                    <input
+                      type="file"
+                      id="direct-attestation"
+                      accept=".pdf"
+                      className="hidden"
+                      onChange={e => {
+                        const file = e.target.files?.[0];
+                        setDirectFiles(prev => file ? { ...prev, attestation: file } : (({ attestation, ...rest }) => rest)(prev));
+                      }}
+                    />
+                    <label htmlFor="direct-attestation" className="cursor-pointer block">
+                      {directFiles['attestation'] ? (
+                        <div>
+                          <p className="font-medium text-sm text-green-700">✔ {directFiles['attestation'].name}</p>
+                          <p className="text-gray-400 text-xs mt-1">Cliquer pour changer</p>
+                        </div>
+                      ) : (
+                        <div>
+                          <p className="text-amber-700 text-sm font-medium">Cliquez pour choisir l'attestation PDF</p>
+                          <p className="text-gray-400 text-xs mt-1">PDF uniquement</p>
+                        </div>
+                      )}
+                    </label>
+                  </div>
                 </div>
 
-                {/* Upload des documents */}
+                {/* Documents hébergeur — optionnels */}
                 <div>
-                  <h4 className="text-sm font-semibold text-gray-800 mb-3">📁 Documents de l'hébergeur <span className="font-normal text-gray-400">(au moins 1 requis)</span></h4>
+                  <h4 className="text-sm font-semibold text-gray-800 mb-1">📁 Documents de l'hébergeur</h4>
+                  <p className="text-xs text-gray-400 mb-3">Optionnel — seront fusionnés avec l'attestation dans le dossier final</p>
                   <div className="grid sm:grid-cols-2 gap-3">
                     {[
                       { key: 'bail',        label: '📋 Contrat de bail' },
@@ -526,17 +493,27 @@ export default function AdminDossierDetail() {
                   </div>
                 </div>
 
+                {/* Adresse hébergeur — optionnelle */}
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">Adresse de l'hébergeur <span className="text-gray-300">(optionnel)</span></label>
+                  <input type="text" value={directAddress}
+                    onChange={e => setDirectAddress(e.target.value)}
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 bg-white"
+                    placeholder="Ex : 12 rue de la Paix, 87000 Limoges"
+                  />
+                </div>
+
                 <button
                   onClick={submitDirectDelivery}
-                  disabled={actionLoading === 'direct-deliver' || Object.keys(directFiles).length === 0}
+                  disabled={actionLoading === 'direct-deliver' || !directFiles['attestation']}
                   className="btn-gold w-full justify-center text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {actionLoading === 'direct-deliver' ? (
                     <span className="flex items-center justify-center gap-2">
                       <span className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                      Génération et envoi en cours...
+                      Upload et traitement en cours...
                     </span>
-                  ) : `📤 Générer le dossier et l'envoyer à ${dossier.student.firstName} par email`}
+                  ) : `📥 Déposer le dossier dans le compte de ${dossier.student.firstName}`}
                 </button>
               </div>
             )}
