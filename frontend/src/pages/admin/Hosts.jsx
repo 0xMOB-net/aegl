@@ -57,13 +57,11 @@ export function AdminHosts() {
     setImpersonating(userId);
     try {
       const { data } = await api.post(`/admin/users/${userId}/impersonate`);
-      localStorage.setItem('token', data.token);
-      localStorage.setItem('user', JSON.stringify(data.user));
-      navigate('/membres');
-      window.location.reload();
+      localStorage.setItem('aegl_token', data.token);
+      localStorage.setItem('aegl_user', JSON.stringify(data.user));
+      window.location.href = '/membres';
     } catch (err) {
       showToast(err.response?.data?.error || 'Erreur', 'error');
-    } finally {
       setImpersonating(null);
     }
   };
