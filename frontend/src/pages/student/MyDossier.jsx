@@ -36,8 +36,16 @@ export default function StudentMyDossier() {
       link.remove();
       window.URL.revokeObjectURL(url);
       showToast('Téléchargement réussi');
-    } catch {
-      showToast('Erreur lors du téléchargement du PDF', 'error');
+    } catch (err) {
+      let msg = 'Erreur lors du téléchargement';
+      try {
+        const blob = err.response?.data;
+        if (blob instanceof Blob) {
+          const text = await blob.text();
+          msg = JSON.parse(text).error || msg;
+        }
+      } catch {}
+      showToast(msg, 'error');
     } finally { setDownloading(false); }
   };
 
