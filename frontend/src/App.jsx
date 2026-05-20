@@ -15,6 +15,8 @@ import ResetPassword from './pages/auth/ResetPassword';
 
 import AdminDashboard from './pages/admin/Dashboard';
 import AdminDossiers from './pages/admin/Dossiers';
+import AdminCollectes from './pages/admin/Collectes';
+import Collectes from './pages/public/Collectes';
 import AdminDossierDetail from './pages/admin/DossierDetail';
 import AdminAnnouncements from './pages/admin/Announcements';
 import AdminArticles from './pages/admin/Articles';
@@ -68,6 +70,7 @@ function App() {
           <Route path="/actualites" element={<News />} />
           <Route path="/actualites/:slug" element={<NewsDetail />} />
           <Route path="/contact" element={<Contact />} />
+          <Route path="/collectes" element={<Collectes />} />
 
           {/* AUTH */}
           <Route path="/login" element={<Login />} />
@@ -86,6 +89,7 @@ function App() {
           <Route path="/membres/admin/hebergeurs" element={<ProtectedRoute roles={['admin']}><AdminHosts /></ProtectedRoute>} />
           <Route path="/membres/admin/activite" element={<ProtectedRoute roles={['admin']}><AdminActivity /></ProtectedRoute>} />
           <Route path="/membres/admin/alertes" element={<ProtectedRoute roles={['admin']}><AdminAlerts /></ProtectedRoute>} />
+          <Route path="/membres/admin/collectes" element={<ProtectedRoute roles={['admin']}><AdminCollectes /></ProtectedRoute>} />
 
           {/* HOST */}
           <Route path="/membres/hebergeur/dossiers" element={<ProtectedRoute roles={['host']}><HostDossiers /></ProtectedRoute>} />

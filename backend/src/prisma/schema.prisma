@@ -59,6 +59,7 @@ model User {
   comments         AnnouncementComment[]
   articles         Article[]
   activityLogs     ActivityLog[]
+  collectes        Collecte[]
 
   @@map("users")
 }
@@ -162,6 +163,22 @@ model Article {
   author User @relation(fields: [authorId], references: [id])
 
   @@map("articles")
+}
+
+model Collecte {
+  id           String   @id @default(uuid())
+  authorId     String
+  title        String
+  description  String
+  goal         Int?
+  helloassoUrl String
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  author User @relation(fields: [authorId], references: [id])
+
+  @@map("collectes")
 }
 
 model ActivityLog {

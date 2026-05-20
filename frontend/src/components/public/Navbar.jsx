@@ -46,6 +46,7 @@ export default function Navbar() {
     { to: '/a-propos',  label: 'À propos' },
     { to: '/services',  label: 'Nos services' },
     { to: '/actualites',label: 'Actualités' },
+    { to: '/collectes', label: 'Collectes' },
     { to: '/contact',   label: 'Contact' },
   ];
 
