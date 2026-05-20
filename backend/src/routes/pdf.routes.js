@@ -45,8 +45,8 @@ router.get('/:dossierId', async (req, res) => {
 
     const studentName = `${dossier.student.lastName}_${dossier.student.firstName}`;
 
-    // Pour les dossiers confirmés : servir le PDF fusionné complet (avec signature + docs hébergeur)
-    if (dossier.status === 'confirmed' && dossier.mergedPdfPath) {
+    // Servir le PDF fusionné s'il existe (documents_ready ou confirmed)
+    if (dossier.mergedPdfPath) {
       const signedUrl = resolveCloudinaryUrl(dossier.mergedPdfPath);
       if (signedUrl) {
         const response = await axios.get(signedUrl, { responseType: 'arraybuffer', timeout: 30000 });
@@ -58,7 +58,10 @@ router.get('/:dossierId', async (req, res) => {
       }
     }
 
-    // Fallback : générer l'attestation de base (pour prévisualisation admin / statuts intermédiaires)
+    // Fallback : générer l'attestation de base (prévisualisation admin — nécessite un hébergeur assigné)
+    if (!dossier.host) {
+      return res.status(400).json({ error: 'Aucun document disponible pour ce dossier' });
+    }
     const buffer = await generateAttestationBuffer(dossier);
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename="Attestation_AEGL_${studentName}.pdf"`);
