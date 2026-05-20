@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import MemberLayout from '../../components/members/MemberLayout';
 import { StatusBadge } from '../../components/members/SharedComponents';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import api from '../../api/client';
 
 export function AdminHosts() {
@@ -11,7 +11,12 @@ export function AdminHosts() {
   const [loading, setLoading] = useState(true);
   const [deleting, setDeleting] = useState(null);
   const [confirmDelete, setConfirmDelete] = useState(null); // { id, name }
+  const [resetModal, setResetModal] = useState(null); // { id, name }
+  const [resetPassword, setResetPassword] = useState('');
+  const [resetting, setResetting] = useState(false);
+  const [impersonating, setImpersonating] = useState(null);
   const [toast, setToast] = useState(null);
+  const navigate = useNavigate();
 
   const showToast = (msg, type = 'success') => {
     setToast({ msg, type });
@@ -31,6 +36,36 @@ export function AdminHosts() {
 
   const handleDelete = (userId, name) => {
     setConfirmDelete({ id: userId, name });
+  };
+
+  const handleResetPassword = async () => {
+    if (!resetModal || !resetPassword.trim()) return;
+    setResetting(true);
+    try {
+      await api.patch(`/admin/users/${resetModal.id}/reset-password`, { password: resetPassword });
+      showToast(`Mot de passe de ${resetModal.name} modifié.`);
+      setResetModal(null);
+      setResetPassword('');
+    } catch (err) {
+      showToast(err.response?.data?.error || 'Erreur lors de la modification', 'error');
+    } finally {
+      setResetting(false);
+    }
+  };
+
+  const handleImpersonate = async (userId) => {
+    setImpersonating(userId);
+    try {
+      const { data } = await api.post(`/admin/users/${userId}/impersonate`);
+      localStorage.setItem('token', data.token);
+      localStorage.setItem('user', JSON.stringify(data.user));
+      navigate('/membres');
+      window.location.reload();
+    } catch (err) {
+      showToast(err.response?.data?.error || 'Erreur', 'error');
+    } finally {
+      setImpersonating(null);
+    }
   };
 
   const confirmDeletion = async () => {
@@ -88,6 +123,39 @@ export function AdminHosts() {
           </div>
         </div>
       )}
+
+      {/* Modale réinitialisation mot de passe */}
+      {resetModal && (
+        <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-sm">
+            <h3 className="font-heading text-lg text-gray-900 mb-1">Modifier le mot de passe</h3>
+            <p className="text-gray-500 text-sm mb-4">Compte de <strong>{resetModal.name}</strong></p>
+            <input
+              type="password"
+              value={resetPassword}
+              onChange={e => setResetPassword(e.target.value)}
+              placeholder="Nouveau mot de passe"
+              className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm mb-4 focus:outline-none focus:ring-2 focus:ring-green-700"
+            />
+            <div className="flex gap-3">
+              <button
+                onClick={() => { setResetModal(null); setResetPassword(''); }}
+                className="flex-1 px-4 py-2.5 text-sm font-medium text-gray-700 bg-gray-100 rounded-xl hover:bg-gray-200 transition-colors"
+              >
+                Annuler
+              </button>
+              <button
+                onClick={handleResetPassword}
+                disabled={resetting || !resetPassword.trim()}
+                className="flex-1 px-4 py-2.5 text-sm font-medium text-white bg-green-800 rounded-xl hover:bg-green-900 transition-colors disabled:opacity-40"
+              >
+                {resetting ? '...' : 'Modifier'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="space-y-6 animate-fade-in">
         <div className="flex gap-2">
           <button onClick={() => setTab('hosts')} className={`px-5 py-2.5 rounded-xl text-sm font-medium transition-all ${tab === 'hosts' ? 'bg-green-800 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
@@ -142,13 +210,28 @@ export function AdminHosts() {
                         </td>
                         <td className="px-6 py-4 text-gray-400">{new Date(u.createdAt).toLocaleDateString('fr-FR')}</td>
                         <td className="px-6 py-4">
-                          <button
-                            onClick={() => handleDelete(u.id, `${u.firstName} ${u.lastName}`)}
-                            disabled={deleting === u.id}
-                            className="text-red-500 hover:text-red-700 text-xs font-medium hover:underline disabled:opacity-40"
-                          >
-                            {deleting === u.id ? '...' : '🗑 Supprimer'}
-                          </button>
+                          <div className="flex items-center gap-3">
+                            <button
+                              onClick={() => setResetModal({ id: u.id, name: `${u.firstName} ${u.lastName}` })}
+                              className="text-blue-500 hover:text-blue-700 text-xs font-medium hover:underline"
+                            >
+                              🔑 MDP
+                            </button>
+                            <button
+                              onClick={() => handleImpersonate(u.id)}
+                              disabled={impersonating === u.id}
+                              className="text-amber-600 hover:text-amber-800 text-xs font-medium hover:underline disabled:opacity-40"
+                            >
+                              {impersonating === u.id ? '...' : '👤 Accéder'}
+                            </button>
+                            <button
+                              onClick={() => handleDelete(u.id, `${u.firstName} ${u.lastName}`)}
+                              disabled={deleting === u.id}
+                              className="text-red-500 hover:text-red-700 text-xs font-medium hover:underline disabled:opacity-40"
+                            >
+                              {deleting === u.id ? '...' : '🗑'}
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     );

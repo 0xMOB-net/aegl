@@ -3,6 +3,8 @@ const { authenticate } = require('../middlewares/auth.middleware');
 const { requireRole } = require('../middlewares/role.middleware');
 const { getSignedUrl } = require('../middlewares/upload.middleware');
 const { PrismaClient } = require('@prisma/client');
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
 const axios = require('axios');
 
 const prisma = new PrismaClient();
@@ -145,6 +147,38 @@ router.get('/alerts', async (req, res) => {
 
     res.json({ alerts: urgentDossiers });
   } catch (err) {
+    res.status(500).json({ error: 'Erreur serveur' });
+  }
+});
+
+router.patch('/users/:id/reset-password', async (req, res) => {
+  try {
+    const { password } = req.body;
+    if (!password || password.length < 6) {
+      return res.status(400).json({ error: 'Le mot de passe doit contenir au moins 6 caractères' });
+    }
+    const target = await prisma.user.findUnique({ where: { id: req.params.id } });
+    if (!target) return res.status(404).json({ error: 'Utilisateur introuvable' });
+
+    const passwordHash = await bcrypt.hash(password, 12);
+    await prisma.user.update({ where: { id: req.params.id }, data: { passwordHash } });
+    res.json({ message: 'Mot de passe modifié' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Erreur serveur' });
+  }
+});
+
+router.post('/users/:id/impersonate', async (req, res) => {
+  try {
+    const target = await prisma.user.findUnique({ where: { id: req.params.id } });
+    if (!target) return res.status(404).json({ error: 'Utilisateur introuvable' });
+
+    const token = jwt.sign({ userId: target.id }, process.env.JWT_SECRET, { expiresIn: '24h' });
+    const { passwordHash, ...safeUser } = target;
+    res.json({ token, user: safeUser });
+  } catch (err) {
+    console.error(err);
     res.status(500).json({ error: 'Erreur serveur' });
   }
 });
