@@ -411,9 +411,16 @@ export default function StudentMyDossier() {
                   <button
                     onClick={confirmDossier}
                     disabled={confirming}
-                    className="btn-primary flex-1 justify-center"
+                    className="flex-1 flex items-center justify-center gap-2 bg-green-700 hover:bg-green-800 text-white font-semibold py-3 px-5 rounded-xl transition-colors disabled:opacity-40"
                   >
-                    {confirming ? '...' : '✅ Confirmer la réception'}
+                    {confirming ? (
+                      <span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    ) : (
+                      <>
+                        <span className="text-xl font-bold leading-none">✓</span>
+                        <span>J'ai reçu mon dossier</span>
+                      </>
+                    )}
                   </button>
                 </div>
               </div>

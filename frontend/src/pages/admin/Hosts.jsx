@@ -85,7 +85,7 @@ export function AdminHosts() {
   const data = tab === 'hosts' ? hosts : students;
 
   return (
-    <MemberLayout title="Membres">
+    <MemberLayout title="Utilisateurs">
       {toast && (
         <div className={`fixed top-6 right-6 z-50 px-5 py-3.5 rounded-xl shadow-lg text-sm font-medium ${
           toast.type === 'success' ? 'bg-green-800 text-white' : 'bg-red-600 text-white'

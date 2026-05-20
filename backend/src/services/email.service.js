@@ -214,6 +214,63 @@ const sendMergedDossierEmail = async (student, mergedPdfBuffer) => {
   }
 };
 
+const sendHostAssignedEmail = async (host, student) => {
+  const transporter = getTransporter();
+  const frontendUrl = process.env.FRONTEND_URL || 'https://aegl87.fr';
+  const hostName = `${host.firstName} ${host.lastName}`;
+  const studentName = `${student.firstName} ${student.lastName}`;
+
+  try {
+    await transporter.sendMail({
+      from: `"${process.env.EMAIL_FROM_NAME || 'AEGL'}" <${process.env.EMAIL_FROM}>`,
+      to: host.email,
+      subject: `🏠 Action requise — Dossier de ${studentName} vous a été confié`,
+      html: `
+<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><style>
+  body { font-family: Georgia, serif; background: #f9f9f9; color: #222; margin: 0; padding: 0; }
+  .container { max-width: 600px; margin: 40px auto; background: #fff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 12px rgba(0,0,0,0.08); }
+  .header { background: #1a5c3a; padding: 30px; text-align: center; }
+  .header h1 { color: #FCD116; font-size: 22px; margin: 0 0 4px; }
+  .header p { color: #9fd4b5; font-size: 13px; margin: 0; }
+  .body { padding: 32px; }
+  .body h2 { color: #1a5c3a; }
+  .body p { line-height: 1.7; color: #444; }
+  .highlight { background: #fffbeb; border-left: 4px solid #FCD116; padding: 12px 16px; border-radius: 4px; margin: 16px 0; }
+  .btn { display: inline-block; background: #1a5c3a; color: #FCD116 !important; padding: 14px 28px; border-radius: 8px; text-decoration: none; font-weight: bold; margin: 20px 0; }
+  .steps { margin: 16px 0; }
+  .step { display: flex; gap: 10px; margin-bottom: 10px; align-items: flex-start; }
+  .step-num { background: #FCD116; color: #1a5c3a; width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 12px; flex-shrink: 0; margin-top: 2px; }
+  .footer { background: #f5f5f5; padding: 20px; text-align: center; font-size: 12px; color: #888; }
+</style></head>
+<body>
+<div class="container">
+  <div class="header"><h1>🏠 AEGL</h1><p>Association des Étudiants Guinéens de Limoges</p></div>
+  <div class="body">
+    <h2>Bonjour, ${hostName} !</h2>
+    <p>Le Bureau de l'AEGL vous a assigné(e) comme hébergeur(se) pour <strong>${studentName}</strong>, étudiant(e) en attente d'une attestation d'hébergement.</p>
+    <div class="highlight">
+      <strong>Votre action est requise.</strong> Connectez-vous à votre espace membre pour soumettre vos documents.
+    </div>
+    <p><strong>Documents à fournir :</strong></p>
+    <div class="steps">
+      <div class="step"><div class="step-num">1</div><div>Contrat de bail</div></div>
+      <div class="step"><div class="step-num">2</div><div>Pièce d'identité ou titre de séjour</div></div>
+      <div class="step"><div class="step-num">3</div><div>3 dernières quittances de loyer</div></div>
+      <div class="step"><div class="step-num">4</div><div>3 factures nominatives (électricité, eau, gaz…)</div></div>
+    </div>
+    <a href="${frontendUrl}/membres" class="btn">📤 Soumettre mes documents →</a>
+    <p style="color:#888;font-size:13px">Si vous n'avez pas encore de compte, créez-en un sur <a href="${frontendUrl}/inscription" style="color:#1a5c3a">aegl87.fr/inscription</a> avec l'adresse email sur laquelle vous avez reçu ce message.</p>
+    <p>Cordialement,<br><strong>Le Bureau de l'AEGL</strong></p>
+  </div>
+  <div class="footer"><p>contact@aegl87.fr &bull; aegl87.fr</p></div>
+</div>
+</body></html>`,
+    });
+  } catch (err) {
+    console.error('Email sending failed (hostAssigned):', err.message);
+  }
+};
+
 const sendContactEmail = async ({ name, email, topic, message }) => {
   const transporter = getTransporter();
   const subject = topic ? `[Contact AEGL] ${topic}` : '[Contact AEGL] Message depuis le site';
@@ -251,4 +308,4 @@ const sendContactEmail = async ({ name, email, topic, message }) => {
   }
 };
 
-module.exports = { sendDossierConfirmedEmail, sendWelcomeEmail, sendAttestationToHostEmail, sendMergedDossierEmail, sendContactEmail };
+module.exports = { sendDossierConfirmedEmail, sendWelcomeEmail, sendAttestationToHostEmail, sendMergedDossierEmail, sendContactEmail, sendHostAssignedEmail };

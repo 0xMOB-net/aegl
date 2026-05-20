@@ -1,6 +1,25 @@
 const { PrismaClient } = require('@prisma/client');
 const { logActivity } = require('../services/activity.service');
-const { sendAttestationToHostEmail, sendMergedDossierEmail } = require('../services/email.service');
+const { sendAttestationToHostEmail, sendMergedDossierEmail, sendHostAssignedEmail } = require('../services/email.service');
+const cloudinary = require('cloudinary').v2;
+
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key:    process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
+
+// Extrait le public_id d'une URL Cloudinary et supprime le fichier (fire-and-forget)
+const deleteCloudinaryFile = (url) => {
+  if (!url) return;
+  const m = url.match(/cloudinary\.com\/[^/]+\/([^/]+)\/(?:authenticated|upload)\/(?:s--[^/]+--\/)?(?:v\d+\/)?(.+)$/);
+  if (!m) return;
+  const resourceType = m[1];
+  let publicId = m[2];
+  if (resourceType !== 'raw') publicId = publicId.replace(/\.[^.]+$/, '');
+  cloudinary.uploader.destroy(publicId, { resource_type: resourceType, type: 'authenticated' })
+    .catch(err => console.error(`Cloudinary delete failed for ${publicId}:`, err.message));
+};
 const { generateAttestationBuffer } = require('../services/pdf.service');
 const { mergeDocuments, uploadBuffer } = require('../services/merge.service');
 const { uploadToCloudinary, getSignedUrl } = require('../middlewares/upload.middleware');
@@ -164,6 +183,9 @@ const assignHost = async (req, res) => {
     });
     await logActivity(req.user.id, 'assign_host', { dossierId: req.params.id, hostId });
     res.json({ dossier: updated });
+    // Email envoyé en arrière-plan
+    sendHostAssignedEmail(host, updated.student)
+      .catch(err => console.error('sendHostAssignedEmail failed:', err.message));
   } catch (err) {
     console.error('assignHost error:', err);
     res.status(500).json({ error: err.message || 'Erreur serveur' });
@@ -336,18 +358,31 @@ const signAttestation = async (req, res) => {
       `dossier_complet_${dossier.id}_${Date.now()}`
     );
 
-    // 6. Mettre à jour le dossier
+    // 6. Supprimer les enregistrements des documents hébergeur
+    await prisma.hostDocument.deleteMany({ where: { dossierId: req.params.id } });
+
+    // 7. Mettre à jour le dossier
     const updated = await prisma.dossier.update({
       where: { id: req.params.id },
-      data: { status: 'confirmed', mergedPdfPath: mergedUrl, closedAt: new Date() },
+      data: {
+        status: 'confirmed',
+        mergedPdfPath: mergedUrl,
+        closedAt: new Date(),
+        universityNoticePath: null,
+        passportPath: null,
+        aviPath: null,
+        attestationPath: null,
+      },
       select: dossierSelect,
     });
 
     await logActivity(user.id, 'sign_attestation', { dossierId: req.params.id });
     res.json({ dossier: updated });
-    // Email envoyé en arrière-plan — ne bloque pas la réponse HTTP
+    // Email + suppression Cloudinary en arrière-plan
     sendMergedDossierEmail(dossier.student, mergedBuffer)
       .catch(err => console.error('sendMergedDossierEmail failed:', err.message));
+    [dossier.universityNoticePath, dossier.passportPath, dossier.aviPath, dossier.attestationPath,
+      ...dossier.hostDocuments.map(d => d.filePath)].forEach(deleteCloudinaryFile);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Erreur lors de la signature' });
@@ -528,19 +563,37 @@ const adminDirectDeliver = async (req, res) => {
 const studentConfirmDossier = async (req, res) => {
   try {
     const { user } = req;
-    const dossier = await prisma.dossier.findUnique({ where: { id: req.params.id } });
+    const dossier = await prisma.dossier.findUnique({
+      where: { id: req.params.id },
+      include: { hostDocuments: true },
+    });
     if (!dossier) return res.status(404).json({ error: 'Dossier introuvable' });
     if (dossier.studentId !== user.id) return res.status(403).json({ error: 'Accès refusé' });
     if (dossier.status !== 'documents_ready') {
       return res.status(400).json({ error: 'Aucun document en attente de confirmation' });
     }
+
+    // Supprimer les enregistrements des documents hébergeur
+    await prisma.hostDocument.deleteMany({ where: { dossierId: req.params.id } });
+
     const updated = await prisma.dossier.update({
       where: { id: req.params.id },
-      data: { status: 'confirmed', closedAt: new Date() },
+      data: {
+        status: 'confirmed',
+        closedAt: new Date(),
+        universityNoticePath: null,
+        passportPath: null,
+        aviPath: null,
+        attestationPath: null,
+      },
       select: dossierSelect,
     });
     await logActivity(user.id, 'student_confirm_dossier', { dossierId: req.params.id });
     res.json({ dossier: updated });
+
+    // Suppression Cloudinary en arrière-plan (fire-and-forget)
+    [dossier.universityNoticePath, dossier.passportPath, dossier.aviPath, dossier.attestationPath,
+      ...dossier.hostDocuments.map(d => d.filePath)].forEach(deleteCloudinaryFile);
   } catch (err) {
     console.error('studentConfirmDossier error:', err);
     res.status(500).json({ error: err.message || 'Erreur serveur' });
