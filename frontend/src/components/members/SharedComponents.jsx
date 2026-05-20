@@ -33,6 +33,7 @@ export function DossierStepper({ status }) {
     };
     const stepIdx = stepOrder[stepKey] ?? 0;
     const curr = stepOrder[status] ?? 0;
+    if (status === 'confirmed') return 'done';
     if (curr > stepIdx) return 'done';
     if (curr === stepIdx) return 'active';
     return 'upcoming';

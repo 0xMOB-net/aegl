@@ -48,6 +48,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   const logout = () => {
+    sessionStorage.removeItem('aegl_token');
     localStorage.removeItem('aegl_token');
     localStorage.removeItem('aegl_user');
     setUser(null);
