@@ -272,11 +272,9 @@ export default function AdminDossierDetail() {
                     </>
                   )}
                 </dl>
-                {dossier.status !== 'confirmed' && (
-                  <button onClick={() => action('revoke')} disabled={actionLoading === 'revoke'} className="mt-3 text-red-600 text-xs hover:underline">
-                    {actionLoading === 'revoke' ? '...' : '🗑 Révoquer l\'hébergeur'}
-                  </button>
-                )}
+                <button onClick={() => action('revoke')} disabled={actionLoading === 'revoke'} className="mt-3 text-red-600 text-xs hover:underline">
+                  {actionLoading === 'revoke' ? '...' : '🗑 Révoquer l\'hébergeur'}
+                </button>
               </div>
             ) : (
               <div>

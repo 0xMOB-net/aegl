@@ -585,6 +585,7 @@ const studentConfirmDossier = async (req, res) => {
       data: {
         status: 'confirmed',
         closedAt: new Date(),
+        hostId: null,
         universityNoticePath: null,
         passportPath: null,
         aviPath: null,
