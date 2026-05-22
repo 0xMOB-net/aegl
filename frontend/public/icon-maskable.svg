@@ -1,0 +1,22 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="512" height="512" fill="#052e16"/>
+  <defs>
+    <clipPath id="shieldM">
+      <path d="M256 80L420 152V280C420 376 348 428 256 462C164 428 92 376 92 280V152L256 80Z"/>
+    </clipPath>
+    <linearGradient id="shieldGM" x1="256" y1="80" x2="256" y2="462" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#1a6b41"/>
+      <stop offset="100%" stop-color="#0a2e1a"/>
+    </linearGradient>
+    <linearGradient id="goldGM" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#FFE066"/>
+      <stop offset="100%" stop-color="#FCD116"/>
+    </linearGradient>
+  </defs>
+  <path d="M256 80L420 152V280C420 376 348 428 256 462C164 428 92 376 92 280V152L256 80Z" fill="url(#shieldGM)"/>
+  <path d="M256 80L420 152V280C420 376 348 428 256 462C164 428 92 376 92 280V152L256 80Z" fill="none" stroke="#FCD116" stroke-width="3" stroke-opacity="0.4"/>
+  <rect x="92" y="370" width="110" height="94" fill="#CE1126" clip-path="url(#shieldM)"/>
+  <rect x="202" y="370" width="108" height="94" fill="#FCD116" clip-path="url(#shieldM)"/>
+  <rect x="310" y="370" width="110" height="94" fill="#258553" clip-path="url(#shieldM)"/>
+  <text x="256" y="316" text-anchor="middle" fill="url(#goldGM)" font-family="Georgia,serif" font-weight="bold" font-size="168" letter-spacing="4">A</text>
+</svg>
