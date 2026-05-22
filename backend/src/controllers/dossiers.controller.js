@@ -197,9 +197,13 @@ const revokeHost = async (req, res) => {
     const dossier = await prisma.dossier.findUnique({ where: { id: req.params.id } });
     if (!dossier) return res.status(404).json({ error: 'Dossier introuvable' });
 
+    // Si le dossier est déjà livré ou plus avancé, on retire juste l'hébergeur sans toucher au statut
+    const advancedStatuses = ['documents_ready', 'confirmed'];
+    const newStatus = advancedStatuses.includes(dossier.status) ? dossier.status : 'pending';
+
     const updated = await prisma.dossier.update({
       where: { id: req.params.id },
-      data: { hostId: null, status: 'pending' },
+      data: { hostId: null, status: newStatus },
       select: dossierSelect,
     });
     await logActivity(req.user.id, 'revoke_host', { dossierId: req.params.id });
@@ -548,7 +552,7 @@ const adminDirectDeliver = async (req, res) => {
 
     const updated = await prisma.dossier.update({
       where: { id: dossier.id },
-      data: { status: 'documents_ready', mergedPdfPath: mergedUrl },
+      data: { status: 'documents_ready', mergedPdfPath: mergedUrl, hostId: null },
       select: dossierSelect,
     });
 

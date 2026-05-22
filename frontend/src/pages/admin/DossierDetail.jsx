@@ -272,7 +272,7 @@ export default function AdminDossierDetail() {
                     </>
                   )}
                 </dl>
-                {['pending', 'host_assigned'].includes(dossier.status) && (
+                {['pending', 'host_assigned', 'documents_ready'].includes(dossier.status) && (
                   <button onClick={() => action('revoke')} disabled={actionLoading === 'revoke'} className="mt-3 text-red-600 text-xs hover:underline">
                     {actionLoading === 'revoke' ? '...' : '🗑 Révoquer l\'hébergeur'}
                   </button>
