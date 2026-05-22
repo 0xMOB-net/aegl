@@ -40,35 +40,37 @@ export function DossierStepper({ status }) {
   };
 
   return (
-    <div className="flex items-center gap-0 w-full">
-      {steps.map((step, i) => {
-        const s = stepStatus(step.key);
-        return (
-          <div key={step.key} className="flex items-center flex-1">
-            <div className="flex flex-col items-center flex-shrink-0">
-              <div className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold border-2 transition-all ${
-                s === 'done'     ? 'bg-green-700 border-green-700 text-white'
-                : s === 'active' ? 'bg-white border-green-700 text-green-700'
-                : 'bg-white border-gray-200 text-gray-400'
-              }`}>
-                {s === 'done' ? '✓' : step.short}
+    <div className="w-full overflow-x-auto">
+      <div className="flex items-center gap-0 min-w-0 w-full">
+        {steps.map((step, i) => {
+          const s = stepStatus(step.key);
+          return (
+            <div key={step.key} className="flex items-center flex-1 min-w-0">
+              <div className="flex flex-col items-center flex-shrink-0">
+                <div className={`w-7 h-7 md:w-9 md:h-9 rounded-full flex items-center justify-center text-xs md:text-sm font-bold border-2 transition-all ${
+                  s === 'done'     ? 'bg-green-700 border-green-700 text-white'
+                  : s === 'active' ? 'bg-white border-green-700 text-green-700'
+                  : 'bg-white border-gray-200 text-gray-400'
+                }`}>
+                  {s === 'done' ? '✓' : step.short}
+                </div>
+                <p className={`text-[9px] md:text-xs mt-1 text-center leading-tight w-10 md:w-14 ${
+                  s === 'active' ? 'text-green-700 font-semibold'
+                  : s === 'done' ? 'text-green-600'
+                  : 'text-gray-400'
+                }`}>{step.label}</p>
               </div>
-              <p className={`text-xs mt-1.5 text-center leading-tight w-16 ${
-                s === 'active' ? 'text-green-700 font-semibold'
-                : s === 'done' ? 'text-green-600'
-                : 'text-gray-400'
-              }`}>{step.label}</p>
+              {i < steps.length - 1 && (
+                <div className={`flex-1 h-0.5 mx-0.5 mb-4 ${
+                  stepStatus(steps[i + 1].key) !== 'upcoming' || s === 'done'
+                    ? 'bg-green-600'
+                    : 'bg-gray-200'
+                }`} />
+              )}
             </div>
-            {i < steps.length - 1 && (
-              <div className={`flex-1 h-0.5 mx-1 mb-5 ${
-                stepStatus(steps[i + 1].key) !== 'upcoming' || s === 'done'
-                  ? 'bg-green-600'
-                  : 'bg-gray-200'
-              }`} />
-            )}
-          </div>
-        );
-      })}
+          );
+        })}
+      </div>
     </div>
   );
 }
