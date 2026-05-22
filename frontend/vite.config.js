@@ -11,14 +11,16 @@ export default defineConfig({
       manifest: {
         name: 'AEGL Limoges',
         short_name: 'AEGL',
-        description: 'Association des Étudiants Guinéens de Limoges — Espace membres et services',
+        description: 'Association des Étudiants Guinéens de Limoges — Espace membres, hébergement étudiant, actualités et collectes.',
         theme_color: '#052e16',
         background_color: '#052e16',
         display: 'standalone',
         orientation: 'portrait',
         scope: '/',
-        start_url: '/',
+        start_url: '/?utm_source=pwa',
         lang: 'fr',
+        dir: 'ltr',
+        categories: ['education', 'social', 'lifestyle'],
         icons: [
           {
             src: '/icon-192.svg',
@@ -37,6 +39,22 @@ export default defineConfig({
             sizes: '512x512',
             type: 'image/svg+xml',
             purpose: 'maskable',
+          },
+        ],
+        shortcuts: [
+          {
+            name: 'Mon espace',
+            short_name: 'Espace',
+            description: 'Accéder à votre espace membre',
+            url: '/membres',
+            icons: [{ src: '/icon-192.svg', sizes: '192x192' }],
+          },
+          {
+            name: 'Actualités',
+            short_name: 'Actus',
+            description: 'Dernières actualités AEGL',
+            url: '/actualites',
+            icons: [{ src: '/icon-192.svg', sizes: '192x192' }],
           },
         ],
       },
