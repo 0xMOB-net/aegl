@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import ScrollToTop from './components/ScrollToTop';
+import { Analytics } from '@vercel/analytics/react';
 
 import Home from './pages/public/Home';
 import About from './pages/public/About';
@@ -62,6 +63,7 @@ function App() {
     <BrowserRouter>
       <AuthProvider>
         <ScrollToTop />
+        <Analytics />
         <Routes>
           {/* SITE PUBLIC */}
           <Route path="/" element={<Home />} />
