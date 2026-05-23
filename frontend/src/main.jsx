@@ -2,6 +2,9 @@ import React from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './App.jsx'
 import './index.css'
+import { inject } from '@vercel/analytics'
+
+inject()
 
 // Si un token d'impersonation est passé dans l'URL (?_t=...), on le stocke
 // dans sessionStorage (propre à cet onglet) sans toucher à la session admin
