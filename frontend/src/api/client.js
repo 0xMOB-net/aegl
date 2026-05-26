@@ -5,6 +5,9 @@ const api = axios.create({
   headers: { 'Content-Type': 'application/json' },
 });
 
+// Réveille le backend dès le chargement de l'app (évite le cold start Railway)
+api.get('/health').catch(() => {});
+
 api.interceptors.request.use((config) => {
   const token = sessionStorage.getItem('aegl_token') || localStorage.getItem('aegl_token');
   if (token) config.headers.Authorization = `Bearer ${token}`;

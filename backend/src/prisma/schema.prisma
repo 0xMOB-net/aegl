@@ -87,6 +87,9 @@ model Dossier {
   host         User?          @relation("HostDossiers", fields: [hostId], references: [id])
   hostDocuments HostDocument[]
 
+  @@index([studentId])
+  @@index([hostId])
+  @@index([status])
   @@map("dossiers")
 }
 
@@ -100,6 +103,7 @@ model HostDocument {
 
   dossier Dossier @relation(fields: [dossierId], references: [id], onDelete: Cascade)
 
+  @@index([dossierId])
   @@map("host_documents")
 }
 
