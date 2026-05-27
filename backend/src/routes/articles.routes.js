@@ -10,9 +10,10 @@ router.get('/', async (req, res) => {
   try {
     const articles = await prisma.article.findMany({
       where: { published: true },
-      include: { author: { select: { firstName: true, lastName: true } } },
+      select: { id: true, title: true, slug: true, coverImage: true, publishedAt: true, content: true, author: { select: { firstName: true, lastName: true } } },
       orderBy: { publishedAt: 'desc' },
     });
+    res.set('Cache-Control', 'public, max-age=60, stale-while-revalidate=300');
     res.json({ articles });
   } catch (err) {
     res.status(500).json({ error: 'Erreur serveur' });
@@ -23,9 +24,10 @@ router.get('/:slug', async (req, res) => {
   try {
     const article = await prisma.article.findUnique({
       where: { slug: req.params.slug },
-      include: { author: { select: { firstName: true, lastName: true } } },
+      select: { id: true, title: true, slug: true, content: true, coverImage: true, publishedAt: true, author: { select: { firstName: true, lastName: true } } },
     });
     if (!article || !article.published) return res.status(404).json({ error: 'Article introuvable' });
+    res.set('Cache-Control', 'public, max-age=60, stale-while-revalidate=300');
     res.json({ article });
   } catch (err) {
     res.status(500).json({ error: 'Erreur serveur' });

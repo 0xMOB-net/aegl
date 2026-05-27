@@ -10,8 +10,10 @@ router.get('/', async (req, res) => {
   try {
     const collectes = await prisma.collecte.findMany({
       where: { isActive: true },
+      select: { id: true, title: true, description: true, goal: true, helloassoUrl: true },
       orderBy: { createdAt: 'desc' },
     });
+    res.set('Cache-Control', 'public, max-age=60, stale-while-revalidate=300');
     res.json({ collectes });
   } catch (err) {
     res.status(500).json({ error: 'Erreur serveur' });

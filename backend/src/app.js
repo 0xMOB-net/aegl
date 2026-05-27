@@ -1,6 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
+const compression = require('compression');
 const path = require('path');
 const rateLimit = require('express-rate-limit');
 
@@ -17,6 +18,7 @@ const collectesRoutes = require('./routes/collectes.routes');
 const app = express();
 
 app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
+app.use(compression());
 
 const allowedOrigins = [
   process.env.FRONTEND_URL || 'http://localhost:5173',
