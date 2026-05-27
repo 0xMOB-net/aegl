@@ -115,7 +115,11 @@ export default function Home() {
   const [articles, setArticles] = useState([]);
 
   useEffect(() => {
-    api.get('/articles').then(res => setArticles(res.data.articles?.slice(0, 3) || [])).catch(() => {});
+    const ctrl = new AbortController();
+    api.get('/articles', { signal: ctrl.signal })
+      .then(res => setArticles(res.data.articles?.slice(0, 3) || []))
+      .catch(() => {});
+    return () => ctrl.abort();
   }, []);
 
   return (
@@ -125,6 +129,7 @@ export default function Home() {
       <section className="relative min-h-screen flex items-center overflow-hidden">
         <div className="absolute inset-0">
           <img src={PHOTOS.hero} alt="Limoges" className="w-full h-full object-cover"
+            fetchpriority="high" decoding="async"
             onError={e => { e.target.style.display = 'none'; }}/>
           <div className="absolute inset-0 bg-gradient-to-r from-green-950/95 via-green-950/80 to-green-900/60"/>
         </div>
@@ -175,6 +180,7 @@ export default function Home() {
           <div className="relative min-h-[360px] lg:min-h-full">
             <img src={PHOTOS.gare} alt="Gare de Limoges-Bénédictins"
               className="w-full h-full object-cover absolute inset-0"
+              loading="lazy" decoding="async"
               onError={e => { e.target.parentElement.classList.add('hero-bg'); e.target.style.display='none'; }}/>
             <div className="absolute inset-0 bg-gradient-to-r from-transparent to-white/10"/>
             <div className="absolute bottom-6 left-6 bg-white/90 backdrop-blur-sm rounded-xl px-4 py-3 shadow-lg">
@@ -263,6 +269,7 @@ export default function Home() {
             <div key={i} className="relative overflow-hidden group">
               <img src={photo} alt={`Limoges ${i+1}`}
                 className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+                loading="lazy" decoding="async"
                 onError={e => { e.target.parentElement.style.background = '#1a5c3a'; e.target.style.display='none'; }}/>
               <div className="absolute inset-0 bg-green-950/20 group-hover:bg-green-950/0 transition-colors"/>
             </div>
@@ -383,6 +390,7 @@ export default function Home() {
                     src={place.photo}
                     alt={place.name}
                     className="w-full h-full object-cover group-hover:scale-108 transition-transform duration-600"
+                    loading="lazy" decoding="async"
                     onError={e => {
                       e.target.style.display = 'none';
                       e.target.parentElement.style.background = '#1a5c3a';
@@ -470,7 +478,7 @@ export default function Home() {
                 <Link key={a.id} to={`/actualites/${a.slug}`} className={`group block ${i === 0 ? 'md:col-span-1' : ''}`}>
                   <div className="aspect-[4/3] rounded-2xl overflow-hidden mb-5 bg-gradient-to-br from-green-50 to-green-100">
                     {a.coverImage
-                      ? <img src={a.coverImage} alt={a.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"/>
+                      ? <img src={a.coverImage} alt={a.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy" decoding="async"/>
                       : <div className="w-full h-full flex items-center justify-center"><span className="text-5xl opacity-30">📰</span></div>
                     }
                   </div>

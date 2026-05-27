@@ -6,10 +6,16 @@ import api from '../../api/client';
 export default function Collectes() {
   const [collectes, setCollectes] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [modal, setModal] = useState(null); // collecte ouverte dans la modale
+  const [error, setError] = useState(null);
+  const [modal, setModal] = useState(null);
 
   useEffect(() => {
-    api.get('/collectes').then(r => setCollectes(r.data.collectes || [])).finally(() => setLoading(false));
+    const ctrl = new AbortController();
+    api.get('/collectes', { signal: ctrl.signal })
+      .then(r => setCollectes(r.data.collectes || []))
+      .catch(err => { if (err.name !== 'CanceledError') setError('Impossible de charger les collectes'); })
+      .finally(() => setLoading(false));
+    return () => ctrl.abort();
   }, []);
 
   const widgetUrl = (url) => {
@@ -55,6 +61,11 @@ export default function Collectes() {
         {loading ? (
           <div className="flex justify-center py-20">
             <div className="w-8 h-8 border-2 border-green-800 border-t-transparent rounded-full animate-spin" />
+          </div>
+        ) : error ? (
+          <div className="text-center py-20 text-gray-400">
+            <p className="text-5xl mb-4">⚠️</p>
+            <p className="text-red-500 font-medium">{error}</p>
           </div>
         ) : collectes.length === 0 ? (
           <div className="text-center py-20 text-gray-400">

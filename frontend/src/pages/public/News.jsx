@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import Navbar from '../../components/public/Navbar';
 import Footer from '../../components/public/Footer';
@@ -11,14 +11,20 @@ const categories = ['Tous', 'Événements', 'Administration', 'Communauté', 'Ac
 export function News() {
   const [articles, setArticles] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [activeCategory, setActiveCategory] = useState('Tous');
 
   useEffect(() => {
-    api.get('/articles').then(r => setArticles(r.data.articles || [])).finally(() => setLoading(false));
+    const ctrl = new AbortController();
+    api.get('/articles', { signal: ctrl.signal })
+      .then(r => setArticles(r.data.articles || []))
+      .catch(err => { if (err.name !== 'CanceledError') setError('Impossible de charger les articles'); })
+      .finally(() => setLoading(false));
+    return () => ctrl.abort();
   }, []);
 
-  const featured = articles[0] || null;
-  const rest = articles.slice(1);
+  const featured = useMemo(() => articles[0] || null, [articles]);
+  const rest = useMemo(() => articles.slice(1), [articles]);
 
   return (
     <div className="bg-white">
@@ -54,6 +60,11 @@ export function News() {
             <div className="w-10 h-10 border-2 border-green-800 border-t-transparent rounded-full animate-spin" />
             <p className="text-gray-400 text-sm">Chargement des articles...</p>
           </div>
+        ) : error ? (
+          <div className="text-center py-32">
+            <p className="text-5xl mb-4">⚠️</p>
+            <p className="text-red-500 font-medium">{error}</p>
+          </div>
         ) : articles.length === 0 ? (
           <div className="text-center py-32">
             <p className="text-6xl mb-6">📭</p>
@@ -73,6 +84,7 @@ export function News() {
                       src={featured.coverImage || PLACEHOLDER}
                       alt={featured.title}
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                      fetchpriority="high" decoding="async"
                     />
                     <div className="absolute top-4 left-4">
                       <span className="bg-gold-500 text-green-950 text-xs font-bold px-3 py-1.5 rounded-full uppercase tracking-wide">
@@ -135,6 +147,7 @@ export function News() {
                         src={article.coverImage || PLACEHOLDER}
                         alt={article.title}
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                        loading="lazy" decoding="async"
                       />
                     </div>
                     <div className="p-5 flex flex-col flex-1">

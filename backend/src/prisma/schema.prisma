@@ -122,6 +122,8 @@ model Announcement {
   reactions AnnouncementReaction[]
   comments  AnnouncementComment[]
 
+  @@index([audience])
+  @@index([publishedAt, pinned])
   @@map("announcements")
 }
 
@@ -136,6 +138,7 @@ model AnnouncementReaction {
   user         User         @relation(fields: [userId], references: [id])
 
   @@unique([announcementId, userId])
+  @@index([announcementId])
   @@map("announcement_reactions")
 }
 
@@ -149,6 +152,7 @@ model AnnouncementComment {
   announcement Announcement @relation(fields: [announcementId], references: [id], onDelete: Cascade)
   author       User         @relation(fields: [authorId], references: [id])
 
+  @@index([announcementId])
   @@map("announcement_comments")
 }
 
@@ -166,6 +170,7 @@ model Article {
 
   author User @relation(fields: [authorId], references: [id])
 
+  @@index([published, publishedAt])
   @@map("articles")
 }
 
@@ -182,6 +187,7 @@ model Collecte {
 
   author User @relation(fields: [authorId], references: [id])
 
+  @@index([isActive, createdAt])
   @@map("collectes")
 }
 
@@ -194,5 +200,7 @@ model ActivityLog {
 
   user User @relation(fields: [userId], references: [id])
 
+  @@index([userId])
+  @@index([createdAt])
   @@map("activity_logs")
 }

@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState, useEffect, useMemo } from 'react';
 import api from '../api/client';
 
 const AuthContext = createContext(null);
@@ -67,8 +67,14 @@ export const AuthProvider = ({ children }) => {
     return user.role;
   };
 
+  const value = useMemo(
+    () => ({ user, loading, login, register, logout, updateUser, roleName }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [user, loading]
+  );
+
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout, updateUser, roleName }}>
+    <AuthContext.Provider value={value}>
       {children}
     </AuthContext.Provider>
   );

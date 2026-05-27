@@ -24,6 +24,7 @@ router.get('/', async (req, res) => {
       },
       orderBy: [{ pinned: 'desc' }, { publishedAt: 'desc' }],
     });
+    res.set('Cache-Control', 'private, max-age=30, must-revalidate');
     res.json({ announcements });
   } catch (err) {
     res.status(500).json({ error: 'Erreur serveur' });
