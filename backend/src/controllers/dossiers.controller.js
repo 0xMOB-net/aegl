@@ -512,8 +512,8 @@ const adminDirectDeliver = async (req, res) => {
     if (!dossier.studentDocsVerified) {
       return res.status(400).json({ error: 'Vérifiez d\'abord les documents de l\'étudiant' });
     }
-    if (!['pending', 'host_assigned'].includes(dossier.status)) {
-      return res.status(400).json({ error: 'Cette action n\'est disponible que pour les dossiers en attente ou avec hébergeur assigné' });
+    if (!['pending', 'host_assigned', 'documents_ready'].includes(dossier.status)) {
+      return res.status(400).json({ error: 'Cette action n\'est disponible que pour les dossiers en attente, avec hébergeur assigné, ou en attente de confirmation' });
     }
 
     // Attestation PDF uploadée par l'admin est obligatoire
@@ -521,6 +521,12 @@ const adminDirectDeliver = async (req, res) => {
     if (!attestationFile) {
       return res.status(400).json({ error: 'L\'attestation PDF est obligatoire' });
     }
+
+    // Supprimer l'ancien PDF fusionné et les anciens docs hébergeur si remplacement
+    if (dossier.mergedPdfPath) deleteCloudinaryFile(dossier.mergedPdfPath);
+    const existingDocs = await prisma.hostDocument.findMany({ where: { dossierId: dossier.id } });
+    existingDocs.forEach(doc => deleteCloudinaryFile(doc.filePath));
+    await prisma.hostDocument.deleteMany({ where: { dossierId: dossier.id } });
 
     // Upload des documents hébergeur optionnels
     const docTypes = ['bail', 'identity', 'quittance_1', 'quittance_2', 'quittance_3', 'facture_1', 'facture_2', 'facture_3'];
@@ -535,7 +541,7 @@ const adminDirectDeliver = async (req, res) => {
       await prisma.hostDocument.createMany({ data: newDocs });
     }
 
-    // Recharger tous les docs hébergeur (anciens + nouveaux) pour la fusion
+    // Recharger tous les nouveaux docs pour la fusion
     const allHostDocs = await prisma.hostDocument.findMany({ where: { dossierId: dossier.id } });
     const hostDocUrls = allHostDocs.map(d => d.filePath).filter(Boolean);
 

@@ -398,20 +398,24 @@ export default function AdminDossierDetail() {
         )}
 
         {/* Clôture manuelle */}
-        {dossier.studentDocsVerified && ['pending', 'host_assigned'].includes(dossier.status) && (
+        {dossier.studentDocsVerified && ['pending', 'host_assigned', 'documents_ready'].includes(dossier.status) && (
           <div className="card border border-amber-200 bg-amber-50">
             <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
               <div>
-                <h3 className="font-semibold text-amber-900">Clôture manuelle du dossier</h3>
+                <h3 className="font-semibold text-amber-900">
+                  {dossier.status === 'documents_ready' ? '🔄 Remplacer les documents déposés' : 'Clôture manuelle du dossier'}
+                </h3>
                 <p className="text-sm text-amber-700 mt-1">
-                  Déposer les documents directement dans le compte de {dossier.student.firstName}.
+                  {dossier.status === 'documents_ready'
+                    ? `L'étudiant n'a pas encore confirmé — vous pouvez remplacer les documents.`
+                    : `Déposer les documents directement dans le compte de ${dossier.student.firstName}.`}
                 </p>
               </div>
               <button
                 onClick={() => setShowDirectDelivery(!showDirectDelivery)}
                 className="whitespace-nowrap text-amber-800 border border-amber-300 bg-white px-4 py-2 rounded-xl text-sm font-medium hover:bg-amber-100 transition-colors"
               >
-                {showDirectDelivery ? '✕ Fermer' : 'Ouvrir'}
+                {showDirectDelivery ? '✕ Fermer' : dossier.status === 'documents_ready' ? 'Remplacer' : 'Ouvrir'}
               </button>
             </div>
 
@@ -496,7 +500,10 @@ export default function AdminDossierDetail() {
                       <span className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
                       Traitement...
                     </span>
-                  ) : `Clôturer le dossier de ${dossier.student.firstName}`}
+                  ) : dossier.status === 'documents_ready'
+                    ? `🔄 Remplacer les documents de ${dossier.student.firstName}`
+                    : `Clôturer le dossier de ${dossier.student.firstName}`
+                  }
                 </button>
               </div>
             )}
