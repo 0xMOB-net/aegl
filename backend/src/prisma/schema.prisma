@@ -52,6 +52,7 @@ model User {
   dateOfBirth      DateTime?
   birthPlace       String?
   emailVerified    Boolean   @default(false)
+  passportNumber   String?
   // Champs spécifiques aux hébergeurs
   lodgingSurface   Int?
   currentOccupants Int?

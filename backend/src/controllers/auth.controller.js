@@ -21,7 +21,7 @@ const generateToken = (userId) =>
 
 const register = async (req, res) => {
   try {
-    const { firstName, lastName, email, password, gender, role, dateOfBirth, birthPlace, lodgingSurface, currentOccupants } = req.body;
+    const { firstName, lastName, email, password, gender, role, dateOfBirth, birthPlace, passportNumber, lodgingSurface, currentOccupants } = req.body;
 
     if (!firstName || !lastName || !email || !password || !gender || !role) {
       return res.status(400).json({ error: 'Tous les champs sont obligatoires' });
@@ -47,6 +47,7 @@ const register = async (req, res) => {
       firstName, lastName, email, passwordHash, gender, role, emailVerified: true,
       dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : null,
       birthPlace: birthPlace || null,
+      passportNumber: passportNumber || null,
     };
     if (role === 'host') {
       data.lodgingSurface = parseInt(lodgingSurface) || null;
@@ -126,11 +127,12 @@ const me = async (req, res) => {
 const updateProfile = async (req, res) => {
   try {
     const { user } = req;
-    const { dateOfBirth, birthPlace, lodgingSurface, currentOccupants } = req.body;
+    const { dateOfBirth, birthPlace, passportNumber, lodgingSurface, currentOccupants } = req.body;
 
     const data = {};
     if (dateOfBirth !== undefined) data.dateOfBirth = dateOfBirth ? new Date(dateOfBirth) : null;
     if (birthPlace !== undefined) data.birthPlace = birthPlace || null;
+    if (passportNumber !== undefined) data.passportNumber = passportNumber || null;
     if (user.role === 'host') {
       if (lodgingSurface !== undefined) data.lodgingSurface = lodgingSurface ? parseInt(lodgingSurface) : null;
       if (currentOccupants !== undefined) data.currentOccupants = (currentOccupants !== null && currentOccupants !== '') ? parseInt(currentOccupants) : 0;

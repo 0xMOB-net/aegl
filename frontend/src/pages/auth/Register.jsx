@@ -69,7 +69,7 @@ export default function Register() {
     firstName: '', lastName: '', email: '',
     password: '', confirmPassword: '',
     gender: '', role: params.get('role') === 'host' ? 'host' : 'student',
-    dateOfBirth: '', birthPlace: '',
+    dateOfBirth: '', birthPlace: '', passportNumber: '',
     lodgingSurface: '', currentOccupants: '',
   });
   const [error, setError] = useState('');
@@ -101,6 +101,7 @@ export default function Register() {
         gender: form.gender, role: form.role,
         dateOfBirth: form.dateOfBirth || undefined,
         birthPlace: form.birthPlace || undefined,
+        passportNumber: form.passportNumber || undefined,
         ...(form.role === 'host' ? { lodgingSurface: form.lodgingSurface, currentOccupants: form.currentOccupants } : {}),
       });
       navigate('/membres');
@@ -195,6 +196,16 @@ export default function Register() {
                 <input type="text" value={form.birthPlace} onChange={set('birthPlace')} placeholder="Conakry" className={inputClass} />
               </div>
             </div>
+
+            {/* Numéro de passeport — étudiants seulement */}
+            {form.role === 'student' && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                  Numéro de passeport <span className="text-xs text-gray-400 font-normal">(requis pour l'attestation d'hébergement)</span>
+                </label>
+                <input type="text" value={form.passportNumber} onChange={set('passportNumber')} placeholder="O05168076" className={inputClass} />
+              </div>
+            )}
 
             {/* Email */}
             <div>

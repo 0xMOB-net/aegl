@@ -246,6 +246,14 @@ export default function AdminDossierDetail() {
               <div className="flex justify-between"><dt className="text-gray-400">Nom complet</dt><dd className="font-medium">{dossier.student.firstName} {dossier.student.lastName}</dd></div>
               <div className="flex justify-between"><dt className="text-gray-400">Email</dt><dd className="font-medium">{dossier.student.email}</dd></div>
               <div className="flex justify-between"><dt className="text-gray-400">Genre</dt><dd className="font-medium">{dossier.student.gender === 'F' ? 'Féminin' : 'Masculin'}</dd></div>
+              <div className="flex justify-between items-center">
+                <dt className="text-gray-400">N° passeport</dt>
+                <dd className="font-medium font-mono text-xs">
+                  {dossier.student.passportNumber
+                    ? dossier.student.passportNumber
+                    : <span className="text-gray-300 italic text-xs">non renseigné</span>}
+                </dd>
+              </div>
               <div className="flex justify-between"><dt className="text-gray-400">Dossier créé le</dt><dd className="font-medium">{new Date(dossier.createdAt).toLocaleDateString('fr-FR')}</dd></div>
             </dl>
           </div>
