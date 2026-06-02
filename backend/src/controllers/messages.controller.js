@@ -147,4 +147,70 @@ const adminReply = async (req, res) => {
   }
 };
 
-module.exports = { getMyMessages, sendMessage, getAdminThreads, getAdminThread, adminReply };
+// Admin : diffuser un message à un groupe
+const sendBroadcast = async (req, res) => {
+  try {
+    const adminId = req.user.id;
+    const { content, audience } = req.body;
+    const validAudiences = ['all', 'students', 'hosts'];
+    if (!validAudiences.includes(audience)) return res.status(400).json({ error: 'Audience invalide (all, students, hosts)' });
+    if (!content?.trim() && !req.file) return res.status(400).json({ error: 'Message ou fichier requis' });
+
+    let filePath = null;
+    let fileName = null;
+    if (req.file) {
+      const r = await uploadToCloudinary(req.file.buffer, { folder: 'aegl/broadcasts' });
+      filePath = r.secure_url;
+      fileName = req.file.originalname;
+    }
+
+    const broadcast = await prisma.broadcast.create({
+      data: { senderId: adminId, content: content?.trim() || null, filePath, fileName, audience },
+      include: { sender: { select: senderSelect } },
+    });
+
+    res.status(201).json({ broadcast: { ...broadcast, viewUrl: buildViewUrl(broadcast.filePath) } });
+  } catch (err) {
+    console.error('sendBroadcast error:', err);
+    res.status(500).json({ error: 'Erreur serveur' });
+  }
+};
+
+// Admin : liste des diffusions
+const getAdminBroadcasts = async (req, res) => {
+  try {
+    const broadcasts = await prisma.broadcast.findMany({
+      include: { sender: { select: senderSelect } },
+      orderBy: { createdAt: 'desc' },
+    });
+    res.json({ broadcasts: broadcasts.map(b => ({ ...b, viewUrl: buildViewUrl(b.filePath) })) });
+  } catch (err) {
+    console.error('getAdminBroadcasts error:', err);
+    res.status(500).json({ error: 'Erreur serveur' });
+  }
+};
+
+// Membre : récupérer les diffusions qui le concernent
+const getMyBroadcasts = async (req, res) => {
+  try {
+    const { role } = req.user;
+    const audienceFilter = role === 'student'
+      ? { in: ['all', 'students'] }
+      : role === 'host'
+      ? { in: ['all', 'hosts'] }
+      : { in: ['all', 'students', 'hosts'] };
+
+    const broadcasts = await prisma.broadcast.findMany({
+      where: { audience: audienceFilter },
+      include: { sender: { select: senderSelect } },
+      orderBy: { createdAt: 'desc' },
+      take: 50,
+    });
+    res.json({ broadcasts: broadcasts.map(b => ({ ...b, viewUrl: buildViewUrl(b.filePath) })) });
+  } catch (err) {
+    console.error('getMyBroadcasts error:', err);
+    res.status(500).json({ error: 'Erreur serveur' });
+  }
+};
+
+module.exports = { getMyMessages, sendMessage, getAdminThreads, getAdminThread, adminReply, sendBroadcast, getAdminBroadcasts, getMyBroadcasts };

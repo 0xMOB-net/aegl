@@ -35,6 +35,12 @@ enum Audience {
   hosts
 }
 
+enum BroadcastAudience {
+  all
+  students
+  hosts
+}
+
 model User {
   id               String    @id @default(uuid())
   firstName        String
@@ -62,6 +68,7 @@ model User {
   collectes        Collecte[]
   pmThreads        PrivateMessage[] @relation("PMThread")
   pmSent           PrivateMessage[] @relation("PMSender")
+  broadcasts       Broadcast[]
 
   @@map("users")
 }
@@ -207,6 +214,21 @@ model PrivateMessage {
 
   @@index([memberId, createdAt])
   @@map("private_messages")
+}
+
+model Broadcast {
+  id        String            @id @default(uuid())
+  senderId  String
+  content   String?
+  filePath  String?
+  fileName  String?
+  audience  BroadcastAudience @default(all)
+  createdAt DateTime          @default(now())
+
+  sender User @relation(fields: [senderId], references: [id])
+
+  @@index([audience, createdAt])
+  @@map("broadcasts")
 }
 
 model ActivityLog {
