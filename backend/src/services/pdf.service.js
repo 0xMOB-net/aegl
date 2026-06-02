@@ -13,12 +13,15 @@ const longDate = (d) => {
   return date.toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' });
 };
 
+const R = 'Times-Roman';
+const B = 'Times-Bold';
+
 const generateAttestationBuffer = (dossier) => {
   return new Promise((resolve, reject) => {
     try {
       const doc = new PDFDocument({
         size: 'A4',
-        margins: { top: 120, bottom: 80, left: 80, right: 80 },
+        margins: { top: 130, bottom: 80, left: 85, right: 85 },
       });
       const chunks = [];
       doc.on('data', chunk => chunks.push(chunk));
@@ -29,47 +32,53 @@ const generateAttestationBuffer = (dossier) => {
       const address = hostAddress || 'Limoges, France';
       const today   = new Date();
 
-      const hostE   = host.gender    === 'F' ? 'e' : '';
-      const stuE    = student.gender === 'F' ? 'e' : '';
+      const hostE = host.gender    === 'F' ? 'e' : '';
+      const stuE  = student.gender === 'F' ? 'e' : '';
 
-      const hostDob    = host.dateOfBirth    ? `, né${hostE} le ${shortDate(host.dateOfBirth)}`    : '';
-      const hostBirth  = host.birthPlace     ? ` à ${host.birthPlace}`    : '';
-      const stuDob     = student.dateOfBirth ? `, né${stuE} le ${shortDate(student.dateOfBirth)}` : '';
-      const stuBirth   = student.birthPlace  ? ` à ${student.birthPlace}` : '';
-      const passport   = student.passportNumber
-        ? `, titulaire du passeport N° ${student.passportNumber}` : '';
+      const hostDobStr   = host.dateOfBirth    ? shortDate(host.dateOfBirth)    : '';
+      const hostBirth    = host.birthPlace     ? ` à ${host.birthPlace}`        : '';
+      const stuDobStr    = student.dateOfBirth ? shortDate(student.dateOfBirth) : '';
+      const stuBirth     = student.birthPlace  ? ` à ${student.birthPlace}`     : '';
+      const hasPassport  = !!student.passportNumber;
 
       // ── Titre ──────────────────────────────────────────────────────────
-      doc.fontSize(14)
-         .font('Helvetica-Bold')
+      doc.fontSize(13).font(B)
          .text("ATTESTATION D'HÉBERGEMENT", { align: 'center' })
-         .moveDown(3);
+         .moveDown(2.8);
 
-      // ── Corps (noms en gras, texte justified) ──────────────────────────
-      doc.fontSize(12)
-         .font('Helvetica')
-         .text(`Je soussigné${hostE} `, { continued: true })
-         .font('Helvetica-Bold')
-         .text(`${host.lastName} ${host.firstName}`, { continued: true })
-         .font('Helvetica')
-         .text(
-           `${hostDob}${hostBirth}, m'engage à accueillir à mon domicile `,
-           { continued: true }
-         )
-         .font('Helvetica-Bold')
-         .text(`${student.lastName} ${student.firstName}`, { continued: true })
-         .font('Helvetica')
-         .text(
-           `${stuDob}${stuBirth}, de nationalité guinéenne${passport}, dès son arrivée en France à l'adresse suivante :`,
-           { align: 'justify', lineGap: 6 }
-         );
+      // ── Corps — inline bold sur noms / dates / mots-clés ──────────────
+      const fs = 12;
+      const opts = { continued: true, lineGap: 5, align: 'justify' };
+      const last = { lineGap: 5, align: 'justify' };
+
+      doc.fontSize(fs)
+         .font(R).text(`Je soussigné${hostE} `, opts)
+         .font(B).text(`${host.lastName} ${host.firstName}`, opts)
+         .font(R).text(hostDobStr ? `, né${hostE} le ` : '', opts)
+         .font(B).text(hostDobStr, opts)
+         .font(R).text(`${hostBirth}, m'engage à accueillir à mon domicile `, opts)
+         .font(B).text(`${student.lastName} ${student.firstName}`, opts)
+         .font(R).text(stuDobStr ? `, né${stuE} le ` : '', opts)
+         .font(B).text(stuDobStr, opts)
+         .font(R).text(`${stuBirth}, de nationalité `, opts)
+         .font(B).text('guinéenne', opts);
+
+      if (hasPassport) {
+        doc.font(R).text(', titulaire du passeport N° ', opts)
+           .font(B).text(student.passportNumber, opts)
+           .font(R).text(', dès son arrivée en France à l\'adresse suivante :', last);
+      } else {
+        doc.font(R).text(', dès son arrivée en France à l\'adresse suivante :', last);
+      }
 
       // ── Adresse ────────────────────────────────────────────────────────
-      doc.moveDown(1.5)
-         .text(`${address}.`);
+      doc.moveDown(1.4)
+         .fontSize(fs).font(R)
+         .text(`${address}.`, { align: 'left' });
 
-      // ── Date + nom hébergeur (bas droite) ──────────────────────────────
-      doc.moveDown(5)
+      // ── Date et nom hébergeur ──────────────────────────────────────────
+      doc.moveDown(5.5)
+         .fontSize(fs).font(B)
          .text(`Limoges, le ${longDate(today)}`, { align: 'right' })
          .moveDown(0.5)
          .text(`${host.lastName} ${host.firstName}`, { align: 'right' });
