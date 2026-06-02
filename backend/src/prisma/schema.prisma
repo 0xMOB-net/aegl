@@ -243,7 +243,7 @@ model BroadcastReaction {
   broadcast Broadcast @relation(fields: [broadcastId], references: [id], onDelete: Cascade)
   user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@unique([broadcastId, userId, emoji])
+  @@unique([broadcastId, userId])
   @@index([broadcastId])
   @@map("broadcast_reactions")
 }

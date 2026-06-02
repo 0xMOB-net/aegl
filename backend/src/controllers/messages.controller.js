@@ -26,7 +26,7 @@ function formatBroadcast(b, currentUserId = null) {
 
 const senderSelect = { id: true, firstName: true, lastName: true, role: true };
 
-const ALLOWED_EMOJIS = ['👍', '❤️', '😂', '😮', '💪'];
+const ALLOWED_EMOJIS = ['👍', '❤️', '💪'];
 
 // Membre : lire sa conversation avec l'admin
 const getMyMessages = async (req, res) => {
@@ -256,7 +256,7 @@ const getMyBroadcasts = async (req, res) => {
   }
 };
 
-// Membre : réagir à une diffusion (toggle emoji)
+// Membre : réagir à une diffusion — choix exclusif (un seul emoji par membre)
 const reactToBroadcast = async (req, res) => {
   try {
     const { broadcastId } = req.params;
@@ -265,11 +265,17 @@ const reactToBroadcast = async (req, res) => {
     if (!ALLOWED_EMOJIS.includes(emoji)) return res.status(400).json({ error: 'Emoji non autorisé' });
 
     const existing = await prisma.broadcastReaction.findUnique({
-      where: { broadcastId_userId_emoji: { broadcastId, userId, emoji } },
+      where: { broadcastId_userId: { broadcastId, userId } },
     });
 
     if (existing) {
-      await prisma.broadcastReaction.delete({ where: { id: existing.id } });
+      if (existing.emoji === emoji) {
+        // Même emoji → désélectionner
+        await prisma.broadcastReaction.delete({ where: { id: existing.id } });
+      } else {
+        // Autre emoji → remplacer
+        await prisma.broadcastReaction.update({ where: { id: existing.id }, data: { emoji } });
+      }
     } else {
       await prisma.broadcastReaction.create({ data: { broadcastId, userId, emoji } });
     }

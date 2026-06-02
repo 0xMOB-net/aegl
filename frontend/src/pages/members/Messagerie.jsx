@@ -14,7 +14,7 @@ const AUDIENCE_STYLE = {
 const AUDIENCE_ICON = { all: '👥', students: '🎓', hosts: '🏠' };
 const AUDIENCE_LBL  = { all: 'Tous', students: 'Étudiants', hosts: 'Hébergeurs' };
 
-const EMOJIS = ['👍', '❤️', '😂', '😮', '💪'];
+const EMOJIS = ['👍', '❤️', '💪'];
 
 export default function MemberMessagerie() {
   const { user } = useAuth();
@@ -81,21 +81,18 @@ export default function MemberMessagerie() {
   };
 
   const react = async (broadcastId, emoji) => {
-    // Optimistic update
+    // Optimistic update — choix exclusif
     setBroadcasts(prev => prev.map(b => {
       if (b.id !== broadcastId) return b;
-      const mine = (b.myReactions || []).includes(emoji);
-      const myReactions = mine
-        ? (b.myReactions || []).filter(e => e !== emoji)
-        : [...(b.myReactions || []), emoji];
+      const current = (b.myReactions || [])[0];
+      const isSame = current === emoji;
       const reactionCounts = { ...(b.reactionCounts || {}) };
-      if (mine) {
-        reactionCounts[emoji] = Math.max(0, (reactionCounts[emoji] || 1) - 1);
-        if (!reactionCounts[emoji]) delete reactionCounts[emoji];
-      } else {
-        reactionCounts[emoji] = (reactionCounts[emoji] || 0) + 1;
+      if (current) {
+        reactionCounts[current] = Math.max(0, (reactionCounts[current] || 1) - 1);
+        if (!reactionCounts[current]) delete reactionCounts[current];
       }
-      return { ...b, myReactions, reactionCounts };
+      if (!isSame) reactionCounts[emoji] = (reactionCounts[emoji] || 0) + 1;
+      return { ...b, myReactions: isSame ? [] : [emoji], reactionCounts };
     }));
     try {
       const res = await api.post(`/messages/broadcasts/${broadcastId}/react`, { emoji });
