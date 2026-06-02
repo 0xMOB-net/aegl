@@ -27,7 +27,6 @@ const bureauNav = [
   { to: '/membres/admin/hebergeurs', label: 'Utilisateurs',     icon: '👥' },
   { to: '/membres/admin/activite',   label: 'Journal',          icon: '📋' },
   { to: '/membres/admin/messagerie', label: 'Messagerie',       icon: '✉️' },
-  { to: '/membres/annonces',         label: 'Communauté',       icon: '💬' },
 ];
 
 const hostNav = [
@@ -36,14 +35,12 @@ const hostNav = [
   { to: '/membres/hebergeur/alertes',      label: 'Alertes',      icon: '🔔' },
   { to: '/membres/hebergeur/profil',       label: 'Mon profil',   icon: '🏠' },
   { to: '/membres/messagerie',             label: 'Messagerie',   icon: '✉️' },
-  { to: '/membres/annonces',               label: 'Annonces',     icon: '💬' },
 ];
 
 const studentNav = [
   { to: '/membres/etudiant/dossier', label: 'Mon dossier', icon: '📁' },
   { to: '/membres/etudiant/alertes', label: 'Alertes',     icon: '🔔' },
   { to: '/membres/messagerie',       label: 'Messagerie',  icon: '✉️' },
-  { to: '/membres/annonces',         label: 'Annonces',    icon: '💬' },
 ];
 
 export default function MemberLayout({ children, title }) {
