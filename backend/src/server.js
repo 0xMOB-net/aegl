@@ -1,4 +1,16 @@
 require('dotenv').config();
+
+// Regénère le client Prisma au démarrage — garantit la cohérence avec le schéma en production
+const { execSync } = require('child_process');
+try {
+  execSync('npx prisma generate --schema=src/prisma/schema.prisma', {
+    stdio: 'inherit',
+    cwd: __dirname.replace(/[\\/]src$/, ''),
+  });
+} catch (e) {
+  console.error('[startup] prisma generate failed:', e.message);
+}
+
 const app = require('./app');
 const fs = require('fs');
 const path = require('path');
