@@ -12,10 +12,11 @@ const AUDIENCE_ICON  = { all: '👥', students: '🎓', hosts: '🏠' };
 const AUDIENCE_COLOR = { all: 'bg-green-100 text-green-800', students: 'bg-blue-100 text-blue-800', hosts: 'bg-amber-100 text-amber-800' };
 
 /* ─── Élément de fil dans la liste ─── */
-function ThreadItem({ t, active, onClick }) {
+function ThreadItem({ t, active, onClick, onDelete }) {
   return (
-    <button onClick={onClick}
-      className={`w-full text-left px-4 py-3 transition-colors hover:bg-green-50 ${active ? 'bg-green-50 border-r-2 border-green-700' : ''}`}>
+    <div
+      onClick={onClick}
+      className={`group w-full text-left px-4 py-3 transition-colors hover:bg-green-50 cursor-pointer ${active ? 'bg-green-50 border-r-2 border-green-700' : ''}`}>
       <div className="flex items-center gap-2">
         <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center text-green-800 font-bold text-xs flex-shrink-0">
           {t.member?.firstName?.[0]}{t.member?.lastName?.[0]}
@@ -24,14 +25,19 @@ function ThreadItem({ t, active, onClick }) {
           <p className="text-sm font-semibold text-gray-800 truncate">{t.member?.firstName} {t.member?.lastName}</p>
           <p className="text-xs text-gray-400 truncate">{ROLE_LBL[t.member?.role]}</p>
         </div>
-        <span className="text-[10px] text-gray-300 flex-shrink-0 ml-1">
-          {t.lastMessage ? fmt(t.lastMessage.createdAt) : ''}
-        </span>
+        <div className="flex items-center gap-1 flex-shrink-0">
+          <span className="text-[10px] text-gray-300">{t.lastMessage ? fmt(t.lastMessage.createdAt) : ''}</span>
+          <button
+            onClick={e => { e.stopPropagation(); onDelete(t.memberId, t.member); }}
+            className="opacity-0 group-hover:opacity-100 w-6 h-6 ml-0.5 rounded text-gray-300 hover:text-red-500 hover:bg-red-50 flex items-center justify-center text-xs transition-all"
+            title="Supprimer la conversation"
+          >🗑</button>
+        </div>
       </div>
       <p className="text-xs text-gray-500 truncate mt-1 pl-10">
         {t.lastMessage?.content || (t.lastMessage?.fileName ? `📎 ${t.lastMessage.fileName}` : '—')}
       </p>
-    </button>
+    </div>
   );
 }
 
@@ -185,6 +191,14 @@ function BroadcastPanel() {
 
   useEffect(() => { loadBC(); }, [loadBC]);
 
+  const handleDeleteBroadcast = async (broadcastId) => {
+    if (!window.confirm('Supprimer cette diffusion définitivement ?')) return;
+    try {
+      await api.delete(`/messages/admin/broadcast/${broadcastId}`);
+      setBroadcasts(prev => prev.filter(b => b.id !== broadcastId));
+    } catch {}
+  };
+
   const send = async () => {
     if ((!content.trim() && !file) || sending) return;
     setSending(true); setError(null);
@@ -262,6 +276,11 @@ function BroadcastPanel() {
                     {AUDIENCE_ICON[b.audience]} {AUDIENCE_LBL[b.audience]}
                   </span>
                   <span className="text-xs text-gray-400 ml-auto">{fmt(b.createdAt)}</span>
+                  <button
+                    onClick={() => handleDeleteBroadcast(b.id)}
+                    className="text-gray-300 hover:text-red-500 text-xs transition-colors"
+                    title="Supprimer"
+                  >🗑</button>
                 </div>
                 {b.content && <p className="text-sm text-gray-700 whitespace-pre-wrap">{b.content}</p>}
                 {b.fileName && (
@@ -269,6 +288,15 @@ function BroadcastPanel() {
                     className="inline-flex items-center gap-1 mt-1 text-xs text-green-700 underline">
                     📎 <span className="truncate max-w-[180px]">{b.fileName}</span> ↗
                   </a>
+                )}
+                {Object.keys(b.reactionCounts || {}).length > 0 && (
+                  <div className="flex items-center gap-1.5 mt-2 flex-wrap">
+                    {Object.entries(b.reactionCounts).map(([emoji, count]) => (
+                      <span key={emoji} className="flex items-center gap-0.5 px-2 py-0.5 bg-gray-50 border border-gray-200 rounded-full text-xs text-gray-600">
+                        {emoji} <span className="font-medium">{count}</span>
+                      </span>
+                    ))}
+                  </div>
                 )}
               </li>
             ))}
@@ -305,6 +333,15 @@ export default function AdminMessagerie() {
         ? { ...t, lastMessage: { content: msg.content, fileName: msg.fileName, createdAt: msg.createdAt, senderId: msg.senderId } }
         : t
     ));
+  };
+
+  const handleDeleteThread = async (memberId, member) => {
+    if (!window.confirm(`Supprimer toute la conversation avec ${member?.firstName} ${member?.lastName} ?`)) return;
+    try {
+      await api.delete(`/messages/admin/thread/${memberId}`);
+      setThreads(prev => prev.filter(t => t.memberId !== memberId));
+      if (selected?.memberId === memberId) setSelected(null);
+    } catch {}
   };
 
   return (
@@ -358,7 +395,7 @@ export default function AdminMessagerie() {
                 <ul className="divide-y divide-gray-100">
                   {threads.map(t => (
                     <li key={t.memberId}>
-                      <ThreadItem t={t} active={selected?.memberId === t.memberId} onClick={() => setSelected(t)} />
+                      <ThreadItem t={t} active={selected?.memberId === t.memberId} onClick={() => setSelected(t)} onDelete={handleDeleteThread} />
                     </li>
                   ))}
                 </ul>

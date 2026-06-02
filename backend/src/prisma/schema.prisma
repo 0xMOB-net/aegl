@@ -66,9 +66,10 @@ model User {
   articles         Article[]
   activityLogs     ActivityLog[]
   collectes        Collecte[]
-  pmThreads        PrivateMessage[] @relation("PMThread")
-  pmSent           PrivateMessage[] @relation("PMSender")
-  broadcasts       Broadcast[]
+  pmThreads           PrivateMessage[]    @relation("PMThread")
+  pmSent              PrivateMessage[]    @relation("PMSender")
+  broadcasts          Broadcast[]
+  broadcastReactions  BroadcastReaction[]
 
   @@map("users")
 }
@@ -225,10 +226,26 @@ model Broadcast {
   audience  BroadcastAudience @default(all)
   createdAt DateTime          @default(now())
 
-  sender User @relation(fields: [senderId], references: [id])
+  sender    User                @relation(fields: [senderId], references: [id])
+  reactions BroadcastReaction[]
 
   @@index([audience, createdAt])
   @@map("broadcasts")
+}
+
+model BroadcastReaction {
+  id          String   @id @default(uuid())
+  broadcastId String
+  userId      String
+  emoji       String
+  createdAt   DateTime @default(now())
+
+  broadcast Broadcast @relation(fields: [broadcastId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([broadcastId, userId, emoji])
+  @@index([broadcastId])
+  @@map("broadcast_reactions")
 }
 
 model ActivityLog {

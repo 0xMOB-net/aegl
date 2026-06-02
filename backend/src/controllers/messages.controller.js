@@ -14,7 +14,19 @@ function buildViewUrl(filePath) {
   return getSignedUrl(publicId, resourceType);
 }
 
+function formatBroadcast(b, currentUserId = null) {
+  const reactionCounts = {};
+  (b.reactions || []).forEach(r => { reactionCounts[r.emoji] = (reactionCounts[r.emoji] || 0) + 1; });
+  const myReactions = currentUserId
+    ? (b.reactions || []).filter(r => r.userId === currentUserId).map(r => r.emoji)
+    : [];
+  const { reactions: _r, ...rest } = b;
+  return { ...rest, viewUrl: buildViewUrl(b.filePath), reactionCounts, myReactions };
+}
+
 const senderSelect = { id: true, firstName: true, lastName: true, role: true };
+
+const ALLOWED_EMOJIS = ['👍', '❤️', '😂', '😮', '💪'];
 
 // Membre : lire sa conversation avec l'admin
 const getMyMessages = async (req, res) => {
@@ -148,6 +160,18 @@ const adminReply = async (req, res) => {
   }
 };
 
+// Admin : supprimer tout le fil d'un membre
+const deleteThread = async (req, res) => {
+  try {
+    const { memberId } = req.params;
+    await prisma.privateMessage.deleteMany({ where: { memberId } });
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('deleteThread error:', err);
+    res.status(500).json({ error: 'Erreur serveur' });
+  }
+};
+
 // Admin : diffuser un message à un groupe
 const sendBroadcast = async (req, res) => {
   try {
@@ -167,12 +191,24 @@ const sendBroadcast = async (req, res) => {
 
     const broadcast = await prisma.broadcast.create({
       data: { senderId: adminId, content: content?.trim() || null, filePath, fileName, audience },
-      include: { sender: { select: senderSelect } },
+      include: { sender: { select: senderSelect }, reactions: { select: { userId: true, emoji: true } } },
     });
 
-    res.status(201).json({ broadcast: { ...broadcast, viewUrl: buildViewUrl(broadcast.filePath) } });
+    res.status(201).json({ broadcast: formatBroadcast(broadcast, null) });
   } catch (err) {
     console.error('sendBroadcast error:', err);
+    res.status(500).json({ error: 'Erreur serveur' });
+  }
+};
+
+// Admin : supprimer une diffusion
+const deleteBroadcast = async (req, res) => {
+  try {
+    const { broadcastId } = req.params;
+    await prisma.broadcast.delete({ where: { id: broadcastId } });
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('deleteBroadcast error:', err);
     res.status(500).json({ error: 'Erreur serveur' });
   }
 };
@@ -181,10 +217,13 @@ const sendBroadcast = async (req, res) => {
 const getAdminBroadcasts = async (req, res) => {
   try {
     const broadcasts = await prisma.broadcast.findMany({
-      include: { sender: { select: senderSelect } },
+      include: {
+        sender: { select: senderSelect },
+        reactions: { select: { userId: true, emoji: true } },
+      },
       orderBy: { createdAt: 'desc' },
     });
-    res.json({ broadcasts: broadcasts.map(b => ({ ...b, viewUrl: buildViewUrl(b.filePath) })) });
+    res.json({ broadcasts: broadcasts.map(b => formatBroadcast(b, null)) });
   } catch (err) {
     console.error('getAdminBroadcasts error:', err);
     res.status(500).json({ error: 'Erreur serveur' });
@@ -194,7 +233,7 @@ const getAdminBroadcasts = async (req, res) => {
 // Membre : récupérer les diffusions qui le concernent
 const getMyBroadcasts = async (req, res) => {
   try {
-    const { role } = req.user;
+    const { role, id: userId } = req.user;
     const audienceFilter = role === 'student'
       ? { in: ['all', 'students'] }
       : role === 'host'
@@ -203,15 +242,54 @@ const getMyBroadcasts = async (req, res) => {
 
     const broadcasts = await prisma.broadcast.findMany({
       where: { audience: audienceFilter },
-      include: { sender: { select: senderSelect } },
+      include: {
+        sender: { select: senderSelect },
+        reactions: { select: { userId: true, emoji: true } },
+      },
       orderBy: { createdAt: 'desc' },
       take: 50,
     });
-    res.json({ broadcasts: broadcasts.map(b => ({ ...b, viewUrl: buildViewUrl(b.filePath) })) });
+    res.json({ broadcasts: broadcasts.map(b => formatBroadcast(b, userId)) });
   } catch (err) {
     console.error('getMyBroadcasts error:', err);
     res.status(500).json({ error: 'Erreur serveur' });
   }
 };
 
-module.exports = { getMyMessages, sendMessage, getAdminThreads, getAdminThread, adminReply, sendBroadcast, getAdminBroadcasts, getMyBroadcasts };
+// Membre : réagir à une diffusion (toggle emoji)
+const reactToBroadcast = async (req, res) => {
+  try {
+    const { broadcastId } = req.params;
+    const { emoji } = req.body;
+    const userId = req.user.id;
+    if (!ALLOWED_EMOJIS.includes(emoji)) return res.status(400).json({ error: 'Emoji non autorisé' });
+
+    const existing = await prisma.broadcastReaction.findUnique({
+      where: { broadcastId_userId_emoji: { broadcastId, userId, emoji } },
+    });
+
+    if (existing) {
+      await prisma.broadcastReaction.delete({ where: { id: existing.id } });
+    } else {
+      await prisma.broadcastReaction.create({ data: { broadcastId, userId, emoji } });
+    }
+
+    const raw = await prisma.broadcastReaction.groupBy({
+      by: ['emoji'],
+      where: { broadcastId },
+      _count: { emoji: true },
+    });
+    const reactionCounts = Object.fromEntries(raw.map(r => [r.emoji, r._count.emoji]));
+    res.json({ reactionCounts });
+  } catch (err) {
+    console.error('reactToBroadcast error:', err);
+    res.status(500).json({ error: 'Erreur serveur' });
+  }
+};
+
+module.exports = {
+  getMyMessages, sendMessage,
+  getAdminThreads, getAdminThread, adminReply, deleteThread,
+  sendBroadcast, deleteBroadcast, getAdminBroadcasts,
+  getMyBroadcasts, reactToBroadcast,
+};

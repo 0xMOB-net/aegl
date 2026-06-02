@@ -14,6 +14,8 @@ const AUDIENCE_STYLE = {
 const AUDIENCE_ICON = { all: '👥', students: '🎓', hosts: '🏠' };
 const AUDIENCE_LBL  = { all: 'Tous', students: 'Étudiants', hosts: 'Hébergeurs' };
 
+const EMOJIS = ['👍', '❤️', '😂', '😮', '💪'];
+
 export default function MemberMessagerie() {
   const { user } = useAuth();
   const [messages,   setMessages]   = useState([]);
@@ -78,6 +80,33 @@ export default function MemberMessagerie() {
     }
   };
 
+  const react = async (broadcastId, emoji) => {
+    // Optimistic update
+    setBroadcasts(prev => prev.map(b => {
+      if (b.id !== broadcastId) return b;
+      const mine = (b.myReactions || []).includes(emoji);
+      const myReactions = mine
+        ? (b.myReactions || []).filter(e => e !== emoji)
+        : [...(b.myReactions || []), emoji];
+      const reactionCounts = { ...(b.reactionCounts || {}) };
+      if (mine) {
+        reactionCounts[emoji] = Math.max(0, (reactionCounts[emoji] || 1) - 1);
+        if (!reactionCounts[emoji]) delete reactionCounts[emoji];
+      } else {
+        reactionCounts[emoji] = (reactionCounts[emoji] || 0) + 1;
+      }
+      return { ...b, myReactions, reactionCounts };
+    }));
+    try {
+      const res = await api.post(`/messages/broadcasts/${broadcastId}/react`, { emoji });
+      setBroadcasts(prev => prev.map(b =>
+        b.id === broadcastId ? { ...b, reactionCounts: res.data.reactionCounts } : b
+      ));
+    } catch {
+      fetchAll(true);
+    }
+  };
+
   const handleKey = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); }
   };
@@ -86,7 +115,6 @@ export default function MemberMessagerie() {
 
   return (
     <MemberLayout title="Messagerie">
-      {/* Page container — on mobile prend toute la hauteur */}
       <div className="flex flex-col gap-4 max-w-2xl mx-auto">
 
         {/* ── En-tête ── */}
@@ -130,6 +158,27 @@ export default function MemberMessagerie() {
                         📎 <span className="truncate max-w-[180px]">{b.fileName}</span> ↗
                       </a>
                     )}
+                    {/* Réactions */}
+                    <div className="flex items-center gap-1.5 mt-2.5 flex-wrap">
+                      {EMOJIS.map(emoji => {
+                        const count = (b.reactionCounts || {})[emoji] || 0;
+                        const mine  = (b.myReactions || []).includes(emoji);
+                        return (
+                          <button
+                            key={emoji}
+                            onClick={() => react(b.id, emoji)}
+                            className={`flex items-center gap-0.5 px-2 py-0.5 rounded-full text-xs border transition-all ${
+                              mine
+                                ? 'bg-white/70 border-current font-semibold shadow-sm'
+                                : 'bg-white/40 border-transparent hover:border-current hover:bg-white/60'
+                            }`}
+                          >
+                            <span>{emoji}</span>
+                            {count > 0 && <span className="font-medium ml-0.5">{count}</span>}
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
                 ))}
               </div>
@@ -143,10 +192,16 @@ export default function MemberMessagerie() {
                 </h3>
               </div>
 
+              {/* Message d'accueil */}
+              <div className="mx-4 mt-3 mb-1 bg-green-50 border border-green-100 rounded-xl px-3 py-2.5 text-xs text-green-800 leading-relaxed">
+                Désormais, vous pouvez nous laisser des messages ici ou même partager des fichiers (PDF, images).
+                Pour toute question, le Bureau AEGL vous répondra dans les meilleurs délais. 🙌
+              </div>
+
               {/* Messages scrollables */}
               <div className="overflow-y-auto px-4 py-3 space-y-3" style={{ maxHeight: '45vh' }}>
                 {messages.length === 0 ? (
-                  <div className="text-center py-10 text-gray-400">
+                  <div className="text-center py-8 text-gray-400">
                     <p className="text-3xl mb-2">💬</p>
                     <p className="text-sm">Aucun message pour l'instant.</p>
                     <p className="text-xs mt-1">Envoyez votre première question ci-dessous.</p>
