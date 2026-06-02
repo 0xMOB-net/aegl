@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import MemberLayout from '../../components/members/MemberLayout';
 import { StatusBadge, DossierStepper } from '../../components/members/SharedComponents';
-import DossierChat from '../../components/members/DossierChat';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../api/client';
 
@@ -565,11 +564,6 @@ export default function AdminDossierDetail() {
               </div>
             </div>
           </div>
-        )}
-
-        {/* Messagerie */}
-        {dossier && (
-          <DossierChat dossierId={dossier.id} currentUser={user} />
         )}
 
         {/* Notes admin */}

@@ -40,8 +40,6 @@ router.post('/:id/admin-direct-deliver', requireRole('admin'), upload.fields([
   { name: 'facture_3',  maxCount: 1 },
 ]), ctrl.adminDirectDeliver);
 router.patch('/:id/student-confirm', requireRole('student'), ctrl.studentConfirmDossier);
-router.get('/:id/messages', ctrl.getMessages);
-router.post('/:id/messages', upload.single('file'), ctrl.sendMessage);
 router.delete('/:id', requireRole('admin'), ctrl.remove);
 
 module.exports = router;

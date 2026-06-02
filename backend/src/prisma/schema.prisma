@@ -60,7 +60,8 @@ model User {
   articles         Article[]
   activityLogs     ActivityLog[]
   collectes        Collecte[]
-  messages         Message[]
+  pmThreads        PrivateMessage[] @relation("PMThread")
+  pmSent           PrivateMessage[] @relation("PMSender")
 
   @@map("users")
 }
@@ -87,7 +88,6 @@ model Dossier {
   student      User           @relation("StudentDossiers", fields: [studentId], references: [id])
   host         User?          @relation("HostDossiers", fields: [hostId], references: [id])
   hostDocuments HostDocument[]
-  messages      Message[]
 
   @@index([studentId])
   @@index([hostId])
@@ -193,20 +193,20 @@ model Collecte {
   @@map("collectes")
 }
 
-model Message {
+model PrivateMessage {
   id        String   @id @default(uuid())
-  dossierId String
+  memberId  String
   senderId  String
   content   String?
   filePath  String?
   fileName  String?
   createdAt DateTime @default(now())
 
-  dossier Dossier @relation(fields: [dossierId], references: [id], onDelete: Cascade)
-  sender  User    @relation(fields: [senderId], references: [id])
+  member User @relation("PMThread", fields: [memberId], references: [id], onDelete: Cascade)
+  sender User @relation("PMSender", fields: [senderId], references: [id])
 
-  @@index([dossierId, createdAt])
-  @@map("messages")
+  @@index([memberId, createdAt])
+  @@map("private_messages")
 }
 
 model ActivityLog {
