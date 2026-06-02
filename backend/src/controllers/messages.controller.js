@@ -1,4 +1,5 @@
-const prisma = require('../prisma/client');
+const { PrismaClient } = require('@prisma/client');
+const prisma = new PrismaClient();
 const { uploadToCloudinary, getSignedUrl } = require('../middlewares/upload.middleware');
 
 const CLOUD_URL_REGEX = /cloudinary\.com\/[^/]+\/([^/]+)\/authenticated\/(?:s--[^/]+--\/)?(?:v\d+\/)?(.+)$/;
