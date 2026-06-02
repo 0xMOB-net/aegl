@@ -611,6 +611,75 @@ const studentConfirmDossier = async (req, res) => {
   }
 };
 
+const getMessages = async (req, res) => {
+  try {
+    const { user } = req;
+    const dossier = await prisma.dossier.findUnique({ where: { id: req.params.id } });
+    if (!dossier) return res.status(404).json({ error: 'Dossier introuvable' });
+    if (user.role === 'student' && dossier.studentId !== user.id) return res.status(403).json({ error: 'Accès refusé' });
+    if (user.role === 'host') return res.status(403).json({ error: 'Accès refusé' });
+
+    const messages = await prisma.message.findMany({
+      where: { dossierId: req.params.id },
+      include: { sender: { select: { firstName: true, lastName: true, role: true } } },
+      orderBy: { createdAt: 'asc' },
+    });
+
+    const enriched = messages.map(msg => {
+      if (!msg.filePath) return { ...msg, viewUrl: null };
+      const m = msg.filePath.match(/cloudinary\.com\/[^/]+\/([^/]+)\/authenticated\/(?:s--[^/]+--\/)?(?:v\d+\/)?(.+)$/);
+      if (!m) return { ...msg, viewUrl: msg.filePath };
+      const resourceType = m[1];
+      let publicId = m[2];
+      if (resourceType !== 'raw') publicId = publicId.replace(/\.[^.]+$/, '');
+      return { ...msg, viewUrl: getSignedUrl(publicId, resourceType) };
+    });
+
+    res.json({ messages: enriched });
+  } catch (err) {
+    console.error('getMessages error:', err);
+    res.status(500).json({ error: err.message || 'Erreur serveur' });
+  }
+};
+
+const sendMessage = async (req, res) => {
+  try {
+    const { user } = req;
+    const { content } = req.body;
+    const dossier = await prisma.dossier.findUnique({ where: { id: req.params.id } });
+    if (!dossier) return res.status(404).json({ error: 'Dossier introuvable' });
+    if (user.role === 'student' && dossier.studentId !== user.id) return res.status(403).json({ error: 'Accès refusé' });
+    if (user.role === 'host') return res.status(403).json({ error: 'Accès refusé' });
+    if (!content?.trim() && !req.file) return res.status(400).json({ error: 'Message ou fichier requis' });
+
+    let filePath = null;
+    let fileName = null;
+    let viewUrl = null;
+    if (req.file) {
+      const r = await uploadToCloudinary(req.file.buffer, { folder: 'aegl/messages' });
+      filePath = r.secure_url;
+      fileName = req.file.originalname;
+      const m = filePath.match(/cloudinary\.com\/[^/]+\/([^/]+)\/authenticated\/(?:s--[^/]+--\/)?(?:v\d+\/)?(.+)$/);
+      if (m) {
+        const resourceType = m[1];
+        let publicId = m[2];
+        if (resourceType !== 'raw') publicId = publicId.replace(/\.[^.]+$/, '');
+        viewUrl = getSignedUrl(publicId, resourceType);
+      }
+    }
+
+    const msg = await prisma.message.create({
+      data: { dossierId: req.params.id, senderId: user.id, content: content?.trim() || null, filePath, fileName },
+      include: { sender: { select: { firstName: true, lastName: true, role: true } } },
+    });
+
+    res.status(201).json({ message: { ...msg, viewUrl } });
+  } catch (err) {
+    console.error('sendMessage error:', err);
+    res.status(500).json({ error: err.message || 'Erreur serveur' });
+  }
+};
+
 const remove = async (req, res) => {
   try {
     const dossier = await prisma.dossier.findUnique({ where: { id: req.params.id } });
@@ -624,4 +693,4 @@ const remove = async (req, res) => {
   }
 };
 
-module.exports = { list, getOne, create, assignHost, revokeHost, validateDocs, rejectDocs, close, signAttestation, updateNotes, stats, remove, verifyStudentDocs, rejectStudentDocs, resubmitStudentDocs, adminDirectDeliver, studentConfirmDossier };
+module.exports = { list, getOne, create, assignHost, revokeHost, validateDocs, rejectDocs, close, signAttestation, updateNotes, stats, remove, verifyStudentDocs, rejectStudentDocs, resubmitStudentDocs, adminDirectDeliver, studentConfirmDossier, getMessages, sendMessage };

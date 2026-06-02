@@ -60,6 +60,7 @@ model User {
   articles         Article[]
   activityLogs     ActivityLog[]
   collectes        Collecte[]
+  messages         Message[]
 
   @@map("users")
 }
@@ -86,6 +87,7 @@ model Dossier {
   student      User           @relation("StudentDossiers", fields: [studentId], references: [id])
   host         User?          @relation("HostDossiers", fields: [hostId], references: [id])
   hostDocuments HostDocument[]
+  messages      Message[]
 
   @@index([studentId])
   @@index([hostId])
@@ -189,6 +191,22 @@ model Collecte {
 
   @@index([isActive, createdAt])
   @@map("collectes")
+}
+
+model Message {
+  id        String   @id @default(uuid())
+  dossierId String
+  senderId  String
+  content   String?
+  filePath  String?
+  fileName  String?
+  createdAt DateTime @default(now())
+
+  dossier Dossier @relation(fields: [dossierId], references: [id], onDelete: Cascade)
+  sender  User    @relation(fields: [senderId], references: [id])
+
+  @@index([dossierId, createdAt])
+  @@map("messages")
 }
 
 model ActivityLog {
