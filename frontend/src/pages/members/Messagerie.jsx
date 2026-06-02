@@ -36,8 +36,12 @@ export default function MemberMessagerie() {
       setMessages(msgRes.data.messages || []);
       setBroadcasts(bcRes.data.broadcasts || []);
       setError(null);
-    } catch {
-      if (!silent) setError('Impossible de charger les messages');
+    } catch (err) {
+      if (!silent) {
+        const status = err.response?.status;
+        const msg = err.response?.data?.error || err.message || 'Erreur inconnue';
+        setError(`Erreur ${status || ''} : ${msg}`);
+      }
     } finally {
       if (!silent) setLoading(false);
     }
