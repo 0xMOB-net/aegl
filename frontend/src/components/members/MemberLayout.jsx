@@ -21,7 +21,6 @@ const bureauNav = [
   { to: '/membres/admin/dashboard',  label: 'Tableau de bord', icon: '📊' },
   { to: '/membres/admin/dossiers',   label: 'Dossiers',         icon: '📁' },
   { to: '/membres/admin/alertes',    label: 'Alertes',          icon: '🔔' },
-  { to: '/membres/admin/annonces',   label: 'Annonces',         icon: '📢' },
   { to: '/membres/admin/articles',   label: 'Articles',         icon: '✍️' },
   { to: '/membres/admin/collectes',  label: 'Collectes',        icon: '💚' },
   { to: '/membres/admin/hebergeurs', label: 'Utilisateurs',     icon: '👥' },

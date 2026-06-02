@@ -192,12 +192,6 @@ export default function MemberMessagerie() {
                 </h3>
               </div>
 
-              {/* Message d'accueil */}
-              <div className="mx-4 mt-3 mb-1 bg-green-50 border border-green-100 rounded-xl px-3 py-2.5 text-xs text-green-800 leading-relaxed">
-                Désormais, vous pouvez nous laisser des messages ici ou même partager des fichiers (PDF, images).
-                Pour toute question, le Bureau AEGL vous répondra dans les meilleurs délais. 🙌
-              </div>
-
               {/* Messages scrollables */}
               <div className="overflow-y-auto px-4 py-3 space-y-3" style={{ maxHeight: '45vh' }}>
                 {messages.length === 0 ? (

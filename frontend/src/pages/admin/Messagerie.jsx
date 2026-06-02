@@ -16,7 +16,7 @@ function ThreadItem({ t, active, onClick, onDelete }) {
   return (
     <div
       onClick={onClick}
-      className={`group w-full text-left px-4 py-3 transition-colors hover:bg-green-50 cursor-pointer ${active ? 'bg-green-50 border-r-2 border-green-700' : ''}`}>
+      className={`w-full text-left px-4 py-3 transition-colors hover:bg-green-50 cursor-pointer ${active ? 'bg-green-50 border-r-2 border-green-700' : ''}`}>
       <div className="flex items-center gap-2">
         <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center text-green-800 font-bold text-xs flex-shrink-0">
           {t.member?.firstName?.[0]}{t.member?.lastName?.[0]}
@@ -29,7 +29,7 @@ function ThreadItem({ t, active, onClick, onDelete }) {
           <span className="text-[10px] text-gray-300">{t.lastMessage ? fmt(t.lastMessage.createdAt) : ''}</span>
           <button
             onClick={e => { e.stopPropagation(); onDelete(t.memberId, t.member); }}
-            className="opacity-0 group-hover:opacity-100 w-6 h-6 ml-0.5 rounded text-gray-300 hover:text-red-500 hover:bg-red-50 flex items-center justify-center text-xs transition-all"
+            className="w-6 h-6 ml-0.5 rounded text-gray-300 hover:text-red-500 hover:bg-red-50 flex items-center justify-center text-xs transition-colors"
             title="Supprimer la conversation"
           >🗑</button>
         </div>
@@ -278,7 +278,7 @@ function BroadcastPanel() {
                   <span className="text-xs text-gray-400 ml-auto">{fmt(b.createdAt)}</span>
                   <button
                     onClick={() => handleDeleteBroadcast(b.id)}
-                    className="text-gray-300 hover:text-red-500 text-xs transition-colors"
+                    className="w-6 h-6 rounded text-gray-300 hover:text-red-500 hover:bg-red-50 flex items-center justify-center text-xs transition-colors flex-shrink-0"
                     title="Supprimer"
                   >🗑</button>
                 </div>

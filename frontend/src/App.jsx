@@ -21,7 +21,6 @@ const ResetPassword    = lazy(() => import('./pages/auth/ResetPassword'));
 const AdminDashboard   = lazy(() => import('./pages/admin/Dashboard'));
 const AdminDossiers    = lazy(() => import('./pages/admin/Dossiers'));
 const AdminDossierDetail = lazy(() => import('./pages/admin/DossierDetail'));
-const AdminAnnouncements = lazy(() => import('./pages/admin/Announcements'));
 const AdminArticles    = lazy(() => import('./pages/admin/Articles'));
 const AdminHosts       = lazy(() => import('./pages/admin/Hosts'));
 const AdminActivity    = lazy(() => import('./pages/admin/Activity'));
@@ -36,7 +35,6 @@ const HostProfile      = lazy(() => import('./pages/host/Profile'));
 const StudentDossier   = lazy(() => import('./pages/student/MyDossier'));
 const StudentAlerts    = lazy(() => import('./pages/student/Alerts'));
 
-const MemberAnnouncements = lazy(() => import('./pages/members/Announcements'));
 const MemberMessagerie    = lazy(() => import('./pages/members/Messagerie'));
 const AdminMessagerie     = lazy(() => import('./pages/admin/Messagerie'));
 
@@ -93,7 +91,6 @@ function App() {
             <Route path="/membres/admin/dashboard"  element={<ProtectedRoute roles={['admin']}><AdminDashboard /></ProtectedRoute>} />
             <Route path="/membres/admin/dossiers"   element={<ProtectedRoute roles={['admin']}><AdminDossiers /></ProtectedRoute>} />
             <Route path="/membres/admin/dossiers/:id" element={<ProtectedRoute roles={['admin']}><AdminDossierDetail /></ProtectedRoute>} />
-            <Route path="/membres/admin/annonces"   element={<ProtectedRoute roles={['admin']}><AdminAnnouncements /></ProtectedRoute>} />
             <Route path="/membres/admin/articles"   element={<ProtectedRoute roles={['admin']}><AdminArticles /></ProtectedRoute>} />
             <Route path="/membres/admin/hebergeurs" element={<ProtectedRoute roles={['admin']}><AdminHosts /></ProtectedRoute>} />
             <Route path="/membres/admin/activite"   element={<ProtectedRoute roles={['admin']}><AdminActivity /></ProtectedRoute>} />
@@ -115,9 +112,6 @@ function App() {
 
             {/* MESSAGERIE MEMBRES (student + host) */}
             <Route path="/membres/messagerie" element={<ProtectedRoute roles={['student', 'host']}><MemberMessagerie /></ProtectedRoute>} />
-
-            {/* COMMUN */}
-            <Route path="/membres/annonces" element={<ProtectedRoute><MemberAnnouncements /></ProtectedRoute>} />
 
             {/* 404 */}
             <Route path="*" element={<Navigate to="/" replace />} />
