@@ -7,9 +7,9 @@ const formatTime = (d) =>
   new Date(d).toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
 
 const AUDIENCE_COLORS = {
-  all:      'bg-green-100 text-green-800 border-green-200',
-  students: 'bg-blue-100 text-blue-800 border-blue-200',
-  hosts:    'bg-amber-100 text-amber-800 border-amber-200',
+  all:      'bg-green-50 border-green-200 text-green-800',
+  students: 'bg-blue-50 border-blue-200 text-blue-800',
+  hosts:    'bg-amber-50 border-amber-200 text-amber-800',
 };
 const AUDIENCE_LABELS = { all: 'Tous', students: 'Étudiants', hosts: 'Hébergeurs' };
 
@@ -22,9 +22,9 @@ export default function MemberMessagerie() {
   const [sending, setSending]       = useState(false);
   const [loading, setLoading]       = useState(true);
   const [error, setError]           = useState(null);
-  const bottomRef  = useRef(null);
+  const bottomRef    = useRef(null);
   const fileInputRef = useRef(null);
-  const pollRef    = useRef(null);
+  const pollRef      = useRef(null);
 
   const fetchAll = useCallback(async (silent = false) => {
     try {
@@ -59,8 +59,7 @@ export default function MemberMessagerie() {
       if (file) fd.append('file', file);
       const res = await api.post('/messages', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
       setMessages(prev => [...prev, res.data.message]);
-      setText('');
-      setFile(null);
+      setText(''); setFile(null);
       if (fileInputRef.current) fileInputRef.current.value = '';
     } catch (err) {
       setError(err.response?.data?.error || 'Erreur lors de l\'envoi');
@@ -77,13 +76,13 @@ export default function MemberMessagerie() {
       <div className="max-w-2xl mx-auto flex flex-col gap-4">
 
         {/* En-tête */}
-        <div className="card flex items-center gap-3">
-          <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center text-xl">✉️</div>
-          <div>
-            <h2 className="font-semibold text-gray-800">Messagerie — Bureau AEGL</h2>
-            <p className="text-gray-400 text-sm">Écrivez-nous directement. Nous vous répondrons dans les meilleurs délais.</p>
+        <div className="card flex items-center gap-3 flex-wrap">
+          <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center text-xl flex-shrink-0">✉️</div>
+          <div className="min-w-0">
+            <h2 className="font-semibold text-gray-800 text-sm sm:text-base">Messagerie — Bureau AEGL</h2>
+            <p className="text-gray-400 text-xs sm:text-sm">Écrivez-nous directement. Nous répondrons rapidement.</p>
           </div>
-          <button onClick={() => fetchAll()} className="ml-auto text-gray-400 hover:text-green-700 text-xs flex items-center gap-1" title="Actualiser">
+          <button onClick={() => fetchAll()} className="ml-auto text-gray-400 hover:text-green-700 text-xs flex items-center gap-1 flex-shrink-0">
             🔄 Actualiser
           </button>
         </div>
@@ -105,7 +104,7 @@ export default function MemberMessagerie() {
                 <ul className="space-y-3">
                   {broadcasts.map(b => (
                     <li key={b.id} className={`border rounded-xl p-3 ${AUDIENCE_COLORS[b.audience]}`}>
-                      <div className="flex items-center gap-2 mb-1">
+                      <div className="flex items-center gap-2 mb-1 flex-wrap">
                         <span className="text-xs font-medium">
                           {b.audience === 'all' ? '👥' : b.audience === 'students' ? '🎓' : '🏠'} {AUDIENCE_LABELS[b.audience]}
                         </span>
@@ -125,30 +124,31 @@ export default function MemberMessagerie() {
             )}
 
             {/* ── Conversation privée ── */}
-            <div className="card flex flex-col" style={{ minHeight: '380px' }}>
-              <h3 className="font-semibold text-gray-700 text-sm mb-3 flex items-center gap-2">
+            <div className="card flex flex-col gap-3">
+              <h3 className="font-semibold text-gray-700 text-sm flex items-center gap-2">
                 <span>💬</span> Ma conversation avec le bureau
               </h3>
 
-              <div className="flex-1 overflow-y-auto space-y-3 pb-2" style={{ maxHeight: '360px' }}>
+              {/* Messages */}
+              <div className="space-y-3 overflow-y-auto" style={{ maxHeight: '50vh', minHeight: '160px' }}>
                 {messages.length === 0 ? (
-                  <div className="text-center py-10 text-gray-400">
+                  <div className="text-center py-8 text-gray-400">
                     <p className="text-3xl mb-2">💬</p>
                     <p className="text-sm">Aucun message pour l'instant.</p>
-                    <p className="text-xs mt-1">Envoyez votre première question au Bureau AEGL ci-dessous.</p>
+                    <p className="text-xs mt-1">Envoyez votre première question ci-dessous.</p>
                   </div>
                 ) : messages.map(msg => (
                   <div key={msg.id} className={`flex ${isMe(msg) ? 'justify-end' : 'justify-start'}`}>
-                    <div className="max-w-[78%]">
+                    <div className="max-w-[85%] sm:max-w-[78%]">
                       {!isMe(msg) && <p className="text-xs text-gray-400 mb-1 ml-1">🛡️ Bureau AEGL</p>}
-                      <div className={`rounded-2xl px-4 py-2.5 text-sm leading-relaxed ${
+                      <div className={`rounded-2xl px-3 py-2.5 sm:px-4 text-sm leading-relaxed ${
                         isMe(msg) ? 'bg-green-800 text-white rounded-tr-sm' : 'bg-amber-50 border border-amber-200 text-gray-800 rounded-tl-sm'
                       }`}>
                         {msg.content && <p className="whitespace-pre-wrap">{msg.content}</p>}
                         {msg.fileName && (
                           <a href={msg.viewUrl || '#'} target="_blank" rel="noopener noreferrer"
                             className={`flex items-center gap-2 mt-1 text-xs underline ${isMe(msg) ? 'text-green-200 hover:text-white' : 'text-green-700 hover:text-green-900'}`}>
-                            <span>📎</span><span className="truncate max-w-[200px]">{msg.fileName}</span><span>↗</span>
+                            <span>📎</span><span className="truncate max-w-[150px] sm:max-w-[200px]">{msg.fileName}</span><span>↗</span>
                           </a>
                         )}
                       </div>
@@ -159,20 +159,22 @@ export default function MemberMessagerie() {
                 <div ref={bottomRef} />
               </div>
 
+              {/* Fichier sélectionné */}
               {file && (
-                <div className="flex items-center gap-2 bg-green-50 border border-green-200 rounded-xl px-3 py-2 mt-2 text-xs text-green-700">
+                <div className="flex items-center gap-2 bg-green-50 border border-green-200 rounded-xl px-3 py-2 text-xs text-green-700">
                   <span>📎</span><span className="flex-1 truncate">{file.name}</span>
                   <button onClick={() => { setFile(null); if (fileInputRef.current) fileInputRef.current.value = ''; }} className="text-red-400 hover:text-red-600 font-bold">✕</button>
                 </div>
               )}
 
-              <div className="border-t border-gray-100 pt-3 mt-2 flex gap-2 items-end">
+              {/* Zone de saisie */}
+              <div className="border-t border-gray-100 pt-3 flex gap-2 items-end">
                 <div>
                   <input ref={fileInputRef} type="file" accept=".pdf,.jpg,.jpeg,.png" className="hidden" id="msg-file" onChange={e => setFile(e.target.files?.[0] || null)} />
-                  <label htmlFor="msg-file" className="flex items-center justify-center w-9 h-9 rounded-xl border border-gray-200 text-gray-400 hover:border-green-400 hover:text-green-700 cursor-pointer transition-colors" title="Joindre un fichier">📎</label>
+                  <label htmlFor="msg-file" className="flex items-center justify-center w-9 h-9 rounded-xl border border-gray-200 text-gray-400 hover:border-green-400 hover:text-green-700 cursor-pointer transition-colors flex-shrink-0">📎</label>
                 </div>
                 <textarea value={text} onChange={e => setText(e.target.value)} onKeyDown={handleKeyDown}
-                  placeholder="Votre message… (Entrée pour envoyer)" rows={1}
+                  placeholder="Votre message…" rows={1}
                   className="flex-1 border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-600 resize-none"
                   style={{ minHeight: '36px', maxHeight: '96px' }}
                   onInput={e => { e.target.style.height = 'auto'; e.target.style.height = Math.min(e.target.scrollHeight, 96) + 'px'; }} />
