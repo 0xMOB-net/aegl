@@ -4,7 +4,7 @@
   "description": "API backend AEGL - Association des Étudiants Guinéens de Limoges",
   "main": "src/server.js",
   "scripts": {
-    "start": "node src/server.js",
+    "start": "npx prisma generate --schema=src/prisma/schema.prisma && node src/server.js",
     "dev": "nodemon src/server.js",
     "postinstall": "prisma generate",
     "db:migrate": "npx prisma migrate deploy",
