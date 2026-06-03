@@ -43,7 +43,7 @@ const fileFilter = (req, file, cb) => {
   else cb(new Error('Type de fichier non autorisé. PDF, JPG, PNG acceptés.'), false);
 };
 
-const maxSize = parseInt(process.env.MAX_FILE_SIZE_MB || '10') * 1024 * 1024;
+const maxSize = parseInt(process.env.MAX_FILE_SIZE_MB || '50') * 1024 * 1024;
 const upload = multer({ storage: multer.memoryStorage(), fileFilter, limits: { fileSize: maxSize } });
 
 module.exports = { upload, uploadToCloudinary, getSignedUrl };
