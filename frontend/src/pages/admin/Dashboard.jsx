@@ -79,7 +79,7 @@ export default function AdminDashboard() {
           {[
             { to: '/membres/admin/dossiers', label: 'Voir tous les dossiers', icon: '📁', color: 'bg-green-50 hover:bg-green-100 text-green-800 border-green-100' },
             { to: '/membres/admin/alertes', label: 'Voir les alertes', icon: '🔔', color: 'bg-amber-50 hover:bg-amber-100 text-amber-800 border-amber-100' },
-            { to: '/membres/admin/annonces', label: 'Nouvelle annonce', icon: '📢', color: 'bg-blue-50 hover:bg-blue-100 text-blue-800 border-blue-100' },
+            { to: '/membres/admin/messagerie', label: 'Messagerie', icon: '💬', color: 'bg-blue-50 hover:bg-blue-100 text-blue-800 border-blue-100' },
             { to: '/membres/admin/articles', label: 'Gérer les articles', icon: '✍️', color: 'bg-purple-50 hover:bg-purple-100 text-purple-800 border-purple-100' },
           ].map(({ to, label, icon, color }) => (
             <Link key={to} to={to} className={`border rounded-xl p-4 flex items-center gap-3 transition-all text-sm font-medium ${color}`}>

@@ -35,40 +35,76 @@ const generateAttestationBuffer = (dossier) => {
       const hostE = host.gender    === 'F' ? 'e' : '';
       const stuE  = student.gender === 'F' ? 'e' : '';
 
-      const hostDobStr   = host.dateOfBirth    ? shortDate(host.dateOfBirth)    : '';
-      const hostBirth    = host.birthPlace     ? ` à ${host.birthPlace}`        : '';
-      const stuDobStr    = student.dateOfBirth ? shortDate(student.dateOfBirth) : '';
-      const stuBirth     = student.birthPlace  ? ` à ${student.birthPlace}`     : '';
-      const hasPassport  = !!student.passportNumber;
+      // Trim all values to avoid trailing-space issues from DB
+      const hostLastName  = (host.lastName   || '').trim();
+      const hostFirstName = (host.firstName  || '').trim();
+      const stuLastName   = (student.lastName  || '').trim();
+      const stuFirstName  = (student.firstName || '').trim();
+
+      const hostDobStr  = host.dateOfBirth    ? shortDate(host.dateOfBirth)    : '';
+      const hostCity    = host.birthPlace     ? host.birthPlace.trim()         : '';
+      const stuDobStr   = student.dateOfBirth ? shortDate(student.dateOfBirth) : '';
+      const stuCity     = student.birthPlace  ? student.birthPlace.trim()      : '';
+      const hasPassport = !!student.passportNumber;
 
       // ── Titre ──────────────────────────────────────────────────────────
       doc.fontSize(13).font(B)
          .text("ATTESTATION D'HÉBERGEMENT", { align: 'center' })
          .moveDown(2.8);
 
-      // ── Corps — inline bold sur noms / dates / mots-clés ──────────────
-      const fs = 12;
+      // ── Corps ──────────────────────────────────────────────────────────
+      // PDFKit continued mode drops leading spaces — always put spaces at
+      // the END of the preceding segment, never at the start of the next.
+      const fs   = 12;
       const opts = { continued: true, lineGap: 5, align: 'justify' };
       const last = { lineGap: 5, align: 'justify' };
 
+      // "Je soussigné[e] NOM Prénom"
       doc.fontSize(fs)
          .font(R).text(`Je soussigné${hostE} `, opts)
-         .font(B).text(`${host.lastName} ${host.firstName}`, opts)
-         .font(R).text(hostDobStr ? `, né${hostE} le ` : '', opts)
-         .font(B).text(hostDobStr, opts)
-         .font(R).text(`${hostBirth}, m'engage à accueillir à mon domicile `, opts)
-         .font(B).text(`${student.lastName} ${student.firstName}`, opts)
-         .font(R).text(stuDobStr ? `, né${stuE} le ` : '', opts)
-         .font(B).text(stuDobStr, opts)
-         .font(R).text(`${stuBirth}, de nationalité `, opts)
-         .font(B).text('guinéenne', opts);
+         .font(B).text(`${hostLastName} ${hostFirstName}`, opts);
+
+      // ", né[e] le DATE à VILLE, m'engage..."
+      if (hostDobStr && hostCity) {
+        doc.font(R).text(`, né${hostE} le `, opts)
+           .font(B).text(hostDobStr + ' ', opts)           // trailing space before "à"
+           .font(R).text(`à ${hostCity}, m'engage à accueillir à mon domicile `, opts);
+      } else if (hostDobStr) {
+        doc.font(R).text(`, né${hostE} le `, opts)
+           .font(B).text(hostDobStr, opts)
+           .font(R).text(`, m'engage à accueillir à mon domicile `, opts);
+      } else if (hostCity) {
+        doc.font(R).text(`, à ${hostCity}, m'engage à accueillir à mon domicile `, opts);
+      } else {
+        doc.font(R).text(`, m'engage à accueillir à mon domicile `, opts);
+      }
+
+      // "NOM Prénom"
+      doc.font(B).text(`${stuLastName} ${stuFirstName}`, opts);
+
+      // ", né[e] le DATE à VILLE, de nationalité"
+      if (stuDobStr && stuCity) {
+        doc.font(R).text(`, né${stuE} le `, opts)
+           .font(B).text(stuDobStr + ' ', opts)            // trailing space before "à"
+           .font(R).text(`à ${stuCity}, de nationalité `, opts);
+      } else if (stuDobStr) {
+        doc.font(R).text(`, né${stuE} le `, opts)
+           .font(B).text(stuDobStr, opts)
+           .font(R).text(`, de nationalité `, opts);
+      } else if (stuCity) {
+        doc.font(R).text(`, à ${stuCity}, de nationalité `, opts);
+      } else {
+        doc.font(R).text(`, de nationalité `, opts);
+      }
+
+      doc.font(B).text('guinéenne', opts);
 
       if (hasPassport) {
         doc.font(R).text(', titulaire du passeport N° ', opts)
            .font(B).text(student.passportNumber, opts)
-           .font(R).text(', dès son arrivée en France à l\'adresse suivante :', last);
+           .font(R).text(', dès son arrivée en France à l\'adresse suivante :', last);
       } else {
-        doc.font(R).text(', dès son arrivée en France à l\'adresse suivante :', last);
+        doc.font(R).text(', dès son arrivée en France à l\'adresse suivante :', last);
       }
 
       // ── Adresse ────────────────────────────────────────────────────────
@@ -81,7 +117,7 @@ const generateAttestationBuffer = (dossier) => {
          .fontSize(fs).font(B)
          .text(`Limoges, le ${longDate(today)}`, { align: 'right' })
          .moveDown(0.5)
-         .text(`${host.lastName} ${host.firstName}`, { align: 'right' });
+         .text(`${hostLastName} ${hostFirstName}`, { align: 'right' });
 
       doc.end();
     } catch (err) {
