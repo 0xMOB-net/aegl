@@ -549,15 +549,30 @@ const adminDirectDeliver = async (req, res) => {
     }
 
     // Fusionner directement depuis les buffers en mémoire (aucun re-téléchargement Cloudinary)
-    const finalBuffer = hostBuffers.length > 0
-      ? await mergeFromBuffers(attestationFile.buffer, hostBuffers)
-      : attestationFile.buffer;
+    console.log(`[adminDirectDeliver] fusion: attestation=${attestationFile.buffer.length} octets, ${hostBuffers.length} doc(s) hébergeur`);
+    let finalBuffer;
+    try {
+      finalBuffer = hostBuffers.length > 0
+        ? await mergeFromBuffers(attestationFile.buffer, hostBuffers)
+        : attestationFile.buffer;
+      console.log(`[adminDirectDeliver] fusion OK: ${finalBuffer.length} octets`);
+    } catch (mergeErr) {
+      console.error('[adminDirectDeliver] ERREUR fusion:', mergeErr.message);
+      return res.status(500).json({ error: `Erreur lors de la fusion des PDFs: ${mergeErr.message}` });
+    }
 
-    const mergedUrl = await uploadBuffer(
-      finalBuffer,
-      'aegl/dossiers-complets',
-      `dossier_complet_${dossier.id}_${Date.now()}`
-    );
+    let mergedUrl;
+    try {
+      mergedUrl = await uploadBuffer(
+        finalBuffer,
+        'aegl/dossiers-complets',
+        `dossier_complet_${dossier.id}_${Date.now()}`
+      );
+      console.log(`[adminDirectDeliver] upload PDF fusionné OK: ${mergedUrl}`);
+    } catch (uploadFinalErr) {
+      console.error('[adminDirectDeliver] ERREUR upload PDF fusionné:', uploadFinalErr.message);
+      return res.status(500).json({ error: `Erreur lors de l'upload du PDF final: ${uploadFinalErr.message}` });
+    }
 
     const updated = await prisma.dossier.update({
       where: { id: dossier.id },
@@ -568,7 +583,7 @@ const adminDirectDeliver = async (req, res) => {
     await logActivity(user.id, 'admin_direct_deliver', { dossierId: dossier.id });
     res.json({ dossier: updated });
   } catch (err) {
-    console.error('adminDirectDeliver error:', err);
+    console.error('[adminDirectDeliver] ERREUR globale:', err.message, err.stack);
     res.status(500).json({ error: err.message || 'Erreur serveur' });
   }
 };
