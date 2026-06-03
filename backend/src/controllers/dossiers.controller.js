@@ -21,7 +21,7 @@ const deleteCloudinaryFile = (url) => {
     .catch(err => console.error(`Cloudinary delete failed for ${publicId}:`, err.message));
 };
 const { generateAttestationBuffer } = require('../services/pdf.service');
-const { mergeDocuments, uploadBuffer } = require('../services/merge.service');
+const { mergeDocuments, mergeFromBuffers, uploadBuffer } = require('../services/merge.service');
 const { uploadToCloudinary, getSignedUrl } = require('../middlewares/upload.middleware');
 
 const prisma = new PrismaClient();
@@ -528,26 +528,29 @@ const adminDirectDeliver = async (req, res) => {
     existingDocs.forEach(doc => deleteCloudinaryFile(doc.filePath));
     await prisma.hostDocument.deleteMany({ where: { dossierId: dossier.id } });
 
-    // Upload des documents hébergeur optionnels
+    // Collecter les buffers en mémoire ET uploader sur Cloudinary pour stockage
     const docTypes = ['bail', 'identity', 'quittance_1', 'quittance_2', 'quittance_3', 'facture_1', 'facture_2', 'facture_3'];
+    const hostBuffers = [];
     const newDocs = [];
     for (const docType of docTypes) {
       const fileArr = req.files?.[docType];
       if (!fileArr?.[0]) continue;
-      const r = await uploadToCloudinary(fileArr[0].buffer, { folder: 'aegl/host-docs', resource_type: 'raw' });
-      newDocs.push({ dossierId: dossier.id, docType, filePath: r.secure_url, verified: true });
+      const buf = fileArr[0].buffer;
+      hostBuffers.push(buf); // pour la fusion en mémoire (pas de limite Cloudinary)
+      try {
+        const r = await uploadToCloudinary(buf, { folder: 'aegl/host-docs', resource_type: 'raw' });
+        newDocs.push({ dossierId: dossier.id, docType, filePath: r.secure_url, verified: true });
+      } catch (uploadErr) {
+        console.error(`adminDirectDeliver: upload Cloudinary échoué pour ${docType}:`, uploadErr.message);
+      }
     }
     if (newDocs.length > 0) {
       await prisma.hostDocument.createMany({ data: newDocs });
     }
 
-    // Recharger tous les nouveaux docs pour la fusion
-    const allHostDocs = await prisma.hostDocument.findMany({ where: { dossierId: dossier.id } });
-    const hostDocUrls = allHostDocs.map(d => d.filePath).filter(Boolean);
-
-    // Fusionner attestation + docs hébergeur si présents, sinon utiliser l'attestation seule
-    const finalBuffer = hostDocUrls.length > 0
-      ? await mergeDocuments(attestationFile.buffer, hostDocUrls)
+    // Fusionner directement depuis les buffers en mémoire (aucun re-téléchargement Cloudinary)
+    const finalBuffer = hostBuffers.length > 0
+      ? await mergeFromBuffers(attestationFile.buffer, hostBuffers)
       : attestationFile.buffer;
 
     const mergedUrl = await uploadBuffer(

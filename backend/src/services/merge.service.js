@@ -75,6 +75,47 @@ const mergeDocuments = async (attestationBuffer, hostDocUrls) => {
   return Buffer.from(await merged.save());
 };
 
+// Fusionne depuis des buffers directement (pas d'URL Cloudinary, pas de limite de taille)
+const mergeFromBuffers = async (attestationBuffer, hostBuffers) => {
+  const merged = await PDFDocument.create();
+
+  const attestDoc = await PDFDocument.load(attestationBuffer);
+  const attestPages = await merged.copyPages(attestDoc, attestDoc.getPageIndices());
+  attestPages.forEach(p => merged.addPage(p));
+
+  for (const buf of hostBuffers) {
+    if (!buf) continue;
+    try {
+      if (isPdf(buf)) {
+        const doc = await PDFDocument.load(buf, { ignoreEncryption: true });
+        const pages = await merged.copyPages(doc, doc.getPageIndices());
+        pages.forEach(p => merged.addPage(p));
+      } else {
+        const page = merged.addPage([595, 842]);
+        let img;
+        try {
+          img = await merged.embedPng(buf).catch(() => merged.embedJpg(buf));
+        } catch {
+          img = await merged.embedJpg(buf);
+        }
+        const { width: imgW, height: imgH } = img.scale(1);
+        const pageW = 595, pageH = 842, margin = 30;
+        const scale = Math.min((pageW - margin * 2) / imgW, (pageH - margin * 2) / imgH, 1);
+        page.drawImage(img, {
+          x: (pageW - imgW * scale) / 2,
+          y: (pageH - imgH * scale) / 2,
+          width: imgW * scale,
+          height: imgH * scale,
+        });
+      }
+    } catch (err) {
+      console.error('mergeFromBuffers: failed to embed buffer:', err.message);
+    }
+  }
+
+  return Buffer.from(await merged.save());
+};
+
 // Upload un buffer vers Cloudinary (authenticated) et retourne le secure_url
 const uploadBuffer = (buffer, folder, publicId) =>
   new Promise((resolve, reject) => {
@@ -86,4 +127,4 @@ const uploadBuffer = (buffer, folder, publicId) =>
     Readable.from(buffer).pipe(stream);
   });
 
-module.exports = { mergeDocuments, uploadBuffer };
+module.exports = { mergeDocuments, mergeFromBuffers, uploadBuffer };
