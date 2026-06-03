@@ -534,7 +534,7 @@ const adminDirectDeliver = async (req, res) => {
     for (const docType of docTypes) {
       const fileArr = req.files?.[docType];
       if (!fileArr?.[0]) continue;
-      const r = await uploadToCloudinary(fileArr[0].buffer, { folder: 'aegl/host-docs' });
+      const r = await uploadToCloudinary(fileArr[0].buffer, { folder: 'aegl/host-docs', resource_type: 'raw' });
       newDocs.push({ dossierId: dossier.id, docType, filePath: r.secure_url, verified: true });
     }
     if (newDocs.length > 0) {
