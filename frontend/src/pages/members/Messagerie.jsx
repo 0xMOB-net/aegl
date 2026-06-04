@@ -3,7 +3,17 @@ import MemberLayout from '../../components/members/MemberLayout';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../api/client';
 
-const fmt = (d) =>
+const fmtShort = (d) => {
+  const now = new Date();
+  const date = new Date(d);
+  const diffDays = Math.floor((now - date) / 86400000);
+  if (diffDays === 0) return date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+  if (diffDays === 1) return 'Hier';
+  if (diffDays < 7) return date.toLocaleDateString('fr-FR', { weekday: 'short' });
+  return date.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' });
+};
+
+const fmtFull = (d) =>
   new Date(d).toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
 
 const AUDIENCE_STYLE = {
@@ -16,44 +26,23 @@ const AUDIENCE_LBL  = { all: 'Tous', students: 'Étudiants', hosts: 'Hébergeurs
 
 const EMOJIS = ['👍', '❤️', '💪'];
 
-export default function MemberMessagerie() {
-  const { user } = useAuth();
-  const [messages,   setMessages]   = useState([]);
-  const [broadcasts, setBroadcasts] = useState([]);
-  const [text,    setText]   = useState('');
-  const [file,    setFile]   = useState(null);
+/* ── Avatar bureau ── */
+function BureauAvatar({ size = 'md' }) {
+  const sz = size === 'sm' ? 'w-8 h-8 text-xs' : 'w-10 h-10 text-sm';
+  return (
+    <div className={`${sz} rounded-full bg-[#075e54] flex items-center justify-center text-white font-bold flex-shrink-0`}>
+      AE
+    </div>
+  );
+}
+
+/* ── Conversation privée ── */
+function PrivateConversation({ messages, loading, userId, onSend, onBack }) {
+  const [text, setText] = useState('');
+  const [file, setFile] = useState(null);
   const [sending, setSending] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [error,   setError]   = useState(null);
-  const bottomRef    = useRef(null);
+  const bottomRef = useRef(null);
   const fileInputRef = useRef(null);
-  const pollRef      = useRef(null);
-
-  const fetchAll = useCallback(async (silent = false) => {
-    try {
-      const [msgRes, bcRes] = await Promise.all([
-        api.get('/messages'),
-        api.get('/messages/broadcasts'),
-      ]);
-      setMessages(msgRes.data.messages || []);
-      setBroadcasts(bcRes.data.broadcasts || []);
-      setError(null);
-    } catch (err) {
-      if (!silent) {
-        const status = err.response?.status;
-        const msg = err.response?.data?.error || err.message || 'Erreur inconnue';
-        setError(`Erreur ${status || ''} : ${msg}`);
-      }
-    } finally {
-      if (!silent) setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchAll();
-    pollRef.current = setInterval(() => fetchAll(true), 15000);
-    return () => clearInterval(pollRef.current);
-  }, [fetchAll]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -63,25 +52,204 @@ export default function MemberMessagerie() {
     if ((!text.trim() && !file) || sending) return;
     setSending(true);
     try {
-      const fd = new FormData();
-      if (text.trim()) fd.append('content', text.trim());
-      if (file) fd.append('file', file);
-      const res = await api.post('/messages', fd, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      });
-      setMessages(prev => [...prev, res.data.message]);
+      await onSend(text.trim(), file);
       setText('');
       setFile(null);
       if (fileInputRef.current) fileInputRef.current.value = '';
-    } catch (err) {
-      setError(err.response?.data?.error || 'Erreur lors de l\'envoi');
     } finally {
       setSending(false);
     }
   };
 
-  const react = async (broadcastId, emoji) => {
-    // Optimistic update — choix exclusif
+  const isMe = (msg) => msg.senderId === userId;
+
+  return (
+    <div className="flex flex-col h-full bg-[#efeae2]">
+      {/* Header */}
+      <div className="bg-[#075e54] px-4 py-3 flex items-center gap-3 flex-shrink-0">
+        {onBack && (
+          <button onClick={onBack} className="text-white/80 hover:text-white text-xl mr-1 leading-none">←</button>
+        )}
+        <BureauAvatar size="sm" />
+        <div className="min-w-0 flex-1">
+          <p className="font-semibold text-white text-sm">Bureau AEGL</p>
+          <p className="text-xs text-white/60">Association des Étudiants Guinéens à Limoges</p>
+        </div>
+      </div>
+
+      {/* Messages */}
+      <div className="flex-1 overflow-y-auto min-h-0 px-4 py-3 space-y-1.5">
+        {loading ? (
+          <div className="flex justify-center py-10">
+            <div className="w-6 h-6 border-2 border-green-700 border-t-transparent rounded-full animate-spin" />
+          </div>
+        ) : messages.length === 0 ? (
+          <div className="flex justify-center py-10">
+            <div className="bg-white/80 rounded-xl px-4 py-2 text-xs text-gray-500 text-center">
+              Démarrez votre conversation avec le bureau AEGL
+            </div>
+          </div>
+        ) : messages.map(msg => (
+          <div key={msg.id} className={`flex ${isMe(msg) ? 'justify-end' : 'justify-start'}`}>
+            <div className={`max-w-[72%] rounded-lg px-3 py-1.5 shadow-sm ${
+              isMe(msg) ? 'bg-[#dcf8c6] rounded-tr-sm' : 'bg-white rounded-tl-sm'
+            }`}>
+              {!isMe(msg) && (
+                <p className="text-[10px] text-[#075e54] font-semibold mb-0.5">Bureau AEGL</p>
+              )}
+              {msg.content && (
+                <p className="text-sm text-gray-800 whitespace-pre-wrap leading-relaxed">{msg.content}</p>
+              )}
+              {msg.fileName && (
+                <a href={msg.viewUrl || '#'} target="_blank" rel="noopener noreferrer"
+                  className="flex items-center gap-1.5 mt-1 text-xs text-green-700 underline">
+                  📎 <span className="truncate max-w-[140px]">{msg.fileName}</span> ↗
+                </a>
+              )}
+              <p className="text-[10px] text-gray-400 text-right mt-0.5">{fmtFull(msg.createdAt)}</p>
+            </div>
+          </div>
+        ))}
+        <div ref={bottomRef} />
+      </div>
+
+      {file && (
+        <div className="mx-3 mb-1 flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-3 py-2 text-xs text-gray-600 flex-shrink-0">
+          📎 <span className="flex-1 truncate">{file.name}</span>
+          <button onClick={() => { setFile(null); if (fileInputRef.current) fileInputRef.current.value = ''; }}
+            className="text-red-400 font-bold">✕</button>
+        </div>
+      )}
+
+      {/* Input */}
+      <div className="bg-[#f0f0f0] px-3 py-2 flex gap-2 items-end flex-shrink-0">
+        <input ref={fileInputRef} type="file" accept=".pdf,.jpg,.jpeg,.png" className="hidden" id="mbr-msg-file"
+          onChange={e => setFile(e.target.files?.[0] || null)} />
+        <label htmlFor="mbr-msg-file"
+          className="w-9 h-9 rounded-full bg-white flex items-center justify-center text-gray-500 hover:text-green-700 cursor-pointer shadow-sm flex-shrink-0">
+          📎
+        </label>
+        <textarea value={text} onChange={e => setText(e.target.value)}
+          onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } }}
+          placeholder="Écrire un message…" rows={1}
+          className="flex-1 rounded-2xl border-0 px-4 py-2 text-sm focus:outline-none resize-none shadow-sm"
+          style={{ minHeight: '38px', maxHeight: '96px' }}
+          onInput={e => { e.target.style.height = 'auto'; e.target.style.height = Math.min(e.target.scrollHeight, 96) + 'px'; }} />
+        <button onClick={send} disabled={(!text.trim() && !file) || sending}
+          className="w-9 h-9 rounded-full bg-[#075e54] text-white flex items-center justify-center hover:bg-[#054d44] transition-colors disabled:opacity-40 flex-shrink-0 shadow-sm">
+          {sending
+            ? <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+            : <span className="text-sm leading-none">➤</span>}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/* ── Panneau Annonces ── */
+function BroadcastsPanel({ broadcasts, loading, onReact, onBack }) {
+  return (
+    <div className="flex flex-col h-full bg-[#efeae2]">
+      {/* Header */}
+      <div className="bg-[#075e54] px-4 py-3 flex items-center gap-3 flex-shrink-0">
+        {onBack && (
+          <button onClick={onBack} className="text-white/80 hover:text-white text-xl mr-1 leading-none">←</button>
+        )}
+        <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center text-lg flex-shrink-0">📢</div>
+        <div>
+          <p className="font-semibold text-white text-sm">Annonces du bureau</p>
+          <p className="text-xs text-white/60">{broadcasts.length} message{broadcasts.length !== 1 ? 's' : ''}</p>
+        </div>
+      </div>
+
+      <div className="flex-1 overflow-y-auto min-h-0 px-4 py-3">
+        {loading ? (
+          <div className="flex justify-center py-10">
+            <div className="w-6 h-6 border-2 border-green-700 border-t-transparent rounded-full animate-spin" />
+          </div>
+        ) : broadcasts.length === 0 ? (
+          <div className="flex justify-center py-10">
+            <div className="bg-white/80 rounded-xl px-4 py-2 text-xs text-gray-500 text-center">
+              Aucune annonce pour l'instant
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {broadcasts.map(b => (
+              <div key={b.id} className={`rounded-xl p-3 text-sm border shadow-sm ${AUDIENCE_STYLE[b.audience]}`}>
+                <div className="flex items-center gap-2 mb-1.5">
+                  <span className="text-xs font-semibold">{AUDIENCE_ICON[b.audience]} {AUDIENCE_LBL[b.audience]}</span>
+                  <span className="text-xs opacity-50 ml-auto">{fmtFull(b.createdAt)}</span>
+                </div>
+                {b.content && <p className="whitespace-pre-wrap leading-relaxed">{b.content}</p>}
+                {b.fileName && (
+                  <a href={b.viewUrl || '#'} target="_blank" rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 mt-2 text-xs underline opacity-75 hover:opacity-100">
+                    📎 <span className="truncate max-w-[180px]">{b.fileName}</span> ↗
+                  </a>
+                )}
+                <div className="flex items-center gap-1.5 mt-2.5 flex-wrap">
+                  {EMOJIS.map(emoji => {
+                    const count = (b.reactionCounts || {})[emoji] || 0;
+                    const mine  = (b.myReactions || []).includes(emoji);
+                    return (
+                      <button key={emoji} onClick={() => onReact(b.id, emoji)}
+                        className={`flex items-center gap-0.5 px-2 py-0.5 rounded-full text-xs border transition-all ${
+                          mine
+                            ? 'bg-white/70 border-current font-semibold shadow-sm'
+                            : 'bg-white/40 border-transparent hover:border-current hover:bg-white/60'
+                        }`}>
+                        <span>{emoji}</span>
+                        {count > 0 && <span className="font-medium ml-0.5">{count}</span>}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ── Page principale ── */
+export default function MemberMessagerie() {
+  const { user } = useAuth();
+  const [messages,   setMessages]   = useState([]);
+  const [broadcasts, setBroadcasts] = useState([]);
+  const [loading,    setLoading]    = useState(true);
+  const [selected,   setSelected]   = useState(null); // 'private' | 'broadcasts'
+  const pollRef = useRef(null);
+
+  const fetchAll = useCallback(async (silent = false) => {
+    try {
+      const [msgRes, bcRes] = await Promise.all([
+        api.get('/messages'),
+        api.get('/messages/broadcasts'),
+      ]);
+      setMessages(msgRes.data.messages || []);
+      setBroadcasts(bcRes.data.broadcasts || []);
+    } catch {}
+    finally { if (!silent) setLoading(false); }
+  }, []);
+
+  useEffect(() => {
+    fetchAll();
+    pollRef.current = setInterval(() => fetchAll(true), 15000);
+    return () => clearInterval(pollRef.current);
+  }, [fetchAll]);
+
+  const handleSend = async (content, file) => {
+    const fd = new FormData();
+    if (content) fd.append('content', content);
+    if (file)    fd.append('file', file);
+    const res = await api.post('/messages', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+    setMessages(prev => [...prev, res.data.message]);
+  };
+
+  const handleReact = async (broadcastId, emoji) => {
     setBroadcasts(prev => prev.map(b => {
       if (b.id !== broadcastId) return b;
       const current = (b.myReactions || [])[0];
@@ -99,191 +267,114 @@ export default function MemberMessagerie() {
       setBroadcasts(prev => prev.map(b =>
         b.id === broadcastId ? { ...b, reactionCounts: res.data.reactionCounts } : b
       ));
-    } catch {
-      fetchAll(true);
-    }
+    } catch { fetchAll(true); }
   };
 
-  const handleKey = (e) => {
-    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); }
-  };
-
-  const isMe = (msg) => msg.senderId === user?.id;
+  const lastPrivate = messages[messages.length - 1];
+  const lastBroadcast = broadcasts[0];
 
   return (
     <MemberLayout title="Messagerie">
-      <div className="flex flex-col gap-4 max-w-2xl mx-auto">
+      <div className="flex gap-0 overflow-hidden rounded-2xl shadow-sm border border-gray-200" style={{ height: 'calc(100vh - 220px)' }}>
 
-        {/* ── En-tête ── */}
-        <div className="card flex items-center gap-3">
-          <div className="w-9 h-9 flex-shrink-0 bg-green-100 rounded-full flex items-center justify-center text-lg">✉️</div>
-          <div className="min-w-0">
-            <h2 className="font-semibold text-gray-800 text-sm leading-tight">Messagerie — Bureau AEGL</h2>
-            <p className="text-gray-400 text-xs mt-0.5">Écrivez-nous directement, nous répondons rapidement.</p>
-          </div>
-          <button
-            onClick={() => fetchAll()}
-            className="ml-auto flex-shrink-0 w-8 h-8 rounded-xl border border-gray-200 text-gray-400 hover:border-green-400 hover:text-green-700 flex items-center justify-center transition-colors text-sm"
-            title="Actualiser"
-          >🔄</button>
-        </div>
+        {/* ── Liste (sidebar) ── */}
+        <div className={`flex flex-col bg-white border-r border-gray-200
+          ${selected ? 'hidden md:flex md:w-72 lg:w-80' : 'flex w-full md:w-72 lg:w-80'}`}>
 
-        {loading ? (
-          <div className="card flex justify-center items-center py-14">
-            <div className="w-6 h-6 border-2 border-green-700 border-t-transparent rounded-full animate-spin" />
+          <div className="bg-[#075e54] px-4 py-3 flex items-center justify-between flex-shrink-0">
+            <h2 className="font-semibold text-white text-sm">Messagerie</h2>
+            <button onClick={() => fetchAll()} className="text-white/60 hover:text-white text-sm">🔄</button>
           </div>
-        ) : error ? (
-          <div className="card text-center text-red-500 text-sm py-10">{error}</div>
-        ) : (
-          <>
-            {/* ── Diffusions du bureau ── */}
+
+          <div className="flex-1 overflow-y-auto min-h-0">
+            {/* Thread conversation privée */}
+            <div
+              onClick={() => setSelected('private')}
+              className={`flex items-center gap-3 px-4 py-3.5 cursor-pointer hover:bg-gray-50 border-b border-gray-100 transition-colors ${
+                selected === 'private' ? 'bg-green-50' : ''
+              }`}
+            >
+              <BureauAvatar size="sm" />
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center justify-between">
+                  <p className="text-sm font-semibold text-gray-800">Bureau AEGL</p>
+                  {lastPrivate && (
+                    <span className="text-[10px] text-gray-400 flex-shrink-0 ml-1">{fmtShort(lastPrivate.createdAt)}</span>
+                  )}
+                </div>
+                <p className="text-xs text-gray-500 truncate">
+                  {lastPrivate
+                    ? lastPrivate.content || (lastPrivate.fileName ? `📎 ${lastPrivate.fileName}` : '')
+                    : <span className="italic text-gray-400">Démarrer une conversation</span>
+                  }
+                </p>
+              </div>
+            </div>
+
+            {/* Thread annonces */}
             {broadcasts.length > 0 && (
-              <div className="card space-y-3">
-                <h3 className="font-semibold text-gray-700 text-xs uppercase tracking-wide flex items-center gap-1.5">
-                  <span>📢</span> Messages du Bureau AEGL
-                </h3>
-                {broadcasts.map(b => (
-                  <div key={b.id} className={`border rounded-xl p-3 text-sm ${AUDIENCE_STYLE[b.audience]}`}>
-                    <div className="flex items-center gap-2 mb-1.5">
-                      <span className="text-xs font-semibold">{AUDIENCE_ICON[b.audience]} {AUDIENCE_LBL[b.audience]}</span>
-                      <span className="text-xs opacity-50 ml-auto">{fmt(b.createdAt)}</span>
-                    </div>
-                    {b.content && <p className="whitespace-pre-wrap leading-relaxed">{b.content}</p>}
-                    {b.fileName && (
-                      <a href={b.viewUrl || '#'} target="_blank" rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1 mt-2 text-xs underline opacity-75 hover:opacity-100">
-                        📎 <span className="truncate max-w-[180px]">{b.fileName}</span> ↗
-                      </a>
+              <div
+                onClick={() => setSelected('broadcasts')}
+                className={`flex items-center gap-3 px-4 py-3.5 cursor-pointer hover:bg-gray-50 border-b border-gray-100 transition-colors ${
+                  selected === 'broadcasts' ? 'bg-green-50' : ''
+                }`}
+              >
+                <div className="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center text-base flex-shrink-0">📢</div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm font-semibold text-gray-800">Annonces</p>
+                    {lastBroadcast && (
+                      <span className="text-[10px] text-gray-400 flex-shrink-0 ml-1">{fmtShort(lastBroadcast.createdAt)}</span>
                     )}
-                    {/* Réactions */}
-                    <div className="flex items-center gap-1.5 mt-2.5 flex-wrap">
-                      {EMOJIS.map(emoji => {
-                        const count = (b.reactionCounts || {})[emoji] || 0;
-                        const mine  = (b.myReactions || []).includes(emoji);
-                        return (
-                          <button
-                            key={emoji}
-                            onClick={() => react(b.id, emoji)}
-                            className={`flex items-center gap-0.5 px-2 py-0.5 rounded-full text-xs border transition-all ${
-                              mine
-                                ? 'bg-white/70 border-current font-semibold shadow-sm'
-                                : 'bg-white/40 border-transparent hover:border-current hover:bg-white/60'
-                            }`}
-                          >
-                            <span>{emoji}</span>
-                            {count > 0 && <span className="font-medium ml-0.5">{count}</span>}
-                          </button>
-                        );
-                      })}
-                    </div>
                   </div>
-                ))}
+                  <p className="text-xs text-gray-500 truncate">
+                    {lastBroadcast?.content || (lastBroadcast?.fileName ? `📎 ${lastBroadcast.fileName}` : '')}
+                  </p>
+                </div>
+                <span className="text-[10px] bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-medium flex-shrink-0">
+                  {broadcasts.length}
+                </span>
               </div>
             )}
 
-            {/* ── Conversation privée ── */}
-            <div className="card flex flex-col gap-0 p-0 overflow-hidden">
-              <div className="px-4 pt-4 pb-2 border-b border-gray-100">
-                <h3 className="font-semibold text-gray-700 text-sm flex items-center gap-2">
-                  💬 Ma conversation avec le bureau
-                </h3>
+            {loading && (
+              <div className="flex justify-center py-8">
+                <div className="w-5 h-5 border-2 border-green-700 border-t-transparent rounded-full animate-spin" />
               </div>
+            )}
+          </div>
+        </div>
 
-              {/* Messages scrollables */}
-              <div className="overflow-y-auto px-4 py-3 space-y-3" style={{ maxHeight: '45vh' }}>
-                {messages.length === 0 ? (
-                  <div className="text-center py-8 text-gray-400">
-                    <p className="text-3xl mb-2">💬</p>
-                    <p className="text-sm">Aucun message pour l'instant.</p>
-                    <p className="text-xs mt-1">Envoyez votre première question ci-dessous.</p>
-                  </div>
-                ) : (
-                  messages.map(msg => (
-                    <div key={msg.id} className={`flex ${isMe(msg) ? 'justify-end' : 'justify-start'}`}>
-                      <div className="max-w-[84%]">
-                        {!isMe(msg) && (
-                          <p className="text-xs text-gray-400 mb-1 ml-1">🛡️ Bureau AEGL</p>
-                        )}
-                        <div className={`rounded-2xl px-3 py-2 text-sm leading-relaxed ${
-                          isMe(msg)
-                            ? 'bg-green-800 text-white rounded-tr-sm'
-                            : 'bg-amber-50 border border-amber-200 text-gray-800 rounded-tl-sm'
-                        }`}>
-                          {msg.content && <p className="whitespace-pre-wrap">{msg.content}</p>}
-                          {msg.fileName && (
-                            <a href={msg.viewUrl || '#'} target="_blank" rel="noopener noreferrer"
-                              className={`flex items-center gap-1.5 mt-1 text-xs underline ${
-                                isMe(msg) ? 'text-green-200 hover:text-white' : 'text-green-700 hover:text-green-900'
-                              }`}>
-                              📎 <span className="truncate max-w-[140px]">{msg.fileName}</span> ↗
-                            </a>
-                          )}
-                        </div>
-                        <p className={`text-[10px] text-gray-400 mt-0.5 ${isMe(msg) ? 'text-right mr-1' : 'ml-1'}`}>
-                          {fmt(msg.createdAt)}
-                        </p>
-                      </div>
-                    </div>
-                  ))
-                )}
-                <div ref={bottomRef} />
-              </div>
-
-              {/* Fichier sélectionné */}
-              {file && (
-                <div className="mx-4 mb-2 flex items-center gap-2 bg-green-50 border border-green-200 rounded-xl px-3 py-2 text-xs text-green-700">
-                  📎 <span className="flex-1 truncate">{file.name}</span>
-                  <button
-                    onClick={() => { setFile(null); if (fileInputRef.current) fileInputRef.current.value = ''; }}
-                    className="text-red-400 hover:text-red-600 font-bold leading-none"
-                  >✕</button>
-                </div>
-              )}
-
-              {/* Zone de saisie */}
-              <div className="border-t border-gray-100 px-3 py-3 flex gap-2 items-end">
-                <div>
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept=".pdf,.jpg,.jpeg,.png"
-                    className="hidden"
-                    id="mbr-msg-file"
-                    onChange={e => setFile(e.target.files?.[0] || null)}
-                  />
-                  <label
-                    htmlFor="mbr-msg-file"
-                    className="flex items-center justify-center w-9 h-9 rounded-xl border border-gray-200 text-gray-400 hover:border-green-400 hover:text-green-700 cursor-pointer transition-colors flex-shrink-0"
-                    title="Joindre un fichier"
-                  >📎</label>
-                </div>
-                <textarea
-                  value={text}
-                  onChange={e => setText(e.target.value)}
-                  onKeyDown={handleKey}
-                  placeholder="Votre message…"
-                  rows={1}
-                  className="flex-1 border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-600 resize-none"
-                  style={{ minHeight: '38px', maxHeight: '96px' }}
-                  onInput={e => {
-                    e.target.style.height = 'auto';
-                    e.target.style.height = Math.min(e.target.scrollHeight, 96) + 'px';
-                  }}
-                />
-                <button
-                  onClick={send}
-                  disabled={(!text.trim() && !file) || sending}
-                  className="flex-shrink-0 w-9 h-9 rounded-xl bg-green-800 text-white flex items-center justify-center hover:bg-green-900 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-                >
-                  {sending
-                    ? <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                    : <span className="text-base leading-none">➤</span>
-                  }
-                </button>
-              </div>
+        {/* ── Panneau droit ── */}
+        <div className={`flex-1 flex flex-col overflow-hidden min-h-0 ${selected ? 'flex' : 'hidden md:flex'}`}>
+          {selected === 'private' ? (
+            <PrivateConversation
+              messages={messages}
+              loading={loading}
+              userId={user?.id}
+              onSend={handleSend}
+              onBack={() => setSelected(null)}
+            />
+          ) : selected === 'broadcasts' ? (
+            <BroadcastsPanel
+              broadcasts={broadcasts}
+              loading={loading}
+              onReact={handleReact}
+              onBack={() => setSelected(null)}
+            />
+          ) : (
+            <div className="flex-1 flex flex-col items-center justify-center bg-[#f0f2f5] text-gray-400">
+              <div className="w-20 h-20 rounded-full bg-gray-200 flex items-center justify-center text-4xl mb-4">💬</div>
+              <p className="text-lg font-medium text-gray-500">Messagerie AEGL</p>
+              <p className="text-sm mt-1">Sélectionnez une conversation</p>
+              <button
+                onClick={() => setSelected('private')}
+                className="mt-4 px-4 py-2 bg-[#075e54] text-white text-sm rounded-xl hover:bg-[#054d44] transition-colors">
+                Écrire au bureau
+              </button>
             </div>
-          </>
-        )}
+          )}
+        </div>
       </div>
     </MemberLayout>
   );
