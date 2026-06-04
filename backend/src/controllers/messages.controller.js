@@ -25,16 +25,14 @@ function formatBroadcast(b, currentUserId = null) {
 }
 
 const senderSelect = { id: true, firstName: true, lastName: true, role: true };
-
 const ALLOWED_EMOJIS = ['👍', '❤️', '💪'];
 
-// Membre : lire sa conversation avec l'admin (marque les messages admin comme lus)
+// Membre : lire sa conversation (marque les messages admin comme lus)
 const getMyMessages = async (req, res) => {
   try {
     const memberId = req.user.id;
-    // Marquer tous les messages non lus de l'admin comme lus
     await prisma.privateMessage.updateMany({
-      where: { memberId, senderId: { not: memberId }, readAt: null },
+      where: { memberId, senderId: { not: memberId }, readAt: null, deletedAt: null },
       data: { readAt: new Date() },
     });
     const messages = await prisma.privateMessage.findMany({
@@ -50,15 +48,14 @@ const getMyMessages = async (req, res) => {
   }
 };
 
-// Membre : envoyer un message à l'admin
+// Membre : envoyer un message
 const sendMessage = async (req, res) => {
   try {
     const memberId = req.user.id;
     const { content } = req.body;
     if (!content?.trim() && !req.file) return res.status(400).json({ error: 'Message ou fichier requis' });
 
-    let filePath = null;
-    let fileName = null;
+    let filePath = null, fileName = null;
     if (req.file) {
       const r = await uploadToCloudinary(req.file.buffer, { folder: 'aegl/messages' });
       filePath = r.secure_url;
@@ -69,10 +66,55 @@ const sendMessage = async (req, res) => {
       data: { memberId, senderId: memberId, content: content?.trim() || null, filePath, fileName },
       include: { sender: { select: senderSelect } },
     });
-
     res.status(201).json({ message: { ...msg, viewUrl: buildViewUrl(msg.filePath) } });
   } catch (err) {
     console.error('sendMessage error:', err);
+    res.status(500).json({ error: 'Erreur serveur' });
+  }
+};
+
+// Membre : modifier son propre message
+const editMyMessage = async (req, res) => {
+  try {
+    const { messageId } = req.params;
+    const memberId = req.user.id;
+    const { content } = req.body;
+    if (!content?.trim()) return res.status(400).json({ error: 'Contenu requis' });
+
+    const msg = await prisma.privateMessage.findUnique({ where: { id: messageId } });
+    if (!msg) return res.status(404).json({ error: 'Message introuvable' });
+    if (msg.senderId !== memberId) return res.status(403).json({ error: 'Non autorisé' });
+    if (msg.deletedAt) return res.status(400).json({ error: 'Message déjà supprimé' });
+
+    const updated = await prisma.privateMessage.update({
+      where: { id: messageId },
+      data: { content: content.trim(), editedAt: new Date() },
+      include: { sender: { select: senderSelect } },
+    });
+    res.json({ message: { ...updated, viewUrl: buildViewUrl(updated.filePath) } });
+  } catch (err) {
+    console.error('editMyMessage error:', err);
+    res.status(500).json({ error: 'Erreur serveur' });
+  }
+};
+
+// Membre : supprimer son propre message (soft delete)
+const deleteMyMessage = async (req, res) => {
+  try {
+    const { messageId } = req.params;
+    const memberId = req.user.id;
+
+    const msg = await prisma.privateMessage.findUnique({ where: { id: messageId } });
+    if (!msg) return res.status(404).json({ error: 'Message introuvable' });
+    if (msg.senderId !== memberId) return res.status(403).json({ error: 'Non autorisé' });
+
+    await prisma.privateMessage.update({
+      where: { id: messageId },
+      data: { deletedAt: new Date(), content: null, filePath: null, fileName: null },
+    });
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('deleteMyMessage error:', err);
     res.status(500).json({ error: 'Erreur serveur' });
   }
 };
@@ -82,7 +124,7 @@ const getMemberUnreadCount = async (req, res) => {
   try {
     const memberId = req.user.id;
     const count = await prisma.privateMessage.count({
-      where: { memberId, senderId: { not: memberId }, readAt: null },
+      where: { memberId, senderId: { not: memberId }, readAt: null, deletedAt: null },
     });
     res.json({ unreadCount: count });
   } catch (err) {
@@ -91,7 +133,7 @@ const getMemberUnreadCount = async (req, res) => {
   }
 };
 
-// Admin : liste des fils de discussion avec unreadCount
+// Admin : liste des fils avec unreadCount
 const getAdminThreads = async (req, res) => {
   try {
     const memberIds = await prisma.privateMessage.groupBy({
@@ -105,15 +147,14 @@ const getAdminThreads = async (req, res) => {
           prisma.privateMessage.findFirst({
             where: { memberId },
             orderBy: { createdAt: 'desc' },
-            select: { content: true, fileName: true, createdAt: true, senderId: true },
+            select: { content: true, fileName: true, createdAt: true, senderId: true, deletedAt: true },
           }),
           prisma.user.findUnique({
             where: { id: memberId },
             select: { id: true, firstName: true, lastName: true, role: true, email: true },
           }),
           prisma.privateMessage.count({ where: { memberId } }),
-          // Messages envoyés par le membre (senderId = memberId) non lus par l'admin
-          prisma.privateMessage.count({ where: { memberId, senderId: memberId, readAt: null } }),
+          prisma.privateMessage.count({ where: { memberId, senderId: memberId, readAt: null, deletedAt: null } }),
         ]);
         return { memberId, member, lastMessage: last, messageCount: count, unreadCount };
       })
@@ -130,9 +171,8 @@ const getAdminThreads = async (req, res) => {
 const getAdminThread = async (req, res) => {
   try {
     const { memberId } = req.params;
-    // Marquer tous les messages du membre comme lus par l'admin
     await prisma.privateMessage.updateMany({
-      where: { memberId, senderId: memberId, readAt: null },
+      where: { memberId, senderId: memberId, readAt: null, deletedAt: null },
       data: { readAt: new Date() },
     });
     const [messages, member] = await Promise.all([
@@ -155,18 +195,59 @@ const getAdminThread = async (req, res) => {
   }
 };
 
-// Admin : compter le total de messages non lus (tous les membres)
+// Admin : compter le total de messages non lus (tous membres)
 const getAdminUnreadCount = async (req, res) => {
   try {
-    // Messages envoyés par les membres (senderId = memberId dans leur fil) non lus
     const result = await prisma.$queryRaw`
       SELECT COUNT(*)::int as count FROM private_messages
-      WHERE "senderId" = "memberId" AND "readAt" IS NULL
+      WHERE "senderId" = "memberId" AND "readAt" IS NULL AND "deletedAt" IS NULL
     `;
-    const count = Number(result[0]?.count) || 0;
-    res.json({ unreadCount: count });
+    res.json({ unreadCount: Number(result[0]?.count) || 0 });
   } catch (err) {
     console.error('getAdminUnreadCount error:', err);
+    res.status(500).json({ error: 'Erreur serveur' });
+  }
+};
+
+// Admin : modifier un de ses propres messages
+const adminEditMessage = async (req, res) => {
+  try {
+    const { messageId } = req.params;
+    const adminId = req.user.id;
+    const { content } = req.body;
+    if (!content?.trim()) return res.status(400).json({ error: 'Contenu requis' });
+
+    const msg = await prisma.privateMessage.findUnique({ where: { id: messageId } });
+    if (!msg) return res.status(404).json({ error: 'Message introuvable' });
+    if (msg.senderId !== adminId) return res.status(403).json({ error: 'Vous ne pouvez modifier que vos propres messages' });
+    if (msg.deletedAt) return res.status(400).json({ error: 'Message déjà supprimé' });
+
+    const updated = await prisma.privateMessage.update({
+      where: { id: messageId },
+      data: { content: content.trim(), editedAt: new Date() },
+      include: { sender: { select: senderSelect } },
+    });
+    res.json({ message: { ...updated, viewUrl: buildViewUrl(updated.filePath) } });
+  } catch (err) {
+    console.error('adminEditMessage error:', err);
+    res.status(500).json({ error: 'Erreur serveur' });
+  }
+};
+
+// Admin : supprimer n'importe quel message d'un fil (soft delete)
+const adminDeleteMessage = async (req, res) => {
+  try {
+    const { messageId } = req.params;
+    const msg = await prisma.privateMessage.findUnique({ where: { id: messageId } });
+    if (!msg) return res.status(404).json({ error: 'Message introuvable' });
+
+    await prisma.privateMessage.update({
+      where: { id: messageId },
+      data: { deletedAt: new Date(), content: null, filePath: null, fileName: null },
+    });
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('adminDeleteMessage error:', err);
     res.status(500).json({ error: 'Erreur serveur' });
   }
 };
@@ -182,8 +263,7 @@ const adminReply = async (req, res) => {
     const member = await prisma.user.findUnique({ where: { id: memberId }, select: { id: true } });
     if (!member) return res.status(404).json({ error: 'Membre introuvable' });
 
-    let filePath = null;
-    let fileName = null;
+    let filePath = null, fileName = null;
     if (req.file) {
       const r = await uploadToCloudinary(req.file.buffer, { folder: 'aegl/messages' });
       filePath = r.secure_url;
@@ -194,7 +274,6 @@ const adminReply = async (req, res) => {
       data: { memberId, senderId: adminId, content: content?.trim() || null, filePath, fileName },
       include: { sender: { select: senderSelect } },
     });
-
     res.status(201).json({ message: { ...msg, viewUrl: buildViewUrl(msg.filePath) } });
   } catch (err) {
     console.error('adminReply error:', err);
@@ -214,17 +293,16 @@ const deleteThread = async (req, res) => {
   }
 };
 
-// Admin : diffuser un message à un groupe
+// Admin : diffuser un message
 const sendBroadcast = async (req, res) => {
   try {
     const adminId = req.user.id;
     const { content, audience } = req.body;
     const validAudiences = ['all', 'students', 'hosts'];
-    if (!validAudiences.includes(audience)) return res.status(400).json({ error: 'Audience invalide (all, students, hosts)' });
+    if (!validAudiences.includes(audience)) return res.status(400).json({ error: 'Audience invalide' });
     if (!content?.trim() && !req.file) return res.status(400).json({ error: 'Message ou fichier requis' });
 
-    let filePath = null;
-    let fileName = null;
+    let filePath = null, fileName = null;
     if (req.file) {
       const r = await uploadToCloudinary(req.file.buffer, { folder: 'aegl/broadcasts' });
       filePath = r.secure_url;
@@ -235,7 +313,6 @@ const sendBroadcast = async (req, res) => {
       data: { senderId: adminId, content: content?.trim() || null, filePath, fileName, audience },
       include: { sender: { select: senderSelect }, reactions: { select: { userId: true, emoji: true } } },
     });
-
     res.status(201).json({ broadcast: formatBroadcast(broadcast, null) });
   } catch (err) {
     console.error('sendBroadcast error:', err);
@@ -259,10 +336,7 @@ const deleteBroadcast = async (req, res) => {
 const getAdminBroadcasts = async (req, res) => {
   try {
     const broadcasts = await prisma.broadcast.findMany({
-      include: {
-        sender: { select: senderSelect },
-        reactions: { select: { userId: true, emoji: true } },
-      },
+      include: { sender: { select: senderSelect }, reactions: { select: { userId: true, emoji: true } } },
       orderBy: { createdAt: 'desc' },
     });
     res.json({ broadcasts: broadcasts.map(b => formatBroadcast(b, null)) });
@@ -272,7 +346,7 @@ const getAdminBroadcasts = async (req, res) => {
   }
 };
 
-// Membre : récupérer les diffusions qui le concernent
+// Membre : ses diffusions
 const getMyBroadcasts = async (req, res) => {
   try {
     const { role, id: userId } = req.user;
@@ -284,10 +358,7 @@ const getMyBroadcasts = async (req, res) => {
 
     const broadcasts = await prisma.broadcast.findMany({
       where: { audience: audienceFilter },
-      include: {
-        sender: { select: senderSelect },
-        reactions: { select: { userId: true, emoji: true } },
-      },
+      include: { sender: { select: senderSelect }, reactions: { select: { userId: true, emoji: true } } },
       orderBy: { createdAt: 'desc' },
       take: 50,
     });
@@ -298,7 +369,7 @@ const getMyBroadcasts = async (req, res) => {
   }
 };
 
-// Membre : réagir à une diffusion — choix exclusif
+// Membre : réagir à une diffusion
 const reactToBroadcast = async (req, res) => {
   try {
     const { broadcastId } = req.params;
@@ -334,8 +405,9 @@ const reactToBroadcast = async (req, res) => {
 };
 
 module.exports = {
-  getMyMessages, sendMessage, getMemberUnreadCount,
+  getMyMessages, sendMessage, editMyMessage, deleteMyMessage, getMemberUnreadCount,
   getAdminThreads, getAdminThread, adminReply, deleteThread, getAdminUnreadCount,
+  adminEditMessage, adminDeleteMessage,
   sendBroadcast, deleteBroadcast, getAdminBroadcasts,
   getMyBroadcasts, reactToBroadcast,
 };

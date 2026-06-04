@@ -16,23 +16,20 @@ const fmt = (d) => {
 const fmtFull = (d) =>
   new Date(d).toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
 
-const ROLE_LBL  = { student: 'Étudiant', host: 'Hébergeur', admin: 'Admin' };
-const ROLE_COLOR = { student: 'text-blue-500', host: 'text-amber-500', admin: 'text-green-600' };
-
+const ROLE_LBL   = { student: 'Étudiant', host: 'Hébergeur', admin: 'Admin' };
+const ROLE_COLOR  = { student: 'text-blue-500', host: 'text-amber-500', admin: 'text-green-600' };
 const AUDIENCE_LBL   = { all: 'Tous les membres', students: 'Étudiants', hosts: 'Hébergeurs' };
 const AUDIENCE_ICON  = { all: '👥', students: '🎓', hosts: '🏠' };
 const AUDIENCE_COLOR = { all: 'bg-green-100 text-green-800', students: 'bg-blue-100 text-blue-800', hosts: 'bg-amber-100 text-amber-800' };
 
-/* ── Coches de lecture ── */
 function ReadTick({ readAt }) {
-  if (readAt) {
-    return <span className="text-[10px] text-[#4fc3f7] font-bold ml-1">✓✓</span>;
-  }
-  return <span className="text-[10px] text-gray-400 ml-1">✓</span>;
+  return readAt
+    ? <span className="text-[10px] text-[#4fc3f7] font-bold ml-1">✓✓</span>
+    : <span className="text-[10px] text-gray-400 ml-1">✓</span>;
 }
 
 function Avatar({ user, size = 'md' }) {
-  const sz = size === 'sm' ? 'w-8 h-8 text-xs' : size === 'lg' ? 'w-12 h-12 text-base' : 'w-10 h-10 text-sm';
+  const sz = size === 'sm' ? 'w-8 h-8 text-xs' : 'w-10 h-10 text-sm';
   return (
     <div className={`${sz} rounded-full bg-green-600 flex items-center justify-center text-white font-bold flex-shrink-0`}>
       {user?.firstName?.[0]}{user?.lastName?.[0]}
@@ -40,16 +37,132 @@ function Avatar({ user, size = 'md' }) {
   );
 }
 
+/* ── Bulle de message avec menu contextuel ── */
+function MessageBubble({ msg, isMe, canDeleteAny, onEdit, onDelete }) {
+  const [showMenu, setShowMenu] = useState(false);
+  const [editing, setEditing]   = useState(false);
+  const [editText, setEditText] = useState(msg.content || '');
+  const menuRef = useRef(null);
+
+  useEffect(() => {
+    if (!showMenu) return;
+    const handler = (e) => { if (!menuRef.current?.contains(e.target)) setShowMenu(false); };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [showMenu]);
+
+  // Message supprimé
+  if (msg.deletedAt) {
+    return (
+      <div className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
+        <div className="max-w-[72%] rounded-lg px-3 py-1.5 bg-gray-100 border border-gray-200/80">
+          <p className="text-xs text-gray-400 italic flex items-center gap-1.5">
+            <span>🚫</span>Message supprimé
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  const canEdit   = isMe && !!msg.content;
+  const canDelete = isMe || canDeleteAny;
+
+  const saveEdit = async () => {
+    const t = editText.trim();
+    if (!t || t === msg.content) { setEditing(false); return; }
+    await onEdit(msg.id, t);
+    setEditing(false);
+  };
+
+  return (
+    <div className={`flex ${isMe ? 'justify-end' : 'justify-start'} group`}>
+      <div className="relative max-w-[72%]">
+
+        {/* Bouton menu (▾) — visible au survol */}
+        {(canEdit || canDelete) && !editing && (
+          <div
+            ref={menuRef}
+            className={`absolute top-1 z-10 opacity-0 group-hover:opacity-100 transition-opacity ${isMe ? '-left-7' : '-right-7'}`}
+          >
+            <button
+              onClick={() => setShowMenu(p => !p)}
+              className="w-6 h-6 rounded-full bg-white/90 shadow border border-gray-200 flex items-center justify-center text-gray-500 hover:text-gray-800 text-xs leading-none"
+            >
+              ▾
+            </button>
+            {showMenu && (
+              <div className={`absolute top-7 bg-white rounded-xl shadow-lg border border-gray-100 py-1 min-w-[130px] overflow-hidden ${isMe ? 'right-0' : 'left-0'}`}>
+                {canEdit && (
+                  <button
+                    onClick={() => { setEditing(true); setEditText(msg.content || ''); setShowMenu(false); }}
+                    className="w-full text-left px-4 py-2.5 text-xs text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+                  >
+                    ✏️ Modifier
+                  </button>
+                )}
+                <button
+                  onClick={() => { setShowMenu(false); onDelete(msg.id); }}
+                  className="w-full text-left px-4 py-2.5 text-xs text-red-600 hover:bg-red-50 flex items-center gap-2"
+                >
+                  🗑 Supprimer
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Bulle */}
+        <div className={`rounded-lg px-3 py-1.5 shadow-sm ${isMe ? 'bg-[#dcf8c6] rounded-tr-sm' : 'bg-white rounded-tl-sm'}`}>
+          {editing ? (
+            <div className="min-w-[180px]">
+              <textarea
+                value={editText}
+                onChange={e => setEditText(e.target.value)}
+                autoFocus
+                onKeyDown={e => {
+                  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); saveEdit(); }
+                  if (e.key === 'Escape') setEditing(false);
+                }}
+                className="w-full text-sm bg-transparent border-b-2 border-[#075e54] focus:outline-none resize-none py-0.5"
+                rows={Math.max(1, (editText.match(/\n/g) || []).length + 1)}
+              />
+              <div className="flex justify-end gap-3 mt-2">
+                <button onClick={() => setEditing(false)} className="text-xs text-gray-400 hover:text-gray-600">Annuler</button>
+                <button onClick={saveEdit} className="text-xs text-[#075e54] font-semibold hover:text-green-800">Sauvegarder</button>
+              </div>
+            </div>
+          ) : (
+            <>
+              {msg.content && <p className="text-sm text-gray-800 whitespace-pre-wrap leading-relaxed">{msg.content}</p>}
+              {msg.fileName && (
+                <a href={msg.viewUrl || '#'} target="_blank" rel="noopener noreferrer"
+                  className="flex items-center gap-1.5 mt-1 text-xs text-green-700 underline">
+                  📎 <span className="truncate max-w-[140px]">{msg.fileName}</span> ↗
+                </a>
+              )}
+              <div className="flex items-center justify-end gap-1 mt-0.5">
+                {msg.editedAt && <span className="text-[9px] text-gray-400 italic">modifié</span>}
+                <p className="text-[10px] text-gray-400">{fmtFull(msg.createdAt)}</p>
+                {isMe && <ReadTick readAt={msg.readAt} />}
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* ── Conversation ── */
 function Conversation({ thread, adminId, onNewMessage, onBack }) {
   const [messages, setMessages] = useState([]);
-  const [text, setText] = useState('');
-  const [file, setFile] = useState(null);
+  const [text, setText]   = useState('');
+  const [file, setFile]   = useState(null);
   const [sending, setSending] = useState(false);
   const [loading, setLoading] = useState(true);
-  const bottomRef = useRef(null);
+  const bottomRef   = useRef(null);
   const fileInputRef = useRef(null);
-  const pollRef = useRef(null);
+  const pollRef     = useRef(null);
 
   const fetchMsgs = useCallback(async (silent = false) => {
     try {
@@ -87,11 +200,25 @@ function Conversation({ thread, adminId, onNewMessage, onBack }) {
     finally { setSending(false); }
   };
 
-  const isMe = (msg) => msg.senderId === adminId;
+  const handleEdit = async (messageId, newContent) => {
+    try {
+      const res = await api.patch(`/messages/admin/message/${messageId}`, { content: newContent });
+      setMessages(prev => prev.map(m => m.id === messageId ? res.data.message : m));
+    } catch {}
+  };
+
+  const handleDelete = async (messageId) => {
+    if (!window.confirm('Supprimer ce message ?')) return;
+    try {
+      await api.delete(`/messages/admin/message/${messageId}`);
+      setMessages(prev => prev.map(m =>
+        m.id === messageId ? { ...m, deletedAt: new Date().toISOString(), content: null, filePath: null, fileName: null } : m
+      ));
+    } catch {}
+  };
 
   return (
     <div className="flex flex-col h-full bg-[#efeae2]">
-      {/* Header */}
       <div className="bg-[#075e54] px-4 py-3 flex items-center gap-3 flex-shrink-0">
         {onBack && (
           <button onClick={onBack} className="text-white/80 hover:text-white text-xl mr-1 leading-none">←</button>
@@ -104,7 +231,6 @@ function Conversation({ thread, adminId, onNewMessage, onBack }) {
         <button onClick={() => fetchMsgs()} className="text-white/60 hover:text-white text-sm">🔄</button>
       </div>
 
-      {/* Messages */}
       <div className="flex-1 overflow-y-auto min-h-0 px-4 py-3 space-y-1.5">
         {loading ? (
           <div className="flex justify-center py-10">
@@ -117,23 +243,14 @@ function Conversation({ thread, adminId, onNewMessage, onBack }) {
             </div>
           </div>
         ) : messages.map(msg => (
-          <div key={msg.id} className={`flex ${isMe(msg) ? 'justify-end' : 'justify-start'}`}>
-            <div className={`max-w-[72%] rounded-lg px-3 py-1.5 shadow-sm ${
-              isMe(msg) ? 'bg-[#dcf8c6] rounded-tr-sm' : 'bg-white rounded-tl-sm'
-            }`}>
-              {msg.content && <p className="text-sm text-gray-800 whitespace-pre-wrap leading-relaxed">{msg.content}</p>}
-              {msg.fileName && (
-                <a href={msg.viewUrl || '#'} target="_blank" rel="noopener noreferrer"
-                  className="flex items-center gap-1.5 mt-1 text-xs text-green-700 underline">
-                  📎 <span className="truncate max-w-[140px]">{msg.fileName}</span> ↗
-                </a>
-              )}
-              <div className="flex items-center justify-end gap-0.5 mt-0.5">
-                <p className="text-[10px] text-gray-400">{fmtFull(msg.createdAt)}</p>
-                {isMe(msg) && <ReadTick readAt={msg.readAt} />}
-              </div>
-            </div>
-          </div>
+          <MessageBubble
+            key={msg.id}
+            msg={msg}
+            isMe={msg.senderId === adminId}
+            canDeleteAny={true}
+            onEdit={handleEdit}
+            onDelete={handleDelete}
+          />
         ))}
         <div ref={bottomRef} />
       </div>
@@ -145,7 +262,6 @@ function Conversation({ thread, adminId, onNewMessage, onBack }) {
         </div>
       )}
 
-      {/* Input */}
       <div className="bg-[#f0f0f0] px-3 py-2 flex gap-2 items-end flex-shrink-0">
         <input ref={fileInputRef} type="file" accept=".pdf,.jpg,.jpeg,.png" className="hidden" id={`af-${thread.memberId}`}
           onChange={e => setFile(e.target.files?.[0] || null)} />
@@ -172,16 +288,13 @@ function Conversation({ thread, adminId, onNewMessage, onBack }) {
 /* ── Modal nouvelle conversation ── */
 function NewChatModal({ onClose, onSelect, existingIds }) {
   const [members, setMembers] = useState([]);
-  const [search, setSearch] = useState('');
+  const [search, setSearch]   = useState('');
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const load = async () => {
       try {
-        const [sRes, hRes] = await Promise.all([
-          api.get('/admin/students'),
-          api.get('/admin/hosts'),
-        ]);
+        const [sRes, hRes] = await Promise.all([api.get('/admin/students'), api.get('/admin/hosts')]);
         const all = [...(sRes.data.students || []), ...(hRes.data.hosts || [])];
         setMembers(all.sort((a, b) => `${a.lastName}${a.firstName}`.localeCompare(`${b.lastName}${b.firstName}`)));
       } catch {}
@@ -209,9 +322,7 @@ function NewChatModal({ onClose, onSelect, existingIds }) {
         </div>
         <div className="overflow-y-auto" style={{ maxHeight: '55vh' }}>
           {loading ? (
-            <div className="flex justify-center py-8">
-              <div className="w-5 h-5 border-2 border-green-700 border-t-transparent rounded-full animate-spin" />
-            </div>
+            <div className="flex justify-center py-8"><div className="w-5 h-5 border-2 border-green-700 border-t-transparent rounded-full animate-spin" /></div>
           ) : filtered.length === 0 ? (
             <p className="text-center text-gray-400 text-sm py-8">Aucun membre trouvé</p>
           ) : filtered.map(m => (
@@ -236,12 +347,12 @@ function NewChatModal({ onClose, onSelect, existingIds }) {
 /* ── Panneau Diffusion ── */
 function BroadcastPanel() {
   const [broadcasts, setBroadcasts] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [sending, setSending] = useState(false);
-  const [content, setContent] = useState('');
+  const [loading, setLoading]   = useState(true);
+  const [sending, setSending]   = useState(false);
+  const [content, setContent]   = useState('');
   const [audience, setAudience] = useState('all');
-  const [file, setFile] = useState(null);
-  const [error, setError] = useState(null);
+  const [file, setFile]     = useState(null);
+  const [error, setError]   = useState(null);
   const [success, setSuccess] = useState(false);
   const fileInputRef = useRef(null);
 
@@ -254,10 +365,7 @@ function BroadcastPanel() {
 
   const handleDelete = async (id) => {
     if (!window.confirm('Supprimer cette diffusion ?')) return;
-    try {
-      await api.delete(`/messages/admin/broadcast/${id}`);
-      setBroadcasts(p => p.filter(b => b.id !== id));
-    } catch {}
+    try { await api.delete(`/messages/admin/broadcast/${id}`); setBroadcasts(p => p.filter(b => b.id !== id)); } catch {}
   };
 
   const send = async () => {
@@ -363,11 +471,11 @@ function BroadcastPanel() {
 /* ── Page principale ── */
 export default function AdminMessagerie() {
   const { user } = useAuth();
-  const [tab, setTab] = useState('prive');
-  const [threads, setThreads] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [tab, setTab]           = useState('prive');
+  const [threads, setThreads]   = useState([]);
+  const [loading, setLoading]   = useState(true);
   const [selected, setSelected] = useState(null);
-  const [search, setSearch] = useState('');
+  const [search, setSearch]     = useState('');
   const [showNewChat, setShowNewChat] = useState(false);
 
   const loadThreads = useCallback(async () => {
@@ -385,9 +493,7 @@ export default function AdminMessagerie() {
     setThreads(prev => {
       const exists = prev.find(t => t.memberId === memberId);
       const lastMessage = { content: msg.content, fileName: msg.fileName, createdAt: msg.createdAt, senderId: msg.senderId };
-      if (exists) {
-        return [{ ...exists, lastMessage }, ...prev.filter(t => t.memberId !== memberId)];
-      }
+      if (exists) return [{ ...exists, lastMessage }, ...prev.filter(t => t.memberId !== memberId)];
       return [{ memberId, member, lastMessage, messageCount: 1, unreadCount: 0 }, ...prev];
     });
   };
@@ -403,7 +509,6 @@ export default function AdminMessagerie() {
 
   const handleSelectThread = (t) => {
     setSelected(t);
-    // Marquer comme lu localement immédiatement
     setThreads(prev => prev.map(th => th.memberId === t.memberId ? { ...th, unreadCount: 0 } : th));
   };
 
@@ -420,23 +525,18 @@ export default function AdminMessagerie() {
     return `${t.member?.firstName} ${t.member?.lastName} ${t.member?.email}`.toLowerCase().includes(q);
   });
 
-  const existingIds = new Set(threads.map(t => t.memberId));
-  const totalUnread = threads.reduce((s, t) => s + (t.unreadCount || 0), 0);
+  const existingIds  = new Set(threads.map(t => t.memberId));
+  const totalUnread  = threads.reduce((s, t) => s + (t.unreadCount || 0), 0);
 
   return (
     <MemberLayout title="Messagerie">
       {showNewChat && (
-        <NewChatModal
-          onClose={() => setShowNewChat(false)}
-          onSelect={handleSelectMember}
-          existingIds={existingIds}
-        />
+        <NewChatModal onClose={() => setShowNewChat(false)} onSelect={handleSelectMember} existingIds={existingIds} />
       )}
 
-      {/* Onglets */}
       <div className="flex gap-2 mb-4">
         <button onClick={() => { setTab('prive'); setSelected(null); }}
-          className={`px-4 py-2 rounded-xl text-sm font-medium transition-all relative ${tab === 'prive' ? 'bg-[#075e54] text-white' : 'bg-white border border-gray-200 text-gray-600 hover:border-green-500'}`}>
+          className={`relative px-4 py-2 rounded-xl text-sm font-medium transition-all ${tab === 'prive' ? 'bg-[#075e54] text-white' : 'bg-white border border-gray-200 text-gray-600 hover:border-green-500'}`}>
           💬 Messages privés
           {threads.length > 0 && (
             <span className={`ml-1.5 text-xs px-1.5 py-0.5 rounded-full ${tab === 'prive' ? 'bg-white/20' : 'bg-green-100 text-green-800'}`}>
@@ -455,15 +555,11 @@ export default function AdminMessagerie() {
         </button>
       </div>
 
-      {tab === 'diffusion' ? (
-        <BroadcastPanel />
-      ) : (
+      {tab === 'diffusion' ? <BroadcastPanel /> : (
         <div className="flex gap-0 overflow-hidden rounded-2xl shadow-sm border border-gray-200" style={{ height: 'calc(100vh - 220px)' }}>
 
-          {/* Liste */}
-          <div className={`flex flex-col bg-white border-r border-gray-200
-            ${selected ? 'hidden md:flex md:w-72 lg:w-80' : 'flex w-full md:w-72 lg:w-80'}`}>
-
+          {/* Liste threads */}
+          <div className={`flex flex-col bg-white border-r border-gray-200 ${selected ? 'hidden md:flex md:w-72 lg:w-80' : 'flex w-full md:w-72 lg:w-80'}`}>
             <div className="bg-[#075e54] px-4 py-3 flex items-center justify-between flex-shrink-0">
               <div className="flex items-center gap-2">
                 <h2 className="font-semibold text-white text-sm">Conversations</h2>
@@ -475,9 +571,7 @@ export default function AdminMessagerie() {
               </div>
               <button onClick={() => setShowNewChat(true)}
                 className="w-8 h-8 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center text-white transition-colors"
-                title="Nouvelle conversation">
-                ✏️
-              </button>
+                title="Nouvelle conversation">✏️</button>
             </div>
 
             <div className="px-3 py-2 border-b border-gray-100 flex-shrink-0">
@@ -487,23 +581,18 @@ export default function AdminMessagerie() {
 
             <div className="flex-1 overflow-y-auto min-h-0">
               {loading ? (
-                <div className="flex justify-center py-10">
-                  <div className="w-5 h-5 border-2 border-green-700 border-t-transparent rounded-full animate-spin" />
-                </div>
+                <div className="flex justify-center py-10"><div className="w-5 h-5 border-2 border-green-700 border-t-transparent rounded-full animate-spin" /></div>
               ) : filteredThreads.length === 0 ? (
                 <div className="text-center py-12 text-gray-400">
                   <p className="text-3xl mb-2">💬</p>
                   <p className="text-sm">{search ? 'Aucun résultat' : 'Aucune conversation'}</p>
-                  <button onClick={() => setShowNewChat(true)}
-                    className="mt-3 text-xs text-green-700 font-medium hover:underline">
+                  <button onClick={() => setShowNewChat(true)} className="mt-3 text-xs text-green-700 font-medium hover:underline">
                     + Démarrer une conversation
                   </button>
                 </div>
               ) : filteredThreads.map(t => (
                 <div key={t.memberId} onClick={() => handleSelectThread(t)}
-                  className={`flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-gray-50 border-b border-gray-100 transition-colors ${
-                    selected?.memberId === t.memberId ? 'bg-green-50' : ''
-                  }`}>
+                  className={`flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-gray-50 border-b border-gray-100 transition-colors ${selected?.memberId === t.memberId ? 'bg-green-50' : ''}`}>
                   <div className="relative">
                     <Avatar user={t.member} size="sm" />
                     {(t.unreadCount || 0) > 0 && (
@@ -523,9 +612,10 @@ export default function AdminMessagerie() {
                     </div>
                     <div className="flex items-center justify-between gap-1">
                       <p className={`text-xs truncate ${(t.unreadCount || 0) > 0 ? 'text-gray-700 font-medium' : 'text-gray-500'}`}>
-                        {t.lastMessage?.content || (t.lastMessage?.fileName ? `📎 ${t.lastMessage.fileName}` : (
-                          <span className="italic text-gray-400">Aucun message</span>
-                        ))}
+                        {t.lastMessage?.deletedAt
+                          ? <span className="italic text-gray-400">Message supprimé</span>
+                          : t.lastMessage?.content || (t.lastMessage?.fileName ? `📎 ${t.lastMessage.fileName}` : <span className="italic text-gray-400">Aucun message</span>)
+                        }
                       </p>
                       <button onClick={e => { e.stopPropagation(); handleDeleteThread(t.memberId, t.member); }}
                         className="flex-shrink-0 w-5 h-5 rounded text-gray-300 hover:text-red-500 flex items-center justify-center text-xs transition-colors">

@@ -210,6 +210,8 @@ model PrivateMessage {
   filePath  String?
   fileName  String?
   readAt    DateTime?
+  editedAt  DateTime?
+  deletedAt DateTime?
   createdAt DateTime  @default(now())
 
   member User @relation("PMThread", fields: [memberId], references: [id], onDelete: Cascade)
