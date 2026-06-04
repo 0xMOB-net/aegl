@@ -26,7 +26,14 @@ const AUDIENCE_LBL  = { all: 'Tous', students: 'Étudiants', hosts: 'Hébergeurs
 
 const EMOJIS = ['👍', '❤️', '💪'];
 
-/* ── Avatar bureau ── */
+/* ── Coches de lecture ── */
+function ReadTick({ readAt }) {
+  if (readAt) {
+    return <span className="text-[10px] text-[#4fc3f7] font-bold ml-1">✓✓</span>;
+  }
+  return <span className="text-[10px] text-gray-400 ml-1">✓</span>;
+}
+
 function BureauAvatar({ size = 'md' }) {
   const sz = size === 'sm' ? 'w-8 h-8 text-xs' : 'w-10 h-10 text-sm';
   return (
@@ -65,7 +72,6 @@ function PrivateConversation({ messages, loading, userId, onSend, onBack }) {
 
   return (
     <div className="flex flex-col h-full bg-[#efeae2]">
-      {/* Header */}
       <div className="bg-[#075e54] px-4 py-3 flex items-center gap-3 flex-shrink-0">
         {onBack && (
           <button onClick={onBack} className="text-white/80 hover:text-white text-xl mr-1 leading-none">←</button>
@@ -77,7 +83,6 @@ function PrivateConversation({ messages, loading, userId, onSend, onBack }) {
         </div>
       </div>
 
-      {/* Messages */}
       <div className="flex-1 overflow-y-auto min-h-0 px-4 py-3 space-y-1.5">
         {loading ? (
           <div className="flex justify-center py-10">
@@ -106,7 +111,10 @@ function PrivateConversation({ messages, loading, userId, onSend, onBack }) {
                   📎 <span className="truncate max-w-[140px]">{msg.fileName}</span> ↗
                 </a>
               )}
-              <p className="text-[10px] text-gray-400 text-right mt-0.5">{fmtFull(msg.createdAt)}</p>
+              <div className="flex items-center justify-end gap-0.5 mt-0.5">
+                <p className="text-[10px] text-gray-400">{fmtFull(msg.createdAt)}</p>
+                {isMe(msg) && <ReadTick readAt={msg.readAt} />}
+              </div>
             </div>
           </div>
         ))}
@@ -121,7 +129,6 @@ function PrivateConversation({ messages, loading, userId, onSend, onBack }) {
         </div>
       )}
 
-      {/* Input */}
       <div className="bg-[#f0f0f0] px-3 py-2 flex gap-2 items-end flex-shrink-0">
         <input ref={fileInputRef} type="file" accept=".pdf,.jpg,.jpeg,.png" className="hidden" id="mbr-msg-file"
           onChange={e => setFile(e.target.files?.[0] || null)} />
@@ -150,7 +157,6 @@ function PrivateConversation({ messages, loading, userId, onSend, onBack }) {
 function BroadcastsPanel({ broadcasts, loading, onReact, onBack }) {
   return (
     <div className="flex flex-col h-full bg-[#efeae2]">
-      {/* Header */}
       <div className="bg-[#075e54] px-4 py-3 flex items-center gap-3 flex-shrink-0">
         {onBack && (
           <button onClick={onBack} className="text-white/80 hover:text-white text-xl mr-1 leading-none">←</button>
@@ -221,6 +227,7 @@ export default function MemberMessagerie() {
   const [broadcasts, setBroadcasts] = useState([]);
   const [loading,    setLoading]    = useState(true);
   const [selected,   setSelected]   = useState(null); // 'private' | 'broadcasts'
+  const [unreadCount, setUnreadCount] = useState(0);
   const pollRef = useRef(null);
 
   const fetchAll = useCallback(async (silent = false) => {
@@ -231,15 +238,33 @@ export default function MemberMessagerie() {
       ]);
       setMessages(msgRes.data.messages || []);
       setBroadcasts(bcRes.data.broadcasts || []);
+      // Après fetchAll (qui marque comme lus), recalculer le count
+      setUnreadCount(0);
     } catch {}
     finally { if (!silent) setLoading(false); }
   }, []);
 
+  const fetchUnread = useCallback(async () => {
+    try {
+      const res = await api.get('/messages/unread-count');
+      setUnreadCount(res.data.unreadCount || 0);
+    } catch {}
+  }, []);
+
   useEffect(() => {
     fetchAll();
-    pollRef.current = setInterval(() => fetchAll(true), 15000);
-    return () => clearInterval(pollRef.current);
-  }, [fetchAll]);
+    // Polling : unread count plus fréquent, fetchAll moins fréquent
+    const unreadPoll = setInterval(fetchUnread, 15000);
+    pollRef.current = setInterval(() => fetchAll(true), 60000);
+    return () => { clearInterval(unreadPoll); clearInterval(pollRef.current); };
+  }, [fetchAll, fetchUnread]);
+
+  // Quand on ouvre la conversation, les messages sont marqués comme lus par le fetchAll
+  const handleSelectPrivate = () => {
+    setSelected('private');
+    setUnreadCount(0);
+    fetchAll(true);
+  };
 
   const handleSend = async (content, file) => {
     const fd = new FormData();
@@ -277,32 +302,46 @@ export default function MemberMessagerie() {
     <MemberLayout title="Messagerie">
       <div className="flex gap-0 overflow-hidden rounded-2xl shadow-sm border border-gray-200" style={{ height: 'calc(100vh - 220px)' }}>
 
-        {/* ── Liste (sidebar) ── */}
+        {/* Sidebar */}
         <div className={`flex flex-col bg-white border-r border-gray-200
           ${selected ? 'hidden md:flex md:w-72 lg:w-80' : 'flex w-full md:w-72 lg:w-80'}`}>
 
           <div className="bg-[#075e54] px-4 py-3 flex items-center justify-between flex-shrink-0">
-            <h2 className="font-semibold text-white text-sm">Messagerie</h2>
+            <div className="flex items-center gap-2">
+              <h2 className="font-semibold text-white text-sm">Messagerie</h2>
+              {unreadCount > 0 && (
+                <span className="text-[10px] bg-red-500 text-white px-1.5 py-0.5 rounded-full font-bold min-w-[18px] text-center">
+                  {unreadCount > 99 ? '99+' : unreadCount}
+                </span>
+              )}
+            </div>
             <button onClick={() => fetchAll()} className="text-white/60 hover:text-white text-sm">🔄</button>
           </div>
 
           <div className="flex-1 overflow-y-auto min-h-0">
             {/* Thread conversation privée */}
-            <div
-              onClick={() => setSelected('private')}
+            <div onClick={handleSelectPrivate}
               className={`flex items-center gap-3 px-4 py-3.5 cursor-pointer hover:bg-gray-50 border-b border-gray-100 transition-colors ${
                 selected === 'private' ? 'bg-green-50' : ''
-              }`}
-            >
-              <BureauAvatar size="sm" />
+              }`}>
+              <div className="relative">
+                <BureauAvatar size="sm" />
+                {unreadCount > 0 && (
+                  <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center">
+                    {unreadCount > 9 ? '9+' : unreadCount}
+                  </span>
+                )}
+              </div>
               <div className="min-w-0 flex-1">
                 <div className="flex items-center justify-between">
-                  <p className="text-sm font-semibold text-gray-800">Bureau AEGL</p>
+                  <p className={`text-sm truncate ${unreadCount > 0 ? 'font-bold text-gray-900' : 'font-semibold text-gray-800'}`}>
+                    Bureau AEGL
+                  </p>
                   {lastPrivate && (
                     <span className="text-[10px] text-gray-400 flex-shrink-0 ml-1">{fmtShort(lastPrivate.createdAt)}</span>
                   )}
                 </div>
-                <p className="text-xs text-gray-500 truncate">
+                <p className={`text-xs truncate ${unreadCount > 0 ? 'text-gray-700 font-medium' : 'text-gray-500'}`}>
                   {lastPrivate
                     ? lastPrivate.content || (lastPrivate.fileName ? `📎 ${lastPrivate.fileName}` : '')
                     : <span className="italic text-gray-400">Démarrer une conversation</span>
@@ -313,12 +352,10 @@ export default function MemberMessagerie() {
 
             {/* Thread annonces */}
             {broadcasts.length > 0 && (
-              <div
-                onClick={() => setSelected('broadcasts')}
+              <div onClick={() => setSelected('broadcasts')}
                 className={`flex items-center gap-3 px-4 py-3.5 cursor-pointer hover:bg-gray-50 border-b border-gray-100 transition-colors ${
                   selected === 'broadcasts' ? 'bg-green-50' : ''
-                }`}
-              >
+                }`}>
                 <div className="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center text-base flex-shrink-0">📢</div>
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center justify-between">
@@ -345,7 +382,7 @@ export default function MemberMessagerie() {
           </div>
         </div>
 
-        {/* ── Panneau droit ── */}
+        {/* Panneau droit */}
         <div className={`flex-1 flex flex-col overflow-hidden min-h-0 ${selected ? 'flex' : 'hidden md:flex'}`}>
           {selected === 'private' ? (
             <PrivateConversation
@@ -367,8 +404,7 @@ export default function MemberMessagerie() {
               <div className="w-20 h-20 rounded-full bg-gray-200 flex items-center justify-center text-4xl mb-4">💬</div>
               <p className="text-lg font-medium text-gray-500">Messagerie AEGL</p>
               <p className="text-sm mt-1">Sélectionnez une conversation</p>
-              <button
-                onClick={() => setSelected('private')}
+              <button onClick={handleSelectPrivate}
                 className="mt-4 px-4 py-2 bg-[#075e54] text-white text-sm rounded-xl hover:bg-[#054d44] transition-colors">
                 Écrire au bureau
               </button>

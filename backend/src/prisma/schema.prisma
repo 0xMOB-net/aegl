@@ -203,13 +203,14 @@ model Collecte {
 }
 
 model PrivateMessage {
-  id        String   @id @default(uuid())
+  id        String    @id @default(uuid())
   memberId  String
   senderId  String
   content   String?
   filePath  String?
   fileName  String?
-  createdAt DateTime @default(now())
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
 
   member User @relation("PMThread", fields: [memberId], references: [id], onDelete: Cascade)
   sender User @relation("PMSender", fields: [senderId], references: [id])

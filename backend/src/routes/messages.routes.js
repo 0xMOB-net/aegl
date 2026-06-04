@@ -9,11 +9,13 @@ router.use(authenticate);
 // Routes membres (student / host)
 router.get('/', ctrl.getMyMessages);
 router.post('/', upload.single('file'), ctrl.sendMessage);
+router.get('/unread-count', ctrl.getMemberUnreadCount);
 router.get('/broadcasts', ctrl.getMyBroadcasts);
 router.post('/broadcasts/:broadcastId/react', ctrl.reactToBroadcast);
 
 // Routes admin
 router.get('/admin/threads', requireRole('admin'), ctrl.getAdminThreads);
+router.get('/admin/unread-count', requireRole('admin'), ctrl.getAdminUnreadCount);
 router.get('/admin/thread/:memberId', requireRole('admin'), ctrl.getAdminThread);
 router.post('/admin/reply/:memberId', requireRole('admin'), upload.single('file'), ctrl.adminReply);
 router.delete('/admin/thread/:memberId', requireRole('admin'), ctrl.deleteThread);

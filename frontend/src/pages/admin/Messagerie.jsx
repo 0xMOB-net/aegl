@@ -23,6 +23,14 @@ const AUDIENCE_LBL   = { all: 'Tous les membres', students: 'Étudiants', hosts:
 const AUDIENCE_ICON  = { all: '👥', students: '🎓', hosts: '🏠' };
 const AUDIENCE_COLOR = { all: 'bg-green-100 text-green-800', students: 'bg-blue-100 text-blue-800', hosts: 'bg-amber-100 text-amber-800' };
 
+/* ── Coches de lecture ── */
+function ReadTick({ readAt }) {
+  if (readAt) {
+    return <span className="text-[10px] text-[#4fc3f7] font-bold ml-1">✓✓</span>;
+  }
+  return <span className="text-[10px] text-gray-400 ml-1">✓</span>;
+}
+
 function Avatar({ user, size = 'md' }) {
   const sz = size === 'sm' ? 'w-8 h-8 text-xs' : size === 'lg' ? 'w-12 h-12 text-base' : 'w-10 h-10 text-sm';
   return (
@@ -83,7 +91,7 @@ function Conversation({ thread, adminId, onNewMessage, onBack }) {
 
   return (
     <div className="flex flex-col h-full bg-[#efeae2]">
-      {/* Header WhatsApp */}
+      {/* Header */}
       <div className="bg-[#075e54] px-4 py-3 flex items-center gap-3 flex-shrink-0">
         {onBack && (
           <button onClick={onBack} className="text-white/80 hover:text-white text-xl mr-1 leading-none">←</button>
@@ -120,7 +128,10 @@ function Conversation({ thread, adminId, onNewMessage, onBack }) {
                   📎 <span className="truncate max-w-[140px]">{msg.fileName}</span> ↗
                 </a>
               )}
-              <p className="text-[10px] text-gray-400 text-right mt-0.5">{fmtFull(msg.createdAt)}</p>
+              <div className="flex items-center justify-end gap-0.5 mt-0.5">
+                <p className="text-[10px] text-gray-400">{fmtFull(msg.createdAt)}</p>
+                {isMe(msg) && <ReadTick readAt={msg.readAt} />}
+              </div>
             </div>
           </div>
         ))}
@@ -186,20 +197,15 @@ function NewChatModal({ onClose, onSelect, existingIds }) {
 
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center p-4">
-      <div className="bg-white rounded-2xl w-full max-w-sm shadow-2xl overflow-hidden animate-slide-up">
+      <div className="bg-white rounded-2xl w-full max-w-sm shadow-2xl overflow-hidden">
         <div className="bg-[#075e54] px-4 py-3 flex items-center gap-3">
           <button onClick={onClose} className="text-white/80 hover:text-white text-xl">✕</button>
           <h3 className="text-white font-semibold text-sm">Nouvelle conversation</h3>
         </div>
         <div className="px-3 py-2 border-b border-gray-100">
-          <input
-            autoFocus
-            type="text"
-            placeholder="Rechercher un membre…"
-            value={search}
+          <input autoFocus type="text" placeholder="Rechercher un membre…" value={search}
             onChange={e => setSearch(e.target.value)}
-            className="w-full px-3 py-2 rounded-xl bg-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-green-600"
-          />
+            className="w-full px-3 py-2 rounded-xl bg-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-green-600" />
         </div>
         <div className="overflow-y-auto" style={{ maxHeight: '55vh' }}>
           {loading ? (
@@ -209,11 +215,8 @@ function NewChatModal({ onClose, onSelect, existingIds }) {
           ) : filtered.length === 0 ? (
             <p className="text-center text-gray-400 text-sm py-8">Aucun membre trouvé</p>
           ) : filtered.map(m => (
-            <button
-              key={m.id}
-              onClick={() => onSelect(m)}
-              className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors text-left"
-            >
+            <button key={m.id} onClick={() => onSelect(m)}
+              className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors text-left">
               <Avatar user={m} size="sm" />
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-medium text-gray-800 truncate">{m.firstName} {m.lastName}</p>
@@ -383,12 +386,9 @@ export default function AdminMessagerie() {
       const exists = prev.find(t => t.memberId === memberId);
       const lastMessage = { content: msg.content, fileName: msg.fileName, createdAt: msg.createdAt, senderId: msg.senderId };
       if (exists) {
-        return [
-          { ...exists, lastMessage },
-          ...prev.filter(t => t.memberId !== memberId),
-        ];
+        return [{ ...exists, lastMessage }, ...prev.filter(t => t.memberId !== memberId)];
       }
-      return [{ memberId, member, lastMessage, messageCount: 1 }, ...prev];
+      return [{ memberId, member, lastMessage, messageCount: 1, unreadCount: 0 }, ...prev];
     });
   };
 
@@ -401,9 +401,17 @@ export default function AdminMessagerie() {
     } catch {}
   };
 
+  const handleSelectThread = (t) => {
+    setSelected(t);
+    // Marquer comme lu localement immédiatement
+    setThreads(prev => prev.map(th => th.memberId === t.memberId ? { ...th, unreadCount: 0 } : th));
+  };
+
   const handleSelectMember = (member) => {
     const existing = threads.find(t => t.memberId === member.id);
-    setSelected(existing || { memberId: member.id, member, lastMessage: null, messageCount: 0 });
+    const thread = existing || { memberId: member.id, member, lastMessage: null, messageCount: 0, unreadCount: 0 };
+    setSelected(thread);
+    if (existing) setThreads(prev => prev.map(t => t.memberId === member.id ? { ...t, unreadCount: 0 } : t));
     setShowNewChat(false);
   };
 
@@ -413,6 +421,7 @@ export default function AdminMessagerie() {
   });
 
   const existingIds = new Set(threads.map(t => t.memberId));
+  const totalUnread = threads.reduce((s, t) => s + (t.unreadCount || 0), 0);
 
   return (
     <MemberLayout title="Messagerie">
@@ -427,11 +436,16 @@ export default function AdminMessagerie() {
       {/* Onglets */}
       <div className="flex gap-2 mb-4">
         <button onClick={() => { setTab('prive'); setSelected(null); }}
-          className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${tab === 'prive' ? 'bg-[#075e54] text-white' : 'bg-white border border-gray-200 text-gray-600 hover:border-green-500'}`}>
+          className={`px-4 py-2 rounded-xl text-sm font-medium transition-all relative ${tab === 'prive' ? 'bg-[#075e54] text-white' : 'bg-white border border-gray-200 text-gray-600 hover:border-green-500'}`}>
           💬 Messages privés
           {threads.length > 0 && (
             <span className={`ml-1.5 text-xs px-1.5 py-0.5 rounded-full ${tab === 'prive' ? 'bg-white/20' : 'bg-green-100 text-green-800'}`}>
               {threads.length}
+            </span>
+          )}
+          {totalUnread > 0 && tab !== 'prive' && (
+            <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center">
+              {totalUnread > 9 ? '9+' : totalUnread}
             </span>
           )}
         </button>
@@ -450,30 +464,27 @@ export default function AdminMessagerie() {
           <div className={`flex flex-col bg-white border-r border-gray-200
             ${selected ? 'hidden md:flex md:w-72 lg:w-80' : 'flex w-full md:w-72 lg:w-80'}`}>
 
-            {/* Header liste */}
             <div className="bg-[#075e54] px-4 py-3 flex items-center justify-between flex-shrink-0">
-              <h2 className="font-semibold text-white text-sm">Conversations</h2>
-              <button
-                onClick={() => setShowNewChat(true)}
+              <div className="flex items-center gap-2">
+                <h2 className="font-semibold text-white text-sm">Conversations</h2>
+                {totalUnread > 0 && (
+                  <span className="text-[10px] bg-red-500 text-white px-1.5 py-0.5 rounded-full font-bold min-w-[18px] text-center">
+                    {totalUnread > 99 ? '99+' : totalUnread}
+                  </span>
+                )}
+              </div>
+              <button onClick={() => setShowNewChat(true)}
                 className="w-8 h-8 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center text-white transition-colors"
-                title="Nouvelle conversation"
-              >
+                title="Nouvelle conversation">
                 ✏️
               </button>
             </div>
 
-            {/* Recherche */}
             <div className="px-3 py-2 border-b border-gray-100 flex-shrink-0">
-              <input
-                type="text"
-                placeholder="Rechercher…"
-                value={search}
-                onChange={e => setSearch(e.target.value)}
-                className="w-full px-3 py-1.5 rounded-xl bg-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-green-600"
-              />
+              <input type="text" placeholder="Rechercher…" value={search} onChange={e => setSearch(e.target.value)}
+                className="w-full px-3 py-1.5 rounded-xl bg-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-green-600" />
             </div>
 
-            {/* Threads */}
             <div className="flex-1 overflow-y-auto min-h-0">
               {loading ? (
                 <div className="flex justify-center py-10">
@@ -489,31 +500,37 @@ export default function AdminMessagerie() {
                   </button>
                 </div>
               ) : filteredThreads.map(t => (
-                <div
-                  key={t.memberId}
-                  onClick={() => setSelected(t)}
+                <div key={t.memberId} onClick={() => handleSelectThread(t)}
                   className={`flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-gray-50 border-b border-gray-100 transition-colors ${
                     selected?.memberId === t.memberId ? 'bg-green-50' : ''
-                  }`}
-                >
-                  <Avatar user={t.member} size="sm" />
+                  }`}>
+                  <div className="relative">
+                    <Avatar user={t.member} size="sm" />
+                    {(t.unreadCount || 0) > 0 && (
+                      <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center">
+                        {t.unreadCount > 9 ? '9+' : t.unreadCount}
+                      </span>
+                    )}
+                  </div>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center justify-between">
-                      <p className="text-sm font-semibold text-gray-800 truncate">{t.member?.firstName} {t.member?.lastName}</p>
+                      <p className={`text-sm truncate ${(t.unreadCount || 0) > 0 ? 'font-bold text-gray-900' : 'font-semibold text-gray-800'}`}>
+                        {t.member?.firstName} {t.member?.lastName}
+                      </p>
                       <span className="text-[10px] text-gray-400 flex-shrink-0 ml-1">
                         {t.lastMessage ? fmt(t.lastMessage.createdAt) : ''}
                       </span>
                     </div>
                     <div className="flex items-center justify-between gap-1">
-                      <p className="text-xs text-gray-500 truncate">
+                      <p className={`text-xs truncate ${(t.unreadCount || 0) > 0 ? 'text-gray-700 font-medium' : 'text-gray-500'}`}>
                         {t.lastMessage?.content || (t.lastMessage?.fileName ? `📎 ${t.lastMessage.fileName}` : (
                           <span className="italic text-gray-400">Aucun message</span>
                         ))}
                       </p>
-                      <button
-                        onClick={e => { e.stopPropagation(); handleDeleteThread(t.memberId, t.member); }}
-                        className="flex-shrink-0 w-5 h-5 rounded text-gray-300 hover:text-red-500 flex items-center justify-center text-xs transition-colors"
-                      >🗑</button>
+                      <button onClick={e => { e.stopPropagation(); handleDeleteThread(t.memberId, t.member); }}
+                        className="flex-shrink-0 w-5 h-5 rounded text-gray-300 hover:text-red-500 flex items-center justify-center text-xs transition-colors">
+                        🗑
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -522,8 +539,7 @@ export default function AdminMessagerie() {
           </div>
 
           {/* Conversation */}
-          <div className={`flex-1 flex flex-col overflow-hidden min-h-0
-            ${selected ? 'flex' : 'hidden md:flex'}`}>
+          <div className={`flex-1 flex flex-col overflow-hidden min-h-0 ${selected ? 'flex' : 'hidden md:flex'}`}>
             {selected ? (
               <Conversation
                 key={selected.memberId}

@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import api from '../../api/client';
 
 const Logo = () => (
   <svg width="32" height="36" viewBox="0 0 38 42" fill="none">
@@ -25,7 +26,7 @@ const bureauNav = [
   { to: '/membres/admin/collectes',  label: 'Collectes',        icon: '💚' },
   { to: '/membres/admin/hebergeurs', label: 'Utilisateurs',     icon: '👥' },
   { to: '/membres/admin/activite',   label: 'Journal',          icon: '📋' },
-  { to: '/membres/admin/messagerie', label: 'Messagerie',       icon: '✉️' },
+  { to: '/membres/admin/messagerie', label: 'Messagerie',       icon: '✉️', unread: true },
 ];
 
 const hostNav = [
@@ -33,13 +34,13 @@ const hostNav = [
   { to: '/membres/hebergeur/attestations', label: 'Attestations', icon: '📄' },
   { to: '/membres/hebergeur/alertes',      label: 'Alertes',      icon: '🔔' },
   { to: '/membres/hebergeur/profil',       label: 'Mon profil',   icon: '🏠' },
-  { to: '/membres/messagerie',             label: 'Messagerie',   icon: '✉️' },
+  { to: '/membres/messagerie',             label: 'Messagerie',   icon: '✉️', unread: true },
 ];
 
 const studentNav = [
   { to: '/membres/etudiant/dossier', label: 'Mon dossier', icon: '📁' },
   { to: '/membres/etudiant/alertes', label: 'Alertes',     icon: '🔔' },
-  { to: '/membres/messagerie',       label: 'Messagerie',  icon: '✉️' },
+  { to: '/membres/messagerie',       label: 'Messagerie',  icon: '✉️', unread: true },
 ];
 
 export default function MemberLayout({ children, title }) {
@@ -47,6 +48,28 @@ export default function MemberLayout({ children, title }) {
   const location = useLocation();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  const fetchUnread = useCallback(async () => {
+    if (!user) return;
+    try {
+      const endpoint = user.role === 'admin' ? '/messages/admin/unread-count' : '/messages/unread-count';
+      const res = await api.get(endpoint);
+      setUnreadCount(res.data.unreadCount || 0);
+    } catch {}
+  }, [user]);
+
+  useEffect(() => {
+    fetchUnread();
+    const interval = setInterval(fetchUnread, 30000);
+    return () => clearInterval(interval);
+  }, [fetchUnread]);
+
+  // Reset badge quand on arrive sur la page messagerie
+  useEffect(() => {
+    const isOnMsg = location.pathname.includes('messagerie');
+    if (isOnMsg) setTimeout(fetchUnread, 2000);
+  }, [location.pathname, fetchUnread]);
 
   const handleLogout = () => { logout(); navigate('/'); };
   const nav = user?.role === 'admin' ? bureauNav : user?.role === 'host' ? hostNav : studentNav;
@@ -60,7 +83,6 @@ export default function MemberLayout({ children, title }) {
   return (
     <div className="h-screen bg-gray-50 flex overflow-hidden">
 
-      {/* Overlay sombre sur mobile quand sidebar ouverte */}
       {open && (
         <div
           className="fixed inset-0 bg-black/60 z-40 md:hidden"
@@ -68,7 +90,6 @@ export default function MemberLayout({ children, title }) {
         />
       )}
 
-      {/* Sidebar — fixée sur mobile (glisse), statique sur desktop */}
       <aside className={`
         fixed top-0 left-0 h-full z-50 w-64 bg-green-950 flex flex-col shadow-2xl
         transition-transform duration-300 ease-in-out
@@ -102,8 +123,9 @@ export default function MemberLayout({ children, title }) {
         </div>
 
         <nav className="flex-1 p-3 space-y-0.5 overflow-y-auto min-h-0">
-          {nav.map(({ to, label, icon }) => {
+          {nav.map(({ to, label, icon, unread }) => {
             const active = location.pathname === to;
+            const showBadge = unread && unreadCount > 0;
             return (
               <Link key={to} to={to} onClick={() => setOpen(false)}
                 className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all duration-150 ${
@@ -112,7 +134,14 @@ export default function MemberLayout({ children, title }) {
                     : 'text-green-200 hover:bg-green-800/60 hover:text-white'
                 }`}>
                 <span className="text-base flex-shrink-0">{icon}</span>
-                <span className="truncate">{label}</span>
+                <span className="truncate flex-1">{label}</span>
+                {showBadge && (
+                  <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full flex-shrink-0 min-w-[18px] text-center ${
+                    active ? 'bg-green-950 text-gold-500' : 'bg-red-500 text-white'
+                  }`}>
+                    {unreadCount > 99 ? '99+' : unreadCount}
+                  </span>
+                )}
               </Link>
             );
           })}
@@ -130,7 +159,6 @@ export default function MemberLayout({ children, title }) {
         </div>
       </aside>
 
-      {/* Contenu principal */}
       <div className="flex-1 flex flex-col overflow-hidden min-w-0">
         <header className="bg-white border-b border-gray-100 px-4 md:px-8 py-4 flex items-center justify-between flex-shrink-0 shadow-sm z-10">
           <div className="flex items-center gap-3">

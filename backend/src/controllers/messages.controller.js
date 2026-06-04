@@ -28,10 +28,15 @@ const senderSelect = { id: true, firstName: true, lastName: true, role: true };
 
 const ALLOWED_EMOJIS = ['👍', '❤️', '💪'];
 
-// Membre : lire sa conversation avec l'admin
+// Membre : lire sa conversation avec l'admin (marque les messages admin comme lus)
 const getMyMessages = async (req, res) => {
   try {
     const memberId = req.user.id;
+    // Marquer tous les messages non lus de l'admin comme lus
+    await prisma.privateMessage.updateMany({
+      where: { memberId, senderId: { not: memberId }, readAt: null },
+      data: { readAt: new Date() },
+    });
     const messages = await prisma.privateMessage.findMany({
       where: { memberId },
       include: { sender: { select: senderSelect } },
@@ -72,7 +77,21 @@ const sendMessage = async (req, res) => {
   }
 };
 
-// Admin : liste des fils de discussion (une entrée par membre)
+// Membre : compter les messages non lus de l'admin
+const getMemberUnreadCount = async (req, res) => {
+  try {
+    const memberId = req.user.id;
+    const count = await prisma.privateMessage.count({
+      where: { memberId, senderId: { not: memberId }, readAt: null },
+    });
+    res.json({ unreadCount: count });
+  } catch (err) {
+    console.error('getMemberUnreadCount error:', err);
+    res.status(500).json({ error: 'Erreur serveur' });
+  }
+};
+
+// Admin : liste des fils de discussion avec unreadCount
 const getAdminThreads = async (req, res) => {
   try {
     const memberIds = await prisma.privateMessage.groupBy({
@@ -82,7 +101,7 @@ const getAdminThreads = async (req, res) => {
 
     const threads = await Promise.all(
       memberIds.map(async ({ memberId }) => {
-        const [last, member, count] = await Promise.all([
+        const [last, member, count, unreadCount] = await Promise.all([
           prisma.privateMessage.findFirst({
             where: { memberId },
             orderBy: { createdAt: 'desc' },
@@ -93,8 +112,10 @@ const getAdminThreads = async (req, res) => {
             select: { id: true, firstName: true, lastName: true, role: true, email: true },
           }),
           prisma.privateMessage.count({ where: { memberId } }),
+          // Messages envoyés par le membre (senderId = memberId) non lus par l'admin
+          prisma.privateMessage.count({ where: { memberId, senderId: memberId, readAt: null } }),
         ]);
-        return { memberId, member, lastMessage: last, messageCount: count };
+        return { memberId, member, lastMessage: last, messageCount: count, unreadCount };
       })
     );
 
@@ -105,10 +126,15 @@ const getAdminThreads = async (req, res) => {
   }
 };
 
-// Admin : lire le fil d'un membre
+// Admin : lire le fil d'un membre (marque les messages du membre comme lus)
 const getAdminThread = async (req, res) => {
   try {
     const { memberId } = req.params;
+    // Marquer tous les messages du membre comme lus par l'admin
+    await prisma.privateMessage.updateMany({
+      where: { memberId, senderId: memberId, readAt: null },
+      data: { readAt: new Date() },
+    });
     const [messages, member] = await Promise.all([
       prisma.privateMessage.findMany({
         where: { memberId },
@@ -125,6 +151,22 @@ const getAdminThread = async (req, res) => {
     res.json({ messages: enriched, member });
   } catch (err) {
     console.error('getAdminThread error:', err);
+    res.status(500).json({ error: 'Erreur serveur' });
+  }
+};
+
+// Admin : compter le total de messages non lus (tous les membres)
+const getAdminUnreadCount = async (req, res) => {
+  try {
+    // Messages envoyés par les membres (senderId = memberId dans leur fil) non lus
+    const result = await prisma.$queryRaw`
+      SELECT COUNT(*)::int as count FROM private_messages
+      WHERE "senderId" = "memberId" AND "readAt" IS NULL
+    `;
+    const count = Number(result[0]?.count) || 0;
+    res.json({ unreadCount: count });
+  } catch (err) {
+    console.error('getAdminUnreadCount error:', err);
     res.status(500).json({ error: 'Erreur serveur' });
   }
 };
@@ -256,7 +298,7 @@ const getMyBroadcasts = async (req, res) => {
   }
 };
 
-// Membre : réagir à une diffusion — choix exclusif (un seul emoji par membre)
+// Membre : réagir à une diffusion — choix exclusif
 const reactToBroadcast = async (req, res) => {
   try {
     const { broadcastId } = req.params;
@@ -270,10 +312,8 @@ const reactToBroadcast = async (req, res) => {
 
     if (existing) {
       if (existing.emoji === emoji) {
-        // Même emoji → désélectionner
         await prisma.broadcastReaction.delete({ where: { id: existing.id } });
       } else {
-        // Autre emoji → remplacer
         await prisma.broadcastReaction.update({ where: { id: existing.id }, data: { emoji } });
       }
     } else {
@@ -294,8 +334,8 @@ const reactToBroadcast = async (req, res) => {
 };
 
 module.exports = {
-  getMyMessages, sendMessage,
-  getAdminThreads, getAdminThread, adminReply, deleteThread,
+  getMyMessages, sendMessage, getMemberUnreadCount,
+  getAdminThreads, getAdminThread, adminReply, deleteThread, getAdminUnreadCount,
   sendBroadcast, deleteBroadcast, getAdminBroadcasts,
   getMyBroadcasts, reactToBroadcast,
 };
