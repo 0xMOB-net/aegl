@@ -571,7 +571,12 @@ const adminDirectDeliver = async (req, res) => {
       console.log(`[adminDirectDeliver] upload PDF fusionné OK: ${mergedUrl}`);
     } catch (uploadFinalErr) {
       console.error('[adminDirectDeliver] ERREUR upload PDF fusionné:', uploadFinalErr.message);
-      return res.status(500).json({ error: `Erreur lors de l'upload du PDF final: ${uploadFinalErr.message}` });
+      const isTooBig = uploadFinalErr.message?.toLowerCase().includes('file size too large') || uploadFinalErr.message?.toLowerCase().includes('too large');
+      return res.status(500).json({
+        error: isTooBig
+          ? `Le PDF fusionné est trop volumineux pour Cloudinary (limite 10 MB). Compressez les documents sur ilovepdf.com avant de les uploader.`
+          : `Erreur lors de l'upload du PDF final: ${uploadFinalErr.message}`
+      });
     }
 
     const updated = await prisma.dossier.update({
