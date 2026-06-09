@@ -652,8 +652,8 @@ const monthlyStats = async (req, res) => {
   try {
     const now = new Date();
     const months = await Promise.all(
-      Array.from({ length: 6 }, (_, i) => {
-        const d = new Date(now.getFullYear(), now.getMonth() - (5 - i), 1);
+      Array.from({ length: 3 }, (_, i) => {
+        const d = new Date(now.getFullYear(), now.getMonth() - (2 - i), 1);
         const start = new Date(d.getFullYear(), d.getMonth(), 1);
         const end   = new Date(d.getFullYear(), d.getMonth() + 1, 1);
         return prisma.dossier.count({ where: { createdAt: { gte: start, lt: end } } })

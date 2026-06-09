@@ -8,9 +8,9 @@ import api from '../../api/client';
 function ActionCard({ count, label, sublabel, icon, href, color }) {
   const hasAction = count > 0;
   const colors = {
-    amber: { bg: 'bg-amber-50 border-amber-200', num: 'text-amber-600', icon: 'bg-amber-100' },
-    blue:  { bg: 'bg-blue-50 border-blue-200',   num: 'text-blue-600',  icon: 'bg-blue-100'  },
-    gray:  { bg: 'bg-gray-50 border-gray-200',   num: 'text-gray-400',  icon: 'bg-gray-100'  },
+    red:   { bg: 'bg-red-50 border-red-200',     num: 'text-red-600',   icon: 'bg-red-100'   },
+    blue:  { bg: 'bg-blue-50 border-blue-200',    num: 'text-blue-600',  icon: 'bg-blue-100'  },
+    gray:  { bg: 'bg-gray-50 border-gray-200',    num: 'text-gray-400',  icon: 'bg-gray-100'  },
   };
   const c = colors[hasAction ? color : 'gray'];
 
@@ -29,10 +29,10 @@ function ActionCard({ count, label, sublabel, icon, href, color }) {
   return hasAction ? <Link to={href}>{inner}</Link> : inner;
 }
 
-/* ── Graphique d'évolution 6 mois ── */
+/* ── Graphique 3 mois ── */
 function EvolutionChart({ data }) {
   if (!data?.length) {
-    return <div className="h-24 flex items-center justify-center text-gray-300 text-sm">Chargement…</div>;
+    return <div className="h-20 flex items-center justify-center text-gray-300 text-sm">Chargement…</div>;
   }
   const max = Math.max(...data.map(d => d.count), 1);
   const total = data.reduce((s, d) => s + d.count, 0);
@@ -42,27 +42,27 @@ function EvolutionChart({ data }) {
 
   return (
     <div>
-      <div className="flex items-end justify-between gap-2 h-20 mb-2">
+      <div className="flex items-end justify-between gap-3 h-20 mb-2">
         {data.map((d, i) => {
           const pct = (d.count / max) * 100;
           const isLast = i === data.length - 1;
           return (
-            <div key={i} className="flex-1 flex flex-col items-center justify-end gap-0.5 h-full">
-              <span className="text-[10px] text-gray-500 font-medium leading-none">{d.count > 0 ? d.count : ''}</span>
+            <div key={i} className="flex-1 flex flex-col items-center justify-end gap-1 h-full">
+              <span className="text-xs text-gray-500 font-semibold">{d.count > 0 ? d.count : ''}</span>
               <div className="w-full flex flex-col justify-end" style={{ height: '52px' }}>
                 <div
-                  className={`w-full rounded-t-md transition-all duration-700 ${isLast ? 'bg-green-600' : 'bg-green-200'}`}
-                  style={{ height: `${Math.max(pct, d.count > 0 ? 8 : 0)}%` }}
+                  className={`w-full rounded-t-lg transition-all duration-700 ${isLast ? 'bg-green-600' : 'bg-green-200'}`}
+                  style={{ height: `${Math.max(pct, d.count > 0 ? 10 : 0)}%` }}
                 />
               </div>
-              <span className="text-[9px] text-gray-400 truncate w-full text-center leading-none">{d.label}</span>
+              <span className="text-xs text-gray-500 font-medium">{d.label}</span>
             </div>
           );
         })}
       </div>
       <div className="flex items-center justify-between text-xs text-gray-400 pt-2 border-t border-gray-100">
-        <span>{total} dossier{total !== 1 ? 's' : ''} créés sur 6 mois</span>
-        {trend > 0 && <span className="text-green-600">↑ {trend} de plus ce mois</span>}
+        <span>{total} dossier{total !== 1 ? 's' : ''} sur 3 mois</span>
+        {trend > 0 && <span className="text-green-600 font-medium">↑ {trend} de plus ce mois</span>}
         {trend < 0 && <span className="text-gray-400">↓ {Math.abs(trend)} de moins ce mois</span>}
         {trend === 0 && total > 0 && <span>Stable ce mois</span>}
       </div>
@@ -74,21 +74,18 @@ function EvolutionChart({ data }) {
 function PipelineStep({ label, count, urgent, isLast }) {
   const hasItems = count > 0;
   return (
-    <div className="flex items-center gap-1 flex-1 min-w-0">
-      <div className={`flex-1 min-w-0 rounded-xl p-3 text-center border transition-all ${
+    <div className="flex items-center gap-2 flex-1 min-w-0">
+      <div className={`flex-1 min-w-0 rounded-2xl p-4 text-center border-2 transition-all ${
         urgent && hasItems ? 'bg-amber-50 border-amber-300'
           : hasItems ? 'bg-green-50 border-green-200'
           : 'bg-gray-50 border-gray-100'
       }`}>
-        <p className={`text-2xl font-bold leading-none ${
+        <p className={`text-3xl font-bold leading-none ${
           urgent && hasItems ? 'text-amber-600' : hasItems ? 'text-green-700' : 'text-gray-300'
         }`}>{count}</p>
-        <p className="text-[10px] text-gray-500 mt-1 leading-tight">{label}</p>
-        {urgent && hasItems && (
-          <span className="inline-block mt-1 text-[9px] bg-amber-100 text-amber-600 px-1 py-0.5 rounded-full font-medium">À vérifier</span>
-        )}
+        <p className="text-xs text-gray-500 mt-2 font-medium">{label}</p>
       </div>
-      {!isLast && <span className="hidden md:block text-gray-200 flex-shrink-0">›</span>}
+      {!isLast && <span className="text-gray-300 text-xl flex-shrink-0">→</span>}
     </div>
   );
 }
@@ -128,9 +125,11 @@ export default function AdminDashboard() {
   }, [fetchData]);
 
   const s = stats || {};
-  const inProgress = (s.total || 0) - (s.confirmed || 0);
-  const completionRate = s.totalStudents > 0
-    ? Math.round(((s.confirmed || 0) / s.totalStudents) * 100)
+  const totalDossiers = s.total || 0;
+  const inProgress = totalDossiers - (s.confirmed || 0);
+  // Taux basé sur les dossiers créés (pas sur tous les inscrits)
+  const completionRate = totalDossiers > 0
+    ? Math.round(((s.confirmed || 0) / totalDossiers) * 100)
     : 0;
 
   return (
@@ -161,16 +160,16 @@ export default function AdminDashboard() {
           </div>
         ) : (
           <>
-            {/* ── Ce qui attend une action ── */}
+            {/* ── À traiter ── */}
             <div>
-              <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Ce qui attend votre action</h3>
+              <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">À traiter</h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <ActionCard
-                  count={s.docsVerified || 0}
-                  label="Attestations à préparer"
-                  sublabel="Dossiers vérifiés, attestation manquante"
-                  icon="📄"
-                  color="amber"
+                  count={s.docsProvided || 0}
+                  label="Documents à vérifier"
+                  sublabel="Dossiers en attente de votre vérification"
+                  icon="📋"
+                  color="red"
                   href="/membres/admin/dossiers"
                 />
                 <ActionCard
@@ -184,44 +183,27 @@ export default function AdminDashboard() {
               </div>
             </div>
 
-            {/* ── Progression des dossiers (pipeline) ── */}
+            {/* ── Pipeline simplifié ── */}
             <div className="card">
               <div className="flex items-center justify-between mb-4">
                 <div>
-                  <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Où en sont les dossiers</h3>
-                  <p className="text-xs text-gray-400 mt-0.5">{s.total || 0} dossiers · {inProgress} en cours · {s.confirmed || 0} confirmés</p>
+                  <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Dossiers</h3>
+                  <p className="text-xs text-gray-400 mt-0.5">{totalDossiers} au total · {inProgress} en cours · {s.confirmed || 0} confirmés</p>
                 </div>
               </div>
-              {/* Mobile : grille 3×2 — Desktop : rangée horizontale */}
-              <div className="grid grid-cols-3 gap-2 md:hidden">
-                <PipelineStep label="En attente"    count={s.pending            || 0} urgent={false} isLast />
-                <PipelineStep label="Docs reçus"    count={s.docsProvided       || 0} urgent={true}  isLast />
-                <PipelineStep label="Docs vérifiés" count={s.docsVerified       || 0} urgent={true}  isLast />
-                <PipelineStep label="Attestation"   count={s.attestationPending || 0} urgent={false} isLast />
-                <PipelineStep label="Docs prêts"    count={s.documentsReady     || 0} urgent={false} isLast />
-                <PipelineStep label="Confirmés"     count={s.confirmed          || 0} urgent={false} isLast />
+              <div className="flex items-center gap-2">
+                <PipelineStep label="En attente"  count={s.pending        || 0} urgent={false} />
+                <PipelineStep label="Docs prêts"  count={s.documentsReady || 0} urgent={false} />
+                <PipelineStep label="Confirmés"   count={s.confirmed      || 0} urgent={false} isLast />
               </div>
-              <div className="hidden md:flex items-start gap-1">
-                <PipelineStep label="En attente"    count={s.pending            || 0} urgent={false} />
-                <PipelineStep label="Docs reçus"    count={s.docsProvided       || 0} urgent={true}  />
-                <PipelineStep label="Docs vérifiés" count={s.docsVerified       || 0} urgent={true}  />
-                <PipelineStep label="Attestation"   count={s.attestationPending || 0} urgent={false} />
-                <PipelineStep label="Docs prêts"    count={s.documentsReady     || 0} urgent={false} />
-                <PipelineStep label="Confirmés"     count={s.confirmed          || 0} urgent={false} isLast />
-              </div>
-              {((s.docsProvided || 0) + (s.docsVerified || 0)) > 0 && (
-                <p className="text-[10px] text-amber-600 mt-3 text-center font-medium">
-                  {(s.docsProvided || 0) + (s.docsVerified || 0)} dossier{((s.docsProvided || 0) + (s.docsVerified || 0)) > 1 ? 's' : ''} nécessitent votre vérification
-                </p>
-              )}
             </div>
 
-            {/* ── Évolution sur 6 mois ── */}
+            {/* ── Évolution 3 mois ── */}
             <div className="card">
               <div className="flex items-center justify-between mb-4">
                 <div>
-                  <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Nouveaux dossiers par mois</h3>
-                  <p className="text-xs text-gray-400 mt-0.5">Tendance sur les 6 derniers mois</p>
+                  <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Activité récente</h3>
+                  <p className="text-xs text-gray-400 mt-0.5">Nouveaux dossiers enregistrés</p>
                 </div>
               </div>
               <EvolutionChart data={monthly} />
@@ -238,24 +220,24 @@ export default function AdminDashboard() {
                   <div className="flex items-center gap-2 p-3 bg-blue-50 rounded-xl border border-blue-100">
                     <span className="text-xl">🎓</span>
                     <div>
-                      <p className="text-xl font-bold text-blue-600 leading-none">{s.totalStudents || 0}</p>
+                      <p className="text-2xl font-bold text-blue-600 leading-none">{s.totalStudents || 0}</p>
                       <p className="text-[10px] text-gray-500 mt-0.5">Étudiants</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2 p-3 bg-green-50 rounded-xl border border-green-100">
                     <span className="text-xl">🏠</span>
                     <div>
-                      <p className="text-xl font-bold text-green-600 leading-none">{s.totalHosts || 0}</p>
+                      <p className="text-2xl font-bold text-green-600 leading-none">{s.totalHosts || 0}</p>
                       <p className="text-[10px] text-gray-500 mt-0.5">Hébergeurs</p>
                     </div>
                   </div>
                 </div>
 
-                {s.totalStudents > 0 && (
+                {totalDossiers > 0 && (
                   <div className="pt-2 border-t border-gray-100">
-                    <div className="flex justify-between text-[10px] text-gray-400 mb-1.5">
-                      <span>Taux de complétion</span>
-                      <span className="font-semibold text-gray-600">{completionRate}%</span>
+                    <div className="flex justify-between text-xs text-gray-500 mb-1.5">
+                      <span>Dossiers confirmés</span>
+                      <span className="font-semibold text-green-700">{completionRate}%</span>
                     </div>
                     <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
                       <div
@@ -264,7 +246,7 @@ export default function AdminDashboard() {
                       />
                     </div>
                     <p className="text-[10px] text-gray-400 mt-1.5">
-                      {s.confirmed || 0} confirmé{(s.confirmed || 0) > 1 ? 's' : ''} sur {s.totalStudents} étudiant{s.totalStudents > 1 ? 's' : ''}
+                      {s.confirmed || 0} confirmé{(s.confirmed || 0) !== 1 ? 's' : ''} sur {totalDossiers} dossier{totalDossiers !== 1 ? 's' : ''} créés
                     </p>
                   </div>
                 )}
