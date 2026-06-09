@@ -136,7 +136,7 @@ export default function Services() {
                 <ul className="space-y-1.5">
                   {features.map(f => (
                     <li key={f} className="flex items-center gap-2 text-xs text-gray-500">
-                      <span className="w-4 h-4 rounded-full bg-green-600 flex items-center justify-center text-white text-[8px] flex-shrink-0">✓</span>
+                      <span className="w-4 h-4 rounded-full bg-green-600 flex items-center justify-center text-white text-[10px] flex-shrink-0">✓</span>
                       {f}
                     </li>
                   ))}

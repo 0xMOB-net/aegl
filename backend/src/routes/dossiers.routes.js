@@ -7,6 +7,7 @@ const ctrl = require('../controllers/dossiers.controller');
 router.use(authenticate);
 
 router.get('/stats', requireRole('admin'), ctrl.stats);
+router.get('/stats/monthly', requireRole('admin'), ctrl.monthlyStats);
 router.get('/', ctrl.list);
 router.get('/:id', ctrl.getOne);
 router.post('/', upload.fields([

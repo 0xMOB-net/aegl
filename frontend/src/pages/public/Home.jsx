@@ -264,7 +264,7 @@ export default function Home() {
       </section>
 
       <section className="py-0 overflow-hidden">
-        <div className="grid grid-cols-2 lg:grid-cols-4 h-72">
+        <div className="grid grid-cols-2 lg:grid-cols-4 h-48 sm:h-60 md:h-72">
           {[PHOTOS.city1, PHOTOS.city2, PHOTOS.city3, PHOTOS.city4].map((photo, i) => (
             <div key={i} className="relative overflow-hidden group">
               <img src={photo} alt={`Limoges ${i+1}`}

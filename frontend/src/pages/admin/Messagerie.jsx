@@ -550,7 +550,7 @@ export default function AdminMessagerie() {
       </div>
 
       {tab === 'diffusion' ? <BroadcastPanel /> : (
-        <div className="flex gap-0 overflow-hidden rounded-2xl shadow-sm border border-gray-200" style={{ height: 'calc(100vh - 220px)' }}>
+        <div className="flex gap-0 overflow-hidden rounded-2xl shadow-sm border border-gray-200" style={{ height: 'calc(100dvh - 220px)' }}>
 
           {/* Liste threads */}
           <div className={`flex flex-col bg-white border-r border-gray-200 ${selected ? 'hidden md:flex md:w-72 lg:w-80' : 'flex w-full md:w-72 lg:w-80'}`}>

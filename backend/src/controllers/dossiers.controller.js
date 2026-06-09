@@ -648,4 +648,26 @@ const remove = async (req, res) => {
   }
 };
 
-module.exports = { list, getOne, create, assignHost, revokeHost, validateDocs, rejectDocs, close, signAttestation, updateNotes, stats, remove, verifyStudentDocs, rejectStudentDocs, resubmitStudentDocs, adminDirectDeliver, studentConfirmDossier };
+const monthlyStats = async (req, res) => {
+  try {
+    const now = new Date();
+    const months = await Promise.all(
+      Array.from({ length: 6 }, (_, i) => {
+        const d = new Date(now.getFullYear(), now.getMonth() - (5 - i), 1);
+        const start = new Date(d.getFullYear(), d.getMonth(), 1);
+        const end   = new Date(d.getFullYear(), d.getMonth() + 1, 1);
+        return prisma.dossier.count({ where: { createdAt: { gte: start, lt: end } } })
+          .then(count => ({
+            label: d.toLocaleDateString('fr-FR', { month: 'short' }),
+            count,
+          }));
+      })
+    );
+    res.json({ months });
+  } catch (err) {
+    console.error('monthly stats error:', err);
+    res.status(500).json({ error: err.message });
+  }
+};
+
+module.exports = { list, getOne, create, assignHost, revokeHost, validateDocs, rejectDocs, close, signAttestation, updateNotes, stats, monthlyStats, remove, verifyStudentDocs, rejectStudentDocs, resubmitStudentDocs, adminDirectDeliver, studentConfirmDossier };
