@@ -412,18 +412,19 @@ const updateNotes = async (req, res) => {
 
 const stats = async (req, res) => {
   try {
-    const [total, pending, hostAssigned, docsProvided, docsVerified, attestationPending, confirmed] = await Promise.all([
+    const [total, pending, hostAssigned, docsProvided, docsVerified, attestationPending, documentsReady, confirmed, totalStudents, totalHosts] = await Promise.all([
       prisma.dossier.count(),
       prisma.dossier.count({ where: { status: 'pending' } }),
       prisma.dossier.count({ where: { status: 'host_assigned' } }),
       prisma.dossier.count({ where: { status: 'documents_provided' } }),
       prisma.dossier.count({ where: { status: 'documents_verified' } }),
       prisma.dossier.count({ where: { status: 'attestation_pending' } }),
+      prisma.dossier.count({ where: { status: 'documents_ready' } }),
       prisma.dossier.count({ where: { status: 'confirmed' } }),
+      prisma.user.count({ where: { role: 'student' } }),
+      prisma.user.count({ where: { role: 'host' } }),
     ]);
-    const totalStudents = await prisma.user.count({ where: { role: 'student' } });
-    const totalHosts = await prisma.user.count({ where: { role: 'host' } });
-    res.json({ total, pending, hostAssigned, docsProvided, docsVerified, attestationPending, confirmed, totalStudents, totalHosts });
+    res.json({ total, pending, hostAssigned, docsProvided, docsVerified, attestationPending, documentsReady, confirmed, totalStudents, totalHosts });
   } catch (err) {
     console.error('stats error:', err);
     res.status(500).json({ error: err.message || 'Erreur statistiques' });
