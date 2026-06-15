@@ -75,6 +75,8 @@ model User {
   quizAttempts        QuizAttempt[]
   courseEnrollments   CourseEnrollment[]
   courseMessages      CourseMessage[]
+  classMembers        ClassMember[]
+  classGroupMessages  ClassGroupMessage[]
 
   @@map("users")
 }
@@ -276,6 +278,7 @@ model Course {
   resources   Resource[]
   enrollments CourseEnrollment[]
   messages    CourseMessage[]
+  classGroups ClassGroupCourse[]
 
   @@map("courses")
 }
@@ -372,12 +375,13 @@ model QuizAttempt {
 }
 
 model CourseEnrollment {
-  id        String   @id @default(uuid())
-  courseId  String
-  userId    String
-  role      String   @default("member")
-  status    String   @default("pending")
-  createdAt DateTime @default(now())
+  id          String   @id @default(uuid())
+  courseId    String
+  userId      String
+  role        String   @default("member")
+  status      String   @default("pending")
+  invitedById String?
+  createdAt   DateTime @default(now())
 
   course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -401,6 +405,70 @@ model CourseMessage {
 
   @@index([courseId, createdAt])
   @@map("course_messages")
+}
+
+// ── Classes / Promos ─────────────────────────────────────────────────────
+
+model ClassGroup {
+  id          String   @id @default(uuid())
+  name        String
+  description String?
+  emoji       String   @default("🏫")
+  year        String?
+  archived    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  members  ClassMember[]
+  messages ClassGroupMessage[]
+  courses  ClassGroupCourse[]
+
+  @@map("class_groups")
+}
+
+model ClassMember {
+  id          String   @id @default(uuid())
+  classId     String
+  userId      String
+  role        String   @default("student")
+  status      String   @default("pending")
+  invitedById String?
+  createdAt   DateTime @default(now())
+
+  class ClassGroup @relation(fields: [classId], references: [id], onDelete: Cascade)
+  user  User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([classId, userId])
+  @@index([classId])
+  @@map("class_members")
+}
+
+model ClassGroupMessage {
+  id        String   @id @default(uuid())
+  classId   String
+  userId    String
+  content   String?
+  filePath  String?
+  fileName  String?
+  createdAt DateTime @default(now())
+
+  class ClassGroup @relation(fields: [classId], references: [id], onDelete: Cascade)
+  user  User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([classId, createdAt])
+  @@map("class_group_messages")
+}
+
+model ClassGroupCourse {
+  classId  String
+  courseId String
+  addedAt  DateTime @default(now())
+
+  class  ClassGroup @relation(fields: [classId], references: [id], onDelete: Cascade)
+  course Course     @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@id([classId, courseId])
+  @@map("class_group_courses")
 }
 
 model ActivityLog {
