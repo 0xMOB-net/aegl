@@ -38,9 +38,14 @@ const getSignedUrl = (publicId, resourceType = 'image') => {
 };
 
 const fileFilter = (req, file, cb) => {
-  const allowed = ['application/pdf', 'image/jpeg', 'image/png', 'image/webp'];
+  const allowed = [
+    'application/pdf',
+    'image/jpeg', 'image/png', 'image/webp',
+    'video/mp4', 'video/webm', 'video/quicktime', 'video/x-msvideo',
+    'audio/mpeg', 'audio/mp3', 'audio/wav', 'audio/ogg', 'audio/m4a', 'audio/aac', 'audio/x-m4a',
+  ];
   if (allowed.includes(file.mimetype)) cb(null, true);
-  else cb(new Error('Type de fichier non autorisé. PDF, JPG, PNG acceptés.'), false);
+  else cb(new Error('Type de fichier non autorisé. PDF, image, vidéo ou audio requis.'), false);
 };
 
 const upload = multer({ storage: multer.memoryStorage(), fileFilter, limits: { fileSize: 52428800 } }); // 50 MB fixe

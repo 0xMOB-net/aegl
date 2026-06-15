@@ -73,6 +73,8 @@ model User {
   broadcastReactions  BroadcastReaction[]
   lessonCompletions   LessonCompletion[]
   quizAttempts        QuizAttempt[]
+  courseEnrollments   CourseEnrollment[]
+  courseMessages      CourseMessage[]
 
   @@map("users")
 }
@@ -264,13 +266,16 @@ model Course {
   level       String   @default("tous")
   emoji       String   @default("📚")
   published   Boolean  @default(false)
+  restricted  Boolean  @default(false)
   order       Int      @default(0)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  lessons   Lesson[]
-  quizzes   Quiz[]
-  resources Resource[]
+  lessons     Lesson[]
+  quizzes     Quiz[]
+  resources   Resource[]
+  enrollments CourseEnrollment[]
+  messages    CourseMessage[]
 
   @@map("courses")
 }
@@ -311,6 +316,8 @@ model Resource {
   description String?
   type        String   @default("link")
   url         String
+  filePath    String?
+  fileName    String?
   createdAt   DateTime @default(now())
 
   course Course? @relation(fields: [courseId], references: [id], onDelete: SetNull)
@@ -362,6 +369,38 @@ model QuizAttempt {
 
   @@index([quizId, userId])
   @@map("quiz_attempts")
+}
+
+model CourseEnrollment {
+  id        String   @id @default(uuid())
+  courseId  String
+  userId    String
+  role      String   @default("member")
+  status    String   @default("pending")
+  createdAt DateTime @default(now())
+
+  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([courseId, userId])
+  @@index([courseId])
+  @@map("course_enrollments")
+}
+
+model CourseMessage {
+  id        String   @id @default(uuid())
+  courseId  String
+  userId    String
+  content   String?
+  filePath  String?
+  fileName  String?
+  createdAt DateTime @default(now())
+
+  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([courseId, createdAt])
+  @@map("course_messages")
 }
 
 model ActivityLog {
