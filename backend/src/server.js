@@ -14,7 +14,7 @@ try {
 const app = require('./app');
 const fs = require('fs');
 const path = require('path');
-const { PrismaClient } = require('@prisma/client');
+const prismaClient = require('./prisma/client');
 
 const dirs = [
   process.env.UPLOAD_DIR || './uploads',
@@ -26,9 +26,8 @@ dirs.forEach(dir => {
 });
 
 // Keep Neon DB compute alive — Neon suspend le compute après 5 min d'inactivité sur free tier
-const prismaKeepalive = new PrismaClient();
 setInterval(async () => {
-  try { await prismaKeepalive.$executeRaw`SELECT 1`; } catch {}
+  try { await prismaClient.$executeRaw`SELECT 1`; } catch {}
 }, 4 * 60 * 1000); // toutes les 4 min
 
 const PORT = process.env.PORT || 4000;

@@ -1,9 +1,7 @@
 const router = require('express').Router();
 const { authenticate } = require('../middlewares/auth.middleware');
 const { requireRole } = require('../middlewares/role.middleware');
-const { PrismaClient } = require('@prisma/client');
-
-const prisma = new PrismaClient();
+const prisma = require('../prisma/client');
 
 // Publique — liste des collectes actives
 router.get('/', async (req, res) => {

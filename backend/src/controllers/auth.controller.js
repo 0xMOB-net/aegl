@@ -1,9 +1,7 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const { PrismaClient } = require('@prisma/client');
+const prisma = require('../prisma/client');
 const { logActivity } = require('../services/activity.service');
-
-const prisma = new PrismaClient();
 
 const validatePassword = (password) => {
   if (password.length < 8)           return 'Le mot de passe doit contenir au moins 8 caractères';

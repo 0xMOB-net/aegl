@@ -1,7 +1,6 @@
-const { PrismaClient } = require('@prisma/client');
+const prisma = require('../prisma/client');
 const { uploadToCloudinary } = require('../middlewares/upload.middleware');
 const { createNotif, notifyAdmins } = require('../utils/notif');
-const prisma = new PrismaClient();
 
 const userSelect = { id: true, firstName: true, lastName: true, email: true, role: true };
 

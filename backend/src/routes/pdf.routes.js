@@ -2,10 +2,8 @@ const router = require('express').Router();
 const { authenticate } = require('../middlewares/auth.middleware');
 const { generateAttestationBuffer } = require('../services/pdf.service');
 const { getSignedUrl } = require('../middlewares/upload.middleware');
-const { PrismaClient } = require('@prisma/client');
+const prisma = require('../prisma/client');
 const axios = require('axios');
-
-const prisma = new PrismaClient();
 router.use(authenticate);
 
 const ALLOWED_STATUSES = ['documents_provided', 'documents_verified', 'attestation_pending', 'documents_ready', 'confirmed'];

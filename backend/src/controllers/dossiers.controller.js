@@ -1,4 +1,4 @@
-const { PrismaClient } = require('@prisma/client');
+const prisma = require('../prisma/client');
 const { logActivity } = require('../services/activity.service');
 const { createNotif, notifyAdmins } = require('../utils/notif');
 const { sendAttestationToHostEmail, sendMergedDossierEmail, sendHostAssignedEmail } = require('../services/email.service');
@@ -24,8 +24,6 @@ const deleteCloudinaryFile = (url) => {
 const { generateAttestationBuffer } = require('../services/pdf.service');
 const { mergeDocuments, mergeFromBuffers, uploadBuffer } = require('../services/merge.service');
 const { uploadToCloudinary, getSignedUrl } = require('../middlewares/upload.middleware');
-
-const prisma = new PrismaClient();
 
 // Full select — admin only (includes raw file URLs)
 const dossierSelect = {

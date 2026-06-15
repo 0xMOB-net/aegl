@@ -2,12 +2,10 @@ const router = require('express').Router();
 const { authenticate } = require('../middlewares/auth.middleware');
 const { requireRole } = require('../middlewares/role.middleware');
 const { getSignedUrl } = require('../middlewares/upload.middleware');
-const { PrismaClient } = require('@prisma/client');
+const prisma = require('../prisma/client');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const axios = require('axios');
-
-const prisma = new PrismaClient();
 router.use(authenticate, requireRole('admin'));
 
 // Resolve a stored Cloudinary URL to a directly accessible URL.

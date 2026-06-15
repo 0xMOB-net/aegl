@@ -2,10 +2,8 @@ const router = require('express').Router();
 const { authenticate } = require('../middlewares/auth.middleware');
 const { requireRole } = require('../middlewares/role.middleware');
 const { upload, uploadToCloudinary } = require('../middlewares/upload.middleware');
-const { PrismaClient } = require('@prisma/client');
+const prisma = require('../prisma/client');
 const { logActivity } = require('../services/activity.service');
-
-const prisma = new PrismaClient();
 router.use(authenticate);
 
 // Types attendus : bail (1), identity (1), quittance_1/2/3 (3), facture_1/2/3 (3) = 8 fichiers
