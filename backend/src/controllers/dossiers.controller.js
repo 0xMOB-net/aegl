@@ -1,5 +1,6 @@
 const { PrismaClient } = require('@prisma/client');
 const { logActivity } = require('../services/activity.service');
+const { createNotif, notifyAdmins } = require('../utils/notif');
 const { sendAttestationToHostEmail, sendMergedDossierEmail, sendHostAssignedEmail } = require('../services/email.service');
 const cloudinary = require('cloudinary').v2;
 
@@ -150,6 +151,13 @@ const create = async (req, res) => {
       select: dossierSelect,
     });
     await logActivity(user.id, 'create_dossier', { dossierId: dossier.id });
+
+    notifyAdmins('new_dossier',
+      `📁 Nouveau dossier soumis`,
+      `${dossier.student.firstName} ${dossier.student.lastName} a soumis un nouveau dossier`,
+      '/membres/admin/dossiers'
+    );
+
     res.status(201).json({ dossier: forRole(user.role, dossier) });
   } catch (err) {
     console.error(err);
@@ -182,6 +190,13 @@ const assignHost = async (req, res) => {
       select: dossierSelect,
     });
     await logActivity(req.user.id, 'assign_host', { dossierId: req.params.id, hostId });
+
+    createNotif(updated.student.id, 'host_assigned',
+      `🏠 Hébergeur assigné`,
+      `Un hébergeur a été assigné à votre dossier`,
+      '/membres/etudiant/dossier'
+    );
+
     res.json({ dossier: updated });
     // Email envoyé en arrière-plan
     sendHostAssignedEmail(host, updated.student)
@@ -292,6 +307,13 @@ const close = async (req, res) => {
     });
 
     await logActivity(req.user.id, 'close_dossier', { dossierId: req.params.id });
+
+    createNotif(dossier.student.id, 'dossier_attestation',
+      `📄 Attestation en cours`,
+      `Votre dossier a été clôturé. L'attestation est en attente de signature de l'hébergeur.`,
+      '/membres/etudiant/dossier'
+    );
+
     res.json({ dossier: updated });
     // Email envoyé en arrière-plan — ne bloque pas la réponse HTTP
     sendAttestationToHostEmail(dossier.host, dossier.student, dossier.id, pdfBuffer)
@@ -381,6 +403,13 @@ const signAttestation = async (req, res) => {
     });
 
     await logActivity(user.id, 'sign_attestation', { dossierId: req.params.id });
+
+    createNotif(dossier.student.id, 'dossier_ready',
+      `🎉 Documents prêts !`,
+      `Votre dossier complet est disponible. Vous pouvez le consulter et le confirmer.`,
+      '/membres/etudiant/dossier'
+    );
+
     res.json({ dossier: updated });
     // Email + suppression Cloudinary en arrière-plan
     sendMergedDossierEmail(dossier.student, mergedBuffer)
@@ -439,6 +468,13 @@ const verifyStudentDocs = async (req, res) => {
       select: dossierSelect,
     });
     await logActivity(req.user.id, 'verify_student_docs', { dossierId: req.params.id });
+
+    createNotif(updated.student.id, 'docs_verified',
+      `✅ Documents vérifiés`,
+      `Vos documents ont été vérifiés et validés par l'équipe`,
+      '/membres/etudiant/dossier'
+    );
+
     res.json({ dossier: updated });
   } catch (err) {
     console.error('verifyStudentDocs error:', err);
@@ -455,6 +491,13 @@ const rejectStudentDocs = async (req, res) => {
       select: dossierSelect,
     });
     await logActivity(req.user.id, 'reject_student_docs', { dossierId: req.params.id });
+
+    createNotif(updated.student.id, 'docs_rejected',
+      `❌ Documents refusés`,
+      reason || 'Vos documents n\'ont pas été acceptés. Veuillez les resoumettre.',
+      '/membres/etudiant/dossier'
+    );
+
     res.json({ dossier: updated });
   } catch (err) {
     console.error('rejectStudentDocs error:', err);

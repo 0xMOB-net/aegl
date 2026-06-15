@@ -1,5 +1,6 @@
 const { PrismaClient } = require('@prisma/client');
 const { uploadToCloudinary } = require('../middlewares/upload.middleware');
+const { createNotif, notifyAdmins } = require('../utils/notif');
 const prisma = new PrismaClient();
 
 const userSelect = { id: true, firstName: true, lastName: true, email: true, role: true };
@@ -425,7 +426,7 @@ const myStats = async (req, res) => {
 const requestEnrollment = async (req, res) => {
   try {
     const { id: courseId } = req.params;
-    const course = await prisma.course.findUnique({ where: { id: courseId }, select: { restricted: true, published: true } });
+    const course = await prisma.course.findUnique({ where: { id: courseId }, select: { restricted: true, published: true, title: true } });
     if (!course || !course.published) return res.status(404).json({ error: 'Cours introuvable' });
     if (!course.restricted) return res.status(400).json({ error: 'Ce cours est ouvert à tous' });
 
@@ -437,6 +438,13 @@ const requestEnrollment = async (req, res) => {
     const enrollment = await prisma.courseEnrollment.create({
       data: { courseId, userId: req.user.id, role: 'member', status: 'pending' },
     });
+
+    notifyAdmins('enrollment_request',
+      `📋 Nouvelle demande d'inscription`,
+      `${req.user.firstName} ${req.user.lastName} demande à rejoindre « ${course.title} »`,
+      '/membres/admin/apprentissage'
+    );
+
     res.status(201).json({ enrollment });
   } catch (err) {
     console.error(err);
@@ -455,12 +463,21 @@ const inviteToCourse = async (req, res) => {
     const target = await prisma.user.findUnique({ where: { id: userId }, select: userSelect });
     if (!target) return res.status(404).json({ error: 'Utilisateur introuvable' });
 
+    const course = await prisma.course.findUnique({ where: { id: courseId }, select: { title: true } });
+
     const enrollment = await prisma.courseEnrollment.upsert({
       where: { courseId_userId: { courseId, userId } },
       create: { courseId, userId, role, status: 'invited', invitedById: req.user.id },
       update: { status: 'invited', role, invitedById: req.user.id },
       include: { user: { select: userSelect } },
     });
+
+    createNotif(userId, 'course_invite',
+      `📨 Invitation au cours`,
+      `Vous avez été invité à rejoindre « ${course?.title || 'un cours'} »`,
+      '/membres/apprentissage'
+    );
+
     res.status(201).json({ enrollment });
   } catch (err) {
     console.error(err);
@@ -525,6 +542,19 @@ const updateEnrollment = async (req, res) => {
       },
       include: { user: { select: userSelect } },
     });
+
+    if (status === 'approved' || status === 'rejected') {
+      const course = await prisma.course.findUnique({ where: { id: enroll.courseId }, select: { title: true } });
+      createNotif(enroll.userId,
+        status === 'approved' ? 'enrollment_approved' : 'enrollment_rejected',
+        status === 'approved' ? `✅ Inscription approuvée` : `❌ Inscription refusée`,
+        status === 'approved'
+          ? `Votre accès au cours « ${course?.title} » a été approuvé`
+          : `Votre demande pour « ${course?.title} » a été refusée`,
+        '/membres/apprentissage'
+      );
+    }
+
     res.json({ enrollment: updated });
   } catch (err) {
     console.error(err);
@@ -811,12 +841,21 @@ const inviteToClass = async (req, res) => {
     const target = await prisma.user.findUnique({ where: { id: userId }, select: userSelect });
     if (!target) return res.status(404).json({ error: 'Utilisateur introuvable' });
 
+    const cls = await prisma.classGroup.findUnique({ where: { id: classId }, select: { name: true } });
+
     const member = await prisma.classMember.upsert({
       where: { classId_userId: { classId, userId } },
       create: { classId, userId, role, status: 'invited', invitedById: req.user.id },
       update: { status: 'invited', role, invitedById: req.user.id },
       include: { user: { select: userSelect } },
     });
+
+    createNotif(userId, 'class_invite',
+      `📨 Invitation à rejoindre une classe`,
+      `Vous avez été invité à rejoindre la classe « ${cls?.name || 'une classe'} »`,
+      '/membres/apprentissage'
+    );
+
     res.status(201).json({ member });
   } catch (err) {
     console.error(err);
@@ -867,6 +906,19 @@ const updateClassMember = async (req, res) => {
       },
       include: { user: { select: userSelect } },
     });
+
+    if (status === 'approved' || status === 'rejected') {
+      const cls = await prisma.classGroup.findUnique({ where: { id: m.classId }, select: { name: true } });
+      createNotif(m.userId,
+        status === 'approved' ? 'class_approved' : 'class_rejected',
+        status === 'approved' ? `✅ Demande acceptée` : `❌ Demande refusée`,
+        status === 'approved'
+          ? `Vous faites maintenant partie de la classe « ${cls?.name} »`
+          : `Votre demande pour rejoindre « ${cls?.name} » a été refusée`,
+        '/membres/apprentissage'
+      );
+    }
+
     res.json({ member: updated });
   } catch (err) {
     console.error(err);
@@ -902,9 +954,19 @@ const requestJoinClass = async (req, res) => {
       where: { classId_userId: { classId, userId: req.user.id } },
     });
     if (existing) return res.json({ member: existing });
+
+    const cls = await prisma.classGroup.findUnique({ where: { id: classId }, select: { name: true } });
+
     const member = await prisma.classMember.create({
       data: { classId, userId: req.user.id, role: 'student', status: 'pending' },
     });
+
+    notifyAdmins('join_request',
+      `📋 Demande pour rejoindre une classe`,
+      `${req.user.firstName} ${req.user.lastName} veut rejoindre « ${cls?.name || 'une classe'} »`,
+      '/membres/admin/apprentissage'
+    );
+
     res.status(201).json({ member });
   } catch (err) {
     console.error(err);

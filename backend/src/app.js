@@ -14,7 +14,8 @@ const adminRoutes = require('./routes/admin.routes');
 const contactRoutes = require('./routes/contact.routes');
 const collectesRoutes = require('./routes/collectes.routes');
 const messagesRoutes = require('./routes/messages.routes');
-const learningRoutes = require('./routes/learning.routes');
+const learningRoutes       = require('./routes/learning.routes');
+const notificationsRoutes  = require('./routes/notifications.routes');
 
 const app = express();
 
@@ -60,7 +61,8 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/contact', contactRoutes);
 app.use('/api/collectes', collectesRoutes);
 app.use('/api/messages', messagesRoutes);
-app.use('/api/learning', learningRoutes);
+app.use('/api/learning',       learningRoutes);
+app.use('/api/notifications',  notificationsRoutes);
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', version: '1.0.0', timestamp: new Date().toISOString() });

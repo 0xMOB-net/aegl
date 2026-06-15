@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../api/client';
+import NotificationBell from '../NotificationBell';
 
 const Logo = () => (
   <svg width="32" height="36" viewBox="0 0 38 42" fill="none">
@@ -176,10 +177,11 @@ export default function MemberLayout({ children, title }) {
             <div className="w-1 h-7 bg-gold-500 rounded-full hidden md:block"/>
             <h1 className="font-heading text-lg md:text-xl text-green-900 truncate">{title}</h1>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
             <div className="text-xs text-gray-400 hidden sm:block">
               {new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })}
             </div>
+            <NotificationBell />
             <div className={`text-xs px-3 py-1 rounded-full font-medium ${roleColor}`}>
               {roleName(user)}
             </div>
