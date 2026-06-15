@@ -1,8 +1,10 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api/client';
+import { registerPushNotifications } from '../utils/pushNotif';
 
 const TYPE_ICONS = {
+  meeting_created:      '📅',
   course_invite:        '📨',
   class_invite:         '📨',
   enrollment_request:   '📋',
@@ -50,6 +52,7 @@ export default function NotificationBell() {
   useEffect(() => {
     fetchNotifs();
     const interval = setInterval(fetchNotifs, 30000);
+    registerPushNotifications(api).catch(() => {});
     return () => clearInterval(interval);
   }, [fetchNotifs]);
 

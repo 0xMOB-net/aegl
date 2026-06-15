@@ -16,6 +16,7 @@ const collectesRoutes = require('./routes/collectes.routes');
 const messagesRoutes = require('./routes/messages.routes');
 const learningRoutes       = require('./routes/learning.routes');
 const notificationsRoutes  = require('./routes/notifications.routes');
+const pushRoutes           = require('./routes/push.routes');
 
 const app = express();
 
@@ -63,6 +64,7 @@ app.use('/api/collectes', collectesRoutes);
 app.use('/api/messages', messagesRoutes);
 app.use('/api/learning',       learningRoutes);
 app.use('/api/notifications',  notificationsRoutes);
+app.use('/api/push',           pushRoutes);
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', version: '1.0.0', timestamp: new Date().toISOString() });

@@ -59,25 +59,28 @@ model User {
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
 
-  studentDossiers  Dossier[]             @relation("StudentDossiers")
-  hostDossiers     Dossier[]             @relation("HostDossiers")
-  announcements    Announcement[]
-  reactions        AnnouncementReaction[]
-  comments         AnnouncementComment[]
-  articles         Article[]
-  activityLogs     ActivityLog[]
-  collectes        Collecte[]
-  pmThreads           PrivateMessage[]    @relation("PMThread")
-  pmSent              PrivateMessage[]    @relation("PMSender")
-  broadcasts          Broadcast[]
-  broadcastReactions  BroadcastReaction[]
-  lessonCompletions   LessonCompletion[]
-  quizAttempts        QuizAttempt[]
-  courseEnrollments   CourseEnrollment[]
-  courseMessages      CourseMessage[]
-  classMembers        ClassMember[]
-  classGroupMessages  ClassGroupMessage[]
-  notifications       Notification[]
+  studentDossiers    Dossier[]             @relation("StudentDossiers")
+  hostDossiers       Dossier[]             @relation("HostDossiers")
+  announcements      Announcement[]
+  reactions          AnnouncementReaction[]
+  comments           AnnouncementComment[]
+  articles           Article[]
+  activityLogs       ActivityLog[]
+  collectes          Collecte[]
+  pmThreads          PrivateMessage[]      @relation("PMThread")
+  pmSent             PrivateMessage[]      @relation("PMSender")
+  broadcasts         Broadcast[]
+  broadcastReactions BroadcastReaction[]
+  lessonCompletions  LessonCompletion[]
+  quizAttempts       QuizAttempt[]
+  courseEnrollments  CourseEnrollment[]
+  courseMessages     CourseMessage[]
+  classMembers       ClassMember[]
+  classGroupMessages ClassGroupMessage[]
+  notifications      Notification[]
+  courseMeetings     CourseMeeting[]       @relation("MeetingCreator")
+  classResources     ClassResource[]       @relation("ClassResourceCreator")
+  pushSubscriptions  PushSubscription[]
 
   @@map("users")
 }
@@ -280,6 +283,7 @@ model Course {
   enrollments CourseEnrollment[]
   messages    CourseMessage[]
   classGroups ClassGroupCourse[]
+  meetings    CourseMeeting[]
 
   @@map("courses")
 }
@@ -420,9 +424,10 @@ model ClassGroup {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  members  ClassMember[]
-  messages ClassGroupMessage[]
-  courses  ClassGroupCourse[]
+  members    ClassMember[]
+  messages   ClassGroupMessage[]
+  courses    ClassGroupCourse[]
+  resources  ClassResource[]
 
   @@map("class_groups")
 }
@@ -501,4 +506,55 @@ model ActivityLog {
   @@index([userId])
   @@index([createdAt])
   @@map("activity_logs")
+}
+
+model CourseMeeting {
+  id          String    @id @default(uuid())
+  courseId    String
+  title       String
+  description String?
+  platform    String    @default("googlemeet")
+  meetUrl     String
+  scheduledAt DateTime?
+  createdById String
+  createdAt   DateTime  @default(now())
+
+  course    Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  createdBy User   @relation("MeetingCreator", fields: [createdById], references: [id])
+
+  @@index([courseId])
+  @@map("course_meetings")
+}
+
+model ClassResource {
+  id          String   @id @default(uuid())
+  classId     String
+  title       String
+  description String?
+  type        String   @default("autre")
+  url         String
+  filePath    String?
+  fileName    String?
+  createdById String
+  createdAt   DateTime @default(now())
+
+  class     ClassGroup @relation(fields: [classId], references: [id], onDelete: Cascade)
+  createdBy User       @relation("ClassResourceCreator", fields: [createdById], references: [id])
+
+  @@index([classId])
+  @@map("class_resources")
+}
+
+model PushSubscription {
+  id        String   @id @default(uuid())
+  userId    String
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("push_subscriptions")
 }

@@ -22,6 +22,25 @@ const RES_TYPES = [
   { value: 'video', label: 'Vidéo',    icon: '🎬' },
   { value: 'audio', label: 'Audio',    icon: '🎵' },
 ];
+const PLATFORMS = [
+  { value: 'googlemeet', label: 'Google Meet', icon: '🎥' },
+  { value: 'zoom',       label: 'Zoom',        icon: '🎦' },
+  { value: 'teams',      label: 'Teams',       icon: '💼' },
+  { value: 'jitsi',      label: 'Jitsi',       icon: '🎤' },
+  { value: 'autre',      label: 'Autre',       icon: '🔗' },
+];
+const DOC_TYPES = [
+  { value: 'cours',   label: 'Cours',   icon: '📖' },
+  { value: 'tp',      label: 'TP',      icon: '🔬' },
+  { value: 'examen',  label: 'Examen',  icon: '📝' },
+  { value: 'lien',    label: 'Lien',    icon: '🔗' },
+  { value: 'fichier', label: 'Fichier', icon: '📄' },
+  { value: 'autre',   label: 'Autre',   icon: '📁' },
+];
+const platIcon  = v => PLATFORMS.find(p => p.value === v)?.icon || '🔗';
+const platLabel = v => PLATFORMS.find(p => p.value === v)?.label || v;
+const docIcon   = v => DOC_TYPES.find(d => d.value === v)?.icon || '📁';
+const docLabel  = v => DOC_TYPES.find(d => d.value === v)?.label || v;
 const CLASS_ROLES = [
   { value: 'student',    label: 'Étudiant actuel', icon: '📚' },
   { value: 'alumni',     label: 'Ancien',          icon: '🎓' },
@@ -545,6 +564,177 @@ function ClassMemberManager({ classId }) {
   );
 }
 
+/* ── Admin Meetings Tab ── */
+function AdminMeetingsTab({ courseId }) {
+  const [meetings, setMeetings] = useState([]);
+  const [loading,  setLoading]  = useState(true);
+  const [form, setForm]         = useState({ title: '', description: '', platform: 'googlemeet', meetUrl: '', scheduledAt: '' });
+  const [saving,   setSaving]   = useState(false);
+
+  const fetchM = useCallback(async () => {
+    setLoading(true);
+    try { const r = await api.get(`/learning/courses/${courseId}/meetings`); setMeetings(r.data.meetings || []); }
+    catch {} finally { setLoading(false); }
+  }, [courseId]);
+  useEffect(() => { fetchM(); }, [fetchM]);
+
+  const save = async () => {
+    setSaving(true);
+    try {
+      await api.post(`/learning/courses/${courseId}/meetings`, form);
+      setForm({ title: '', description: '', platform: 'googlemeet', meetUrl: '', scheduledAt: '' });
+      fetchM();
+    } catch (err) { alert(err.response?.data?.error || 'Erreur'); } finally { setSaving(false); }
+  };
+  const del = async (id) => {
+    if (!confirm('Supprimer cette réunion ?')) return;
+    try { await api.delete(`/learning/meetings/${id}`); fetchM(); } catch {}
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="bg-green-50 border border-green-100 rounded-xl p-4 space-y-3">
+        <p className="text-xs font-semibold text-green-800 uppercase tracking-wide">Planifier une réunion</p>
+        <input value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} placeholder="Titre *"
+          className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-600" />
+        <textarea value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} rows={2} placeholder="Description (optionnel)"
+          className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm resize-none focus:outline-none" />
+        <div className="grid grid-cols-2 gap-2">
+          <select value={form.platform} onChange={e => setForm(f => ({ ...f, platform: e.target.value }))}
+            className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none bg-white">
+            {PLATFORMS.map(p => <option key={p.value} value={p.value}>{p.icon} {p.label}</option>)}
+          </select>
+          <input type="datetime-local" value={form.scheduledAt} onChange={e => setForm(f => ({ ...f, scheduledAt: e.target.value }))}
+            className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none" />
+        </div>
+        <input value={form.meetUrl} onChange={e => setForm(f => ({ ...f, meetUrl: e.target.value }))} placeholder="Lien de la réunion *"
+          className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-600" />
+        <button onClick={save} disabled={saving || !form.title.trim() || !form.meetUrl.trim()}
+          className="w-full bg-green-700 text-white text-sm py-2 rounded-lg hover:bg-green-800 disabled:opacity-40">
+          {saving ? '...' : 'Créer la réunion'}
+        </button>
+      </div>
+      {loading ? (
+        <div className="flex justify-center py-6"><div className="w-5 h-5 border-2 border-green-800 border-t-transparent rounded-full animate-spin" /></div>
+      ) : meetings.length === 0 ? (
+        <p className="text-sm text-gray-400 text-center py-6">Aucune réunion planifiée</p>
+      ) : meetings.map(m => (
+        <div key={m.id} className="flex items-start gap-3 p-3 bg-white border border-gray-200 rounded-xl">
+          <span className="text-2xl flex-shrink-0">{platIcon(m.platform)}</span>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium text-gray-800">{m.title}</p>
+            <p className="text-xs text-gray-400">{platLabel(m.platform)}</p>
+            {m.description && <p className="text-xs text-gray-500 mt-0.5">{m.description}</p>}
+            {m.scheduledAt && (
+              <p className="text-xs font-medium text-blue-600 mt-1">
+                📆 {new Date(m.scheduledAt).toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'long' })} à {new Date(m.scheduledAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+              </p>
+            )}
+          </div>
+          <div className="flex gap-2 flex-shrink-0">
+            <a href={m.meetUrl} target="_blank" rel="noreferrer"
+              className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-lg hover:bg-green-200">Ouvrir</a>
+            <button onClick={() => del(m.id)} className="text-gray-300 hover:text-red-400 text-lg leading-none">×</button>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/* ── Admin Class Documents Tab ── */
+function AdminClassDocumentsTab({ classId }) {
+  const [resources, setResources] = useState([]);
+  const [loading,   setLoading]   = useState(true);
+  const [form, setForm]           = useState({ title: '', description: '', type: 'cours', url: '' });
+  const [file, setFile]           = useState(null);
+  const [saving, setSaving]       = useState(false);
+  const fileRef = useRef(null);
+
+  const fetchR = useCallback(async () => {
+    setLoading(true);
+    try { const r = await api.get(`/learning/classes/${classId}/resources`); setResources(r.data.resources || []); }
+    catch {} finally { setLoading(false); }
+  }, [classId]);
+  useEffect(() => { fetchR(); }, [fetchR]);
+
+  const save = async () => {
+    setSaving(true);
+    try {
+      if (file) {
+        const fd = new FormData();
+        fd.append('file', file);
+        fd.append('title', form.title);
+        if (form.description) fd.append('description', form.description);
+        fd.append('type', form.type);
+        await api.post(`/learning/classes/${classId}/resources/upload`, fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+      } else {
+        await api.post(`/learning/classes/${classId}/resources`, form);
+      }
+      setForm({ title: '', description: '', type: 'cours', url: '' });
+      setFile(null); if (fileRef.current) fileRef.current.value = '';
+      fetchR();
+    } catch (err) { alert(err.response?.data?.error || 'Erreur'); } finally { setSaving(false); }
+  };
+
+  const del = async (id) => {
+    if (!confirm('Supprimer ce document ?')) return;
+    try { await api.delete(`/learning/class-resources/${id}`); fetchR(); } catch {}
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 space-y-3">
+        <p className="text-xs font-semibold text-blue-800 uppercase tracking-wide">Ajouter un document</p>
+        <input value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} placeholder="Titre *"
+          className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+        <textarea value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} rows={2} placeholder="Description (année, matière…)"
+          className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm resize-none focus:outline-none" />
+        <select value={form.type} onChange={e => setForm(f => ({ ...f, type: e.target.value }))}
+          className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none bg-white">
+          {DOC_TYPES.map(t => <option key={t.value} value={t.value}>{t.icon} {t.label}</option>)}
+        </select>
+        <input value={form.url} onChange={e => setForm(f => ({ ...f, url: e.target.value }))} placeholder="Lien (Google Drive, Dropbox…)"
+          className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none" />
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-gray-400">ou</span>
+          <input ref={fileRef} type="file" onChange={e => setFile(e.target.files[0] || null)} className="hidden" />
+          <button onClick={() => fileRef.current?.click()}
+            className="text-xs border border-gray-200 px-3 py-1.5 rounded-lg text-gray-600 hover:bg-gray-50">
+            📎 {file ? file.name : 'Choisir un fichier'}
+          </button>
+          {file && <button onClick={() => { setFile(null); if (fileRef.current) fileRef.current.value = ''; }} className="text-gray-400 hover:text-red-400 text-xs">✕</button>}
+        </div>
+        <button onClick={save} disabled={saving || !form.title.trim() || (!form.url.trim() && !file)}
+          className="w-full bg-blue-600 text-white text-sm rounded-lg py-2 hover:bg-blue-700 disabled:opacity-40">
+          {saving ? '...' : 'Ajouter le document'}
+        </button>
+      </div>
+      {loading ? (
+        <div className="flex justify-center py-6"><div className="w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" /></div>
+      ) : resources.length === 0 ? (
+        <p className="text-sm text-gray-400 text-center py-6">Aucun document partagé</p>
+      ) : resources.map(r => (
+        <div key={r.id} className="flex items-center gap-3 p-3 bg-white border border-gray-200 rounded-xl">
+          <span className="text-xl">{docIcon(r.type)}</span>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2">
+              <p className="text-sm font-medium text-gray-800 truncate">{r.title}</p>
+              <span className="text-[10px] bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full flex-shrink-0">{docLabel(r.type)}</span>
+            </div>
+            {r.description && <p className="text-xs text-gray-400 truncate">{r.description}</p>}
+            <p className="text-[10px] text-gray-400">{r.createdBy?.firstName} {r.createdBy?.lastName} • {new Date(r.createdAt).toLocaleDateString('fr-FR')}</p>
+          </div>
+          <div className="flex gap-2 flex-shrink-0">
+            <a href={r.url} target="_blank" rel="noreferrer" className="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded-lg hover:bg-gray-200">Ouvrir</a>
+            <button onClick={() => del(r.id)} className="text-gray-300 hover:text-red-400 text-lg leading-none">×</button>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 /* ── Class Courses Tab ── */
 function ClassCoursesTab({ classId, allCourses }) {
   const [classCourses, setClassCourses] = useState([]);
@@ -849,6 +1039,7 @@ export default function AdminLearning() {
                       { v: 'lessons',     l: `Leçons (${courseDetail.lessons?.length || 0})` },
                       { v: 'quiz',        l: `Quiz (${courseDetail.quizzes?.length || 0})` },
                       { v: 'resources',   l: `Ressources` },
+                      { v: 'meetings',    l: `📅 Réunions` },
                       { v: 'enrollments', l: `Inscriptions` },
                     ].map(t => (
                       <button key={t.v} onClick={() => setCourseTab(t.v)}
@@ -924,6 +1115,7 @@ export default function AdminLearning() {
                     </div>
                   )}
 
+                  {courseTab === 'meetings'    && <AdminMeetingsTab courseId={selectedCourse.id} />}
                   {courseTab === 'enrollments' && <EnrollmentsTab courseId={selectedCourse.id} />}
                 </div>
               )}
@@ -1015,14 +1207,15 @@ export default function AdminLearning() {
                       {selectedClass.year && <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">{selectedClass.year}</span>}
                     </div>
                   </div>
-                  <div className="flex gap-1 bg-gray-50 rounded-xl p-1 mb-5">
-                    {[{ v: 'members', l: `👥 Membres` }, { v: 'courses', l: `📚 Cours` }].map(t => (
+                  <div className="flex gap-1 bg-gray-50 rounded-xl p-1 mb-5 overflow-x-auto">
+                    {[{ v: 'members', l: `👥 Membres` }, { v: 'courses', l: `📚 Cours` }, { v: 'documents', l: `📁 Documents` }].map(t => (
                       <button key={t.v} onClick={() => setClassTab(t.v)}
-                        className={`flex-1 py-1.5 rounded-lg text-xs font-medium transition-all ${classTab === t.v ? 'bg-white text-green-800 shadow-sm' : 'text-gray-500'}`}>{t.l}</button>
+                        className={`flex-shrink-0 flex-1 py-1.5 rounded-lg text-xs font-medium transition-all ${classTab === t.v ? 'bg-white text-green-800 shadow-sm' : 'text-gray-500'}`}>{t.l}</button>
                     ))}
                   </div>
-                  {classTab === 'members' && <ClassMemberManager classId={selectedClass.id} />}
-                  {classTab === 'courses' && <ClassCoursesTab classId={selectedClass.id} allCourses={courses} />}
+                  {classTab === 'members'   && <ClassMemberManager classId={selectedClass.id} />}
+                  {classTab === 'courses'   && <ClassCoursesTab classId={selectedClass.id} allCourses={courses} />}
+                  {classTab === 'documents' && <AdminClassDocumentsTab classId={selectedClass.id} />}
                 </div>
               )}
             </div>

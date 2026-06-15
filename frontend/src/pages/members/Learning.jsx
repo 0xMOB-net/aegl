@@ -11,9 +11,28 @@ const CATEGORIES = [
   { value: 'culture',       label: 'Culture & Société', emoji: '🌍' },
   { value: 'general',       label: 'Général',           emoji: '📚' },
 ];
+const PLATFORMS = [
+  { value: 'googlemeet', label: 'Google Meet', icon: '🎥' },
+  { value: 'zoom',       label: 'Zoom',        icon: '🎦' },
+  { value: 'teams',      label: 'Teams',       icon: '💼' },
+  { value: 'jitsi',      label: 'Jitsi',       icon: '🎤' },
+  { value: 'autre',      label: 'Autre',       icon: '🔗' },
+];
+const DOC_TYPES = [
+  { value: 'cours',   label: 'Cours',   icon: '📖' },
+  { value: 'tp',      label: 'TP',      icon: '🔬' },
+  { value: 'examen',  label: 'Examen',  icon: '📝' },
+  { value: 'lien',    label: 'Lien',    icon: '🔗' },
+  { value: 'fichier', label: 'Fichier', icon: '📄' },
+  { value: 'autre',   label: 'Autre',   icon: '📁' },
+];
 
-const catEmoji = v => CATEGORIES.find(c => c.value === v)?.emoji || '📚';
-const catLabel = v => CATEGORIES.find(c => c.value === v)?.label || v;
+const catEmoji  = v => CATEGORIES.find(c => c.value === v)?.emoji || '📚';
+const catLabel  = v => CATEGORIES.find(c => c.value === v)?.label || v;
+const platIcon  = v => PLATFORMS.find(p => p.value === v)?.icon || '🔗';
+const platLabel = v => PLATFORMS.find(p => p.value === v)?.label || v;
+const docIcon   = v => DOC_TYPES.find(d => d.value === v)?.icon || '📁';
+const docLabel  = v => DOC_TYPES.find(d => d.value === v)?.label || v;
 
 const RoleChip = ({ role }) => {
   const map = {
@@ -31,30 +50,27 @@ const RoleChip = ({ role }) => {
 
 /* ── Invitations Banner ── */
 function InvitationsBanner({ onDone }) {
-  const [data, setData]       = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [busy, setBusy]       = useState({});
+  const [data, setData]     = useState(null);
+  const [busy, setBusy]     = useState({});
 
   const fetchInvites = useCallback(async () => {
-    try {
-      const res = await api.get('/learning/my-invitations');
-      setData(res.data);
-    } catch { setData(null); } finally { setLoading(false); }
+    try { const res = await api.get('/learning/my-invitations'); setData(res.data); }
+    catch { setData(null); }
   }, []);
   useEffect(() => { fetchInvites(); }, [fetchInvites]);
 
-  const respondCourse = async (enrollmentId, accept) => {
-    setBusy(b => ({ ...b, [enrollmentId]: true }));
-    try { await api.post(`/learning/enrollments/${enrollmentId}/respond`, { accept }); fetchInvites(); onDone(); }
-    catch {} finally { setBusy(b => ({ ...b, [enrollmentId]: false })); }
+  const respondCourse = async (id, accept) => {
+    setBusy(b => ({ ...b, [id]: true }));
+    try { await api.post(`/learning/enrollments/${id}/respond`, { accept }); fetchInvites(); onDone(); }
+    catch {} finally { setBusy(b => ({ ...b, [id]: false })); }
   };
-  const respondClass = async (memberId, accept) => {
-    setBusy(b => ({ ...b, [memberId]: true }));
-    try { await api.post(`/learning/class-members/${memberId}/respond`, { accept }); fetchInvites(); onDone(); }
-    catch {} finally { setBusy(b => ({ ...b, [memberId]: false })); }
+  const respondClass = async (id, accept) => {
+    setBusy(b => ({ ...b, [id]: true }));
+    try { await api.post(`/learning/class-members/${id}/respond`, { accept }); fetchInvites(); onDone(); }
+    catch {} finally { setBusy(b => ({ ...b, [id]: false })); }
   };
 
-  if (loading || !data) return null;
+  if (!data) return null;
   const total = (data.courseInvites?.length || 0) + (data.classInvites?.length || 0);
   if (total === 0) return null;
 
@@ -71,10 +87,8 @@ function InvitationsBanner({ onDone }) {
             <p className="text-sm font-medium text-gray-800">Cours : {inv.course.title}</p>
             <p className="text-xs text-gray-400">{catLabel(inv.course.category)}</p>
           </div>
-          <button onClick={() => respondCourse(inv.id, false)} disabled={busy[inv.id]}
-            className="text-xs px-2.5 py-1 border border-gray-200 text-gray-500 rounded-lg hover:bg-gray-50 flex-shrink-0">Refuser</button>
-          <button onClick={() => respondCourse(inv.id, true)} disabled={busy[inv.id]}
-            className="text-xs px-3 py-1 bg-green-700 text-white rounded-lg hover:bg-green-800 flex-shrink-0">Accepter</button>
+          <button onClick={() => respondCourse(inv.id, false)} disabled={busy[inv.id]} className="text-xs px-2.5 py-1 border border-gray-200 text-gray-500 rounded-lg hover:bg-gray-50 flex-shrink-0">Refuser</button>
+          <button onClick={() => respondCourse(inv.id, true)}  disabled={busy[inv.id]} className="text-xs px-3 py-1 bg-green-700 text-white rounded-lg hover:bg-green-800 flex-shrink-0">Accepter</button>
         </div>
       ))}
       {data.classInvites?.map(inv => (
@@ -85,10 +99,8 @@ function InvitationsBanner({ onDone }) {
             {inv.class.year && <p className="text-xs text-gray-400">{inv.class.year}</p>}
             <RoleChip role={inv.role} />
           </div>
-          <button onClick={() => respondClass(inv.id, false)} disabled={busy[inv.id]}
-            className="text-xs px-2.5 py-1 border border-gray-200 text-gray-500 rounded-lg hover:bg-gray-50 flex-shrink-0">Refuser</button>
-          <button onClick={() => respondClass(inv.id, true)} disabled={busy[inv.id]}
-            className="text-xs px-3 py-1 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex-shrink-0">Accepter</button>
+          <button onClick={() => respondClass(inv.id, false)} disabled={busy[inv.id]} className="text-xs px-2.5 py-1 border border-gray-200 text-gray-500 rounded-lg hover:bg-gray-50 flex-shrink-0">Refuser</button>
+          <button onClick={() => respondClass(inv.id, true)}  disabled={busy[inv.id]} className="text-xs px-3 py-1 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex-shrink-0">Accepter</button>
         </div>
       ))}
     </div>
@@ -97,20 +109,17 @@ function InvitationsBanner({ onDone }) {
 
 /* ── Quiz Player ── */
 function QuizPlayer({ quiz, onClose }) {
-  const [step, setStep]   = useState(0);
+  const [step, setStep] = useState(0);
   const [picks, setPicks] = useState({});
   const [score, setScore] = useState(null);
   const [sub, setSub]     = useState(false);
-
   const questions = quiz.questions || [];
 
   const submit = async () => {
     setSub(true);
     const answers = questions.map(q => picks[q.id] ?? -1);
-    try {
-      const res = await api.post(`/learning/quizzes/${quiz.id}/submit`, { answers });
-      setScore(res.data);
-    } catch {} finally { setSub(false); }
+    try { const res = await api.post(`/learning/quizzes/${quiz.id}/submit`, { answers }); setScore(res.data); }
+    catch {} finally { setSub(false); }
   };
 
   if (score) return (
@@ -133,9 +142,8 @@ function QuizPlayer({ quiz, onClose }) {
     </div>
   );
 
-  const q    = questions[step];
+  const q = questions[step];
   const opts = JSON.parse(q.options);
-
   return (
     <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl p-6 max-w-lg w-full shadow-2xl">
@@ -158,11 +166,9 @@ function QuizPlayer({ quiz, onClose }) {
         <div className="flex gap-3">
           {step > 0 && <button onClick={() => setStep(s => s - 1)} className="btn-secondary flex-1 text-sm">Précédent</button>}
           {step < questions.length - 1 ? (
-            <button onClick={() => setStep(s => s + 1)} disabled={picks[q.id] === undefined}
-              className="btn-primary flex-1 text-sm disabled:opacity-40">Suivant</button>
+            <button onClick={() => setStep(s => s + 1)} disabled={picks[q.id] === undefined} className="btn-primary flex-1 text-sm disabled:opacity-40">Suivant</button>
           ) : (
-            <button onClick={submit} disabled={sub}
-              className="btn-primary flex-1 text-sm disabled:opacity-40">{sub ? '...' : 'Terminer le quiz'}</button>
+            <button onClick={submit} disabled={sub} className="btn-primary flex-1 text-sm disabled:opacity-40">{sub ? '...' : 'Terminer'}</button>
           )}
         </div>
       </div>
@@ -170,7 +176,7 @@ function QuizPlayer({ quiz, onClose }) {
   );
 }
 
-/* ── Chat Panel (course + class) ── */
+/* ── Chat Panel ── */
 function ChatPanel({ messagesUrl, sendUrl, deleteUrl, currentUserId }) {
   const [messages, setMessages] = useState([]);
   const [text, setText]         = useState('');
@@ -183,7 +189,7 @@ function ChatPanel({ messagesUrl, sendUrl, deleteUrl, currentUserId }) {
     try { const r = await api.get(messagesUrl); setMessages(r.data.messages || []); } catch {}
   }, [messagesUrl]);
 
-  useEffect(() => { fetchMessages(); }, [fetchMessages]);
+  useEffect(() => { fetchMessages(); const t = setInterval(fetchMessages, 15000); return () => clearInterval(t); }, [fetchMessages]);
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages]);
 
   const send = async () => {
@@ -227,13 +233,10 @@ function ChatPanel({ messagesUrl, sendUrl, deleteUrl, currentUserId }) {
                   </div>
                 )}
                 {m.filePath && (
-                  <a href={m.filePath} target="_blank" rel="noreferrer"
-                    className="text-xs underline text-blue-600 px-1">📎 {m.fileName || 'Pièce jointe'}</a>
+                  <a href={m.filePath} target="_blank" rel="noreferrer" className="text-xs underline text-blue-600 px-1">📎 {m.fileName || 'Pièce jointe'}</a>
                 )}
                 <div className={`flex items-center gap-1 ${isMe ? 'flex-row-reverse' : ''}`}>
-                  <p className="text-[10px] text-gray-300 px-1">
-                    {new Date(m.createdAt).toLocaleTimeString('fr', { hour: '2-digit', minute: '2-digit' })}
-                  </p>
+                  <p className="text-[10px] text-gray-300 px-1">{new Date(m.createdAt).toLocaleTimeString('fr', { hour: '2-digit', minute: '2-digit' })}</p>
                   {isMe && <button onClick={() => del(m.id)} className="text-[10px] text-gray-300 hover:text-red-400 px-1">✕</button>}
                 </div>
               </div>
@@ -249,13 +252,13 @@ function ChatPanel({ messagesUrl, sendUrl, deleteUrl, currentUserId }) {
         </div>
       )}
       <div className="flex items-center gap-2 border border-gray-200 rounded-2xl px-3 py-2 bg-gray-50">
-        <input ref={fileRef} type="file" accept=".pdf,video/*,audio/*,image/*"
+        <input ref={fileRef} type="file" accept=".pdf,video/*,audio/*,image/*,.doc,.docx,.ppt,.pptx"
           onChange={e => setFile(e.target.files[0] || null)} className="hidden" />
         <button onClick={() => fileRef.current?.click()} className="text-gray-400 hover:text-green-700 flex-shrink-0">📎</button>
         <input value={text} onChange={e => setText(e.target.value)} onKeyDown={e => e.key === 'Enter' && !e.shiftKey && send()}
           placeholder="Écrire un message..." className="flex-1 bg-transparent text-sm outline-none" />
         <button onClick={send} disabled={sending || (!text.trim() && !file)}
-          className="w-8 h-8 bg-green-700 text-white rounded-xl flex items-center justify-center flex-shrink-0 disabled:opacity-40 hover:bg-green-800 transition-colors">
+          className="w-8 h-8 bg-green-700 text-white rounded-xl flex items-center justify-center flex-shrink-0 disabled:opacity-40 hover:bg-green-800">
           {sending ? <span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" /> : '↑'}
         </button>
       </div>
@@ -266,7 +269,7 @@ function ChatPanel({ messagesUrl, sendUrl, deleteUrl, currentUserId }) {
 /* ── Enroll Modal ── */
 function EnrollModal({ course, onClose, onRequested }) {
   const [loading, setLoading] = useState(false);
-  const requestAccess = async () => {
+  const request = async () => {
     setLoading(true);
     try { await api.post(`/learning/courses/${course.id}/enroll`); onRequested(); onClose(); }
     catch (err) { alert(err.response?.data?.error || 'Erreur'); } finally { setLoading(false); }
@@ -281,7 +284,7 @@ function EnrollModal({ course, onClose, onRequested }) {
         </div>
         <div className="flex gap-3">
           <button onClick={onClose} className="flex-1 btn-secondary text-sm">Annuler</button>
-          <button onClick={requestAccess} disabled={loading} className="flex-1 btn-primary text-sm disabled:opacity-40">
+          <button onClick={request} disabled={loading} className="flex-1 btn-primary text-sm disabled:opacity-40">
             {loading ? '...' : "Demander l'accès"}
           </button>
         </div>
@@ -290,68 +293,447 @@ function EnrollModal({ course, onClose, onRequested }) {
   );
 }
 
-/* ── Instructor Lesson Manager ── */
-function InstructorLessonManager({ course, onBack }) {
-  const [lessons, setLessons] = useState([]);
-  const [form, setForm]       = useState({ title: '', body: '', videoUrl: '', order: 0 });
-  const [editing, setEditing] = useState(null);
-  const [saving, setSaving]   = useState(false);
+/* ── Planning Tab ── */
+function PlanningTab({ courseId, isInstructor }) {
+  const [meetings, setMeetings] = useState([]);
+  const [loading, setLoading]   = useState(true);
+  const [form, setForm]         = useState({ title: '', description: '', platform: 'googlemeet', meetUrl: '', scheduledAt: '' });
+  const [showForm, setShowForm] = useState(false);
+  const [saving, setSaving]     = useState(false);
 
-  const fetchL = useCallback(async () => {
-    const r = await api.get(`/learning/courses/${course.id}`);
-    setLessons(r.data.course.lessons || []);
-  }, [course.id]);
-  useEffect(() => { fetchL(); }, [fetchL]);
+  const fetchM = useCallback(async () => {
+    setLoading(true);
+    try { const r = await api.get(`/learning/courses/${courseId}/meetings`); setMeetings(r.data.meetings || []); }
+    catch {} finally { setLoading(false); }
+  }, [courseId]);
+  useEffect(() => { fetchM(); }, [fetchM]);
 
   const save = async () => {
     setSaving(true);
     try {
-      if (editing) await api.put(`/learning/courses/${course.id}/lessons/${editing}`, form);
-      else await api.post(`/learning/courses/${course.id}/lessons`, form);
-      setForm({ title: '', body: '', videoUrl: '', order: 0 }); setEditing(null); fetchL();
-    } catch {} finally { setSaving(false); }
+      await api.post(`/learning/courses/${courseId}/meetings`, form);
+      setForm({ title: '', description: '', platform: 'googlemeet', meetUrl: '', scheduledAt: '' });
+      setShowForm(false); fetchM();
+    } catch (err) { alert(err.response?.data?.error || 'Erreur'); } finally { setSaving(false); }
   };
+
   const del = async (id) => {
-    if (!confirm('Supprimer cette leçon ?')) return;
-    try { await api.delete(`/learning/courses/${course.id}/lessons/${id}`); fetchL(); } catch {}
+    if (!confirm('Supprimer cette réunion ?')) return;
+    try { await api.delete(`/learning/meetings/${id}`); fetchM(); } catch {}
   };
 
   return (
-    <div className="space-y-5">
-      <button onClick={onBack} className="text-sm text-gray-500 hover:text-green-700 flex items-center gap-1">← Retour au cours</button>
-      <h3 className="font-semibold text-gray-800">Gérer les leçons — {course.title}</h3>
-      <div className="bg-green-50 border border-green-100 rounded-xl p-4 space-y-3">
-        <input value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} placeholder="Titre de la leçon *"
-          className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-600" />
-        <textarea value={form.body} onChange={e => setForm(f => ({ ...f, body: e.target.value }))} rows={4} placeholder="Contenu..."
-          className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-green-600 font-mono" />
-        <div className="flex gap-2">
-          <input value={form.videoUrl} onChange={e => setForm(f => ({ ...f, videoUrl: e.target.value }))} placeholder="Lien vidéo (optionnel)"
-            className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none" />
-          <input type="number" value={form.order} onChange={e => setForm(f => ({ ...f, order: +e.target.value }))}
-            className="w-20 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none" />
-        </div>
-        <div className="flex gap-2">
-          {editing && (
-            <button onClick={() => { setEditing(null); setForm({ title: '', body: '', videoUrl: '', order: 0 }); }}
-              className="btn-secondary text-sm flex-1">Annuler</button>
-          )}
-          <button onClick={save} disabled={saving || !form.title.trim()} className="btn-primary text-sm flex-1 disabled:opacity-40">
-            {saving ? '...' : editing ? 'Modifier' : 'Ajouter'}
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <p className="text-sm font-semibold text-gray-700">📅 Planning & Réunions</p>
+        {isInstructor && (
+          <button onClick={() => setShowForm(s => !s)} className="text-xs bg-green-700 text-white px-3 py-1.5 rounded-lg hover:bg-green-800">
+            {showForm ? 'Annuler' : '+ Planifier une réunion'}
+          </button>
+        )}
+      </div>
+
+      {showForm && (
+        <div className="bg-green-50 border border-green-100 rounded-xl p-4 space-y-3">
+          <input value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} placeholder="Titre de la réunion *"
+            className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-600" />
+          <textarea value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} rows={2} placeholder="Description (optionnel)"
+            className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm resize-none focus:outline-none" />
+          <div className="grid grid-cols-2 gap-2">
+            <select value={form.platform} onChange={e => setForm(f => ({ ...f, platform: e.target.value }))}
+              className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none bg-white">
+              {PLATFORMS.map(p => <option key={p.value} value={p.value}>{p.icon} {p.label}</option>)}
+            </select>
+            <input type="datetime-local" value={form.scheduledAt} onChange={e => setForm(f => ({ ...f, scheduledAt: e.target.value }))}
+              className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none" />
+          </div>
+          <input value={form.meetUrl} onChange={e => setForm(f => ({ ...f, meetUrl: e.target.value }))} placeholder="Lien de la réunion (Meet, Zoom…) *"
+            className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-600" />
+          <button onClick={save} disabled={saving || !form.title.trim() || !form.meetUrl.trim()}
+            className="w-full bg-green-700 text-white text-sm py-2 rounded-lg hover:bg-green-800 disabled:opacity-40">
+            {saving ? '...' : 'Créer la réunion'}
           </button>
         </div>
-      </div>
-      <div className="space-y-2">
-        {lessons.map((l, i) => (
-          <div key={l.id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl border border-gray-200">
-            <span className="w-6 h-6 bg-green-800 text-white rounded-full text-xs font-bold flex items-center justify-center flex-shrink-0">{i + 1}</span>
-            <span className="text-sm font-medium text-gray-800 flex-1 truncate">{l.title}</span>
-            <button onClick={() => { setEditing(l.id); setForm({ title: l.title, body: l.body || '', videoUrl: l.videoUrl || '', order: l.order }); }}
-              className="text-xs text-gray-400 hover:text-green-700 p-1">✏️</button>
-            <button onClick={() => del(l.id)} className="text-xs text-gray-400 hover:text-red-500 p-1">🗑️</button>
+      )}
+
+      {loading ? (
+        <div className="flex justify-center py-8"><div className="w-5 h-5 border-2 border-green-800 border-t-transparent rounded-full animate-spin" /></div>
+      ) : meetings.length === 0 ? (
+        <div className="text-center py-10 text-gray-400">
+          <p className="text-3xl mb-2">📅</p>
+          <p className="text-sm">Aucune réunion planifiée</p>
+          {isInstructor && <p className="text-xs mt-1">Planifiez une session Google Meet, Zoom ou autre</p>}
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {meetings.map(m => (
+            <div key={m.id} className="card flex gap-4 items-start hover:shadow-md transition-shadow">
+              <div className="text-3xl flex-shrink-0 mt-1">{platIcon(m.platform)}</div>
+              <div className="flex-1 min-w-0">
+                <p className="font-semibold text-gray-800 text-sm">{m.title}</p>
+                <p className="text-xs text-gray-400">{platLabel(m.platform)}</p>
+                {m.description && <p className="text-xs text-gray-600 mt-1">{m.description}</p>}
+                {m.scheduledAt && (
+                  <p className="text-xs font-medium text-blue-600 mt-1.5">
+                    📆 {new Date(m.scheduledAt).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })} à {new Date(m.scheduledAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                  </p>
+                )}
+                <p className="text-[10px] text-gray-400 mt-1">Par {m.createdBy?.firstName} {m.createdBy?.lastName}</p>
+              </div>
+              <div className="flex flex-col items-end gap-2 flex-shrink-0">
+                <a href={m.meetUrl} target="_blank" rel="noreferrer"
+                  className="text-xs bg-green-700 text-white px-3 py-1.5 rounded-lg hover:bg-green-800 whitespace-nowrap font-medium">
+                  Rejoindre →
+                </a>
+                {isInstructor && (
+                  <button onClick={() => del(m.id)} className="text-[10px] text-gray-300 hover:text-red-400">Supprimer</button>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ── Course Members Tab ── */
+function CourseMembersTab({ courseId, isInstructor }) {
+  const [enrollments, setEnrollments] = useState([]);
+  const [loading, setLoading]         = useState(true);
+
+  const fetchE = useCallback(async () => {
+    setLoading(true);
+    try { const r = await api.get(`/learning/courses/${courseId}/enrollments`); setEnrollments(r.data.enrollments || []); }
+    catch {} finally { setLoading(false); }
+  }, [courseId]);
+  useEffect(() => { fetchE(); }, [fetchE]);
+
+  const approve = async (id) => { try { await api.patch(`/learning/enrollments/${id}`, { status: 'approved' }); fetchE(); } catch {} };
+  const reject  = async (id) => { try { await api.patch(`/learning/enrollments/${id}`, { status: 'rejected' }); fetchE(); } catch {} };
+
+  const pending  = enrollments.filter(e => e.status === 'pending');
+  const approved = enrollments.filter(e => e.status === 'approved');
+
+  if (loading) return <div className="flex justify-center py-8"><div className="w-5 h-5 border-2 border-green-800 border-t-transparent rounded-full animate-spin" /></div>;
+
+  return (
+    <div className="space-y-5">
+      {isInstructor && pending.length > 0 && (
+        <div>
+          <p className="text-xs font-semibold text-amber-700 uppercase tracking-wide mb-2">⏳ Demandes en attente ({pending.length})</p>
+          <div className="space-y-2">
+            {pending.map(e => (
+              <div key={e.id} className="flex items-center gap-3 p-3 bg-amber-50 border border-amber-100 rounded-xl">
+                <div className="w-8 h-8 rounded-full bg-amber-100 text-xs font-bold text-amber-800 flex items-center justify-center flex-shrink-0">
+                  {e.user.firstName?.[0]}{e.user.lastName?.[0]}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-gray-800">{e.user.firstName} {e.user.lastName}</p>
+                  <p className="text-xs text-gray-400">{e.user.email}</p>
+                </div>
+                <button onClick={() => reject(e.id)}  className="text-xs border border-gray-200 text-gray-500 px-2 py-1 rounded-lg hover:bg-gray-50">✕</button>
+                <button onClick={() => approve(e.id)} className="text-xs bg-green-700 text-white px-2 py-1 rounded-lg hover:bg-green-800">✓</button>
+              </div>
+            ))}
           </div>
+        </div>
+      )}
+      <div>
+        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Membres inscrits ({approved.length})</p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          {approved.map(e => (
+            <div key={e.id} className="flex items-center gap-3 p-3 bg-gray-50 border border-gray-200 rounded-xl">
+              <div className="w-8 h-8 rounded-full bg-green-100 text-xs font-bold text-green-800 flex items-center justify-center flex-shrink-0">
+                {e.user.firstName?.[0]}{e.user.lastName?.[0]}
+              </div>
+              <div className="min-w-0">
+                <p className="text-sm font-medium text-gray-800 truncate">{e.user.firstName} {e.user.lastName}</p>
+                {e.role === 'instructor' && <span className="text-[10px] bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full">⭐ Formateur</span>}
+              </div>
+            </div>
+          ))}
+          {approved.length === 0 && <p className="text-sm text-gray-400 col-span-2 py-4 text-center">Aucun membre inscrit</p>}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ── Instructor Manage Panel ── */
+function InstructorManagePanel({ courseId, courseTitle, onBack }) {
+  const [manageTab, setManageTab]       = useState('lessons');
+  const [lessons,   setLessons]         = useState([]);
+  const [resources, setResources]       = useState([]);
+  const [lessonForm, setLessonForm]     = useState({ title: '', body: '', videoUrl: '', order: 0 });
+  const [editLesson, setEditLesson]     = useState(null);
+  const [savingL, setSavingL]           = useState(false);
+  const [resForm, setResForm]           = useState({ title: '', description: '', type: 'link', url: '' });
+  const [savingR, setSavingR]           = useState(false);
+
+  const fetchCourse = useCallback(async () => {
+    try {
+      const r = await api.get(`/learning/courses/${courseId}`);
+      setLessons(r.data.course.lessons || []);
+      setResources((r.data.course.resources || []).filter(res => res.courseId));
+    } catch {}
+  }, [courseId]);
+  useEffect(() => { fetchCourse(); }, [fetchCourse]);
+
+  const saveLesson = async () => {
+    setSavingL(true);
+    try {
+      if (editLesson) await api.put(`/learning/courses/${courseId}/lessons/${editLesson}`, lessonForm);
+      else await api.post(`/learning/courses/${courseId}/lessons`, lessonForm);
+      setLessonForm({ title: '', body: '', videoUrl: '', order: 0 }); setEditLesson(null); fetchCourse();
+    } catch (err) { alert(err.response?.data?.error || 'Erreur'); } finally { setSavingL(false); }
+  };
+  const deleteLesson = async (id) => {
+    if (!confirm('Supprimer cette leçon ?')) return;
+    try { await api.delete(`/learning/courses/${courseId}/lessons/${id}`); fetchCourse(); } catch {}
+  };
+
+  const saveRes = async () => {
+    setSavingR(true);
+    try { await api.post('/learning/resources', { ...resForm, courseId }); setResForm({ title: '', description: '', type: 'link', url: '' }); fetchCourse(); }
+    catch (err) { alert(err.response?.data?.error || 'Erreur'); } finally { setSavingR(false); }
+  };
+  const deleteRes = async (id) => {
+    if (!confirm('Supprimer cette ressource ?')) return;
+    try { await api.delete(`/learning/resources/${id}`); fetchCourse(); } catch {}
+  };
+
+  return (
+    <div className="space-y-4">
+      <button onClick={onBack} className="text-sm text-gray-500 hover:text-green-700 flex items-center gap-1">← Retour au cours</button>
+      <div className="flex items-center gap-3">
+        <h3 className="font-semibold text-gray-800">⚙️ Gérer : {courseTitle}</h3>
+      </div>
+      <div className="flex gap-1 bg-gray-100 rounded-xl p-1 overflow-x-auto">
+        {[
+          { v: 'lessons',   l: '📖 Leçons' },
+          { v: 'resources', l: '🗂️ Ressources' },
+          { v: 'planning',  l: '📅 Réunions' },
+          { v: 'members',   l: '👥 Membres' },
+        ].map(t => (
+          <button key={t.v} onClick={() => setManageTab(t.v)}
+            className={`flex-shrink-0 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${manageTab === t.v ? 'bg-white text-green-800 shadow-sm' : 'text-gray-500'}`}>{t.l}</button>
         ))}
       </div>
+
+      {manageTab === 'lessons' && (
+        <div className="space-y-4">
+          <div className="bg-green-50 border border-green-100 rounded-xl p-4 space-y-3">
+            <p className="text-xs font-semibold text-green-800">{editLesson ? '✏️ Modifier' : '+ Nouvelle leçon'}</p>
+            <input value={lessonForm.title} onChange={e => setLessonForm(f => ({ ...f, title: e.target.value }))} placeholder="Titre *"
+              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-600" />
+            <textarea value={lessonForm.body} onChange={e => setLessonForm(f => ({ ...f, body: e.target.value }))} rows={4} placeholder="Contenu de la leçon..."
+              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm resize-none focus:outline-none font-mono" />
+            <div className="flex gap-2">
+              <input value={lessonForm.videoUrl} onChange={e => setLessonForm(f => ({ ...f, videoUrl: e.target.value }))} placeholder="Lien vidéo YouTube (optionnel)"
+                className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none" />
+              <input type="number" value={lessonForm.order} onChange={e => setLessonForm(f => ({ ...f, order: +e.target.value }))} placeholder="#"
+                className="w-16 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none" />
+            </div>
+            <div className="flex gap-2">
+              {editLesson && (
+                <button onClick={() => { setEditLesson(null); setLessonForm({ title: '', body: '', videoUrl: '', order: 0 }); }}
+                  className="flex-1 text-sm border border-gray-200 rounded-lg py-2 text-gray-500 hover:bg-gray-50">Annuler</button>
+              )}
+              <button onClick={saveLesson} disabled={savingL || !lessonForm.title.trim()}
+                className="flex-1 bg-green-700 text-white text-sm rounded-lg py-2 hover:bg-green-800 disabled:opacity-40">
+                {savingL ? '...' : editLesson ? 'Modifier' : 'Ajouter la leçon'}
+              </button>
+            </div>
+          </div>
+          <div className="space-y-2">
+            {lessons.map((l, i) => (
+              <div key={l.id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl border border-gray-200">
+                <span className="w-6 h-6 bg-green-800 text-white rounded-full text-xs font-bold flex items-center justify-center flex-shrink-0">{i + 1}</span>
+                <span className="text-sm font-medium text-gray-800 flex-1 truncate">{l.title}</span>
+                <button onClick={() => { setEditLesson(l.id); setLessonForm({ title: l.title, body: l.body || '', videoUrl: l.videoUrl || '', order: l.order }); }}
+                  className="text-xs text-gray-400 hover:text-green-700 p-1">✏️</button>
+                <button onClick={() => deleteLesson(l.id)} className="text-xs text-gray-400 hover:text-red-500 p-1">🗑️</button>
+              </div>
+            ))}
+            {lessons.length === 0 && <p className="text-sm text-gray-400 text-center py-4">Aucune leçon pour l'instant</p>}
+          </div>
+        </div>
+      )}
+
+      {manageTab === 'resources' && (
+        <div className="space-y-4">
+          <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 space-y-3">
+            <p className="text-xs font-semibold text-blue-800">+ Nouvelle ressource</p>
+            <input value={resForm.title} onChange={e => setResForm(f => ({ ...f, title: e.target.value }))} placeholder="Titre *"
+              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none" />
+            <textarea value={resForm.description} onChange={e => setResForm(f => ({ ...f, description: e.target.value }))} rows={2} placeholder="Description (optionnel)"
+              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm resize-none focus:outline-none" />
+            <div className="flex gap-2">
+              <select value={resForm.type} onChange={e => setResForm(f => ({ ...f, type: e.target.value }))}
+                className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none bg-white">
+                <option value="link">🔗 Lien</option>
+                <option value="pdf">📄 PDF</option>
+                <option value="video">🎬 Vidéo</option>
+                <option value="audio">🎵 Audio</option>
+              </select>
+              <input value={resForm.url} onChange={e => setResForm(f => ({ ...f, url: e.target.value }))} placeholder="URL *"
+                className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none" />
+            </div>
+            <button onClick={saveRes} disabled={savingR || !resForm.title.trim() || !resForm.url.trim()}
+              className="w-full bg-blue-600 text-white text-sm rounded-lg py-2 hover:bg-blue-700 disabled:opacity-40">
+              {savingR ? '...' : 'Ajouter la ressource'}
+            </button>
+          </div>
+          <div className="space-y-2">
+            {resources.map(r => (
+              <div key={r.id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl border border-gray-200">
+                <span className="text-xl">{r.type === 'pdf' ? '📄' : r.type === 'video' ? '🎬' : r.type === 'audio' ? '🎵' : '🔗'}</span>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-gray-800 truncate">{r.title}</p>
+                  {r.description && <p className="text-xs text-gray-400 truncate">{r.description}</p>}
+                </div>
+                <button onClick={() => deleteRes(r.id)} className="text-xs text-gray-400 hover:text-red-500 p-1 flex-shrink-0">🗑️</button>
+              </div>
+            ))}
+            {resources.length === 0 && <p className="text-sm text-gray-400 text-center py-4">Aucune ressource</p>}
+          </div>
+        </div>
+      )}
+
+      {manageTab === 'planning' && <PlanningTab courseId={courseId} isInstructor={true} />}
+      {manageTab === 'members'  && <CourseMembersTab courseId={courseId} isInstructor={true} />}
+    </div>
+  );
+}
+
+/* ── Class Documents Tab ── */
+function ClassDocumentsTab({ classId, currentUserId }) {
+  const [resources, setResources]   = useState([]);
+  const [loading, setLoading]       = useState(true);
+  const [filterType, setFilterType] = useState('all');
+  const [showForm, setShowForm]     = useState(false);
+  const [form, setForm]             = useState({ title: '', description: '', type: 'cours', url: '' });
+  const [file, setFile]             = useState(null);
+  const [saving, setSaving]         = useState(false);
+  const fileRef = useRef(null);
+
+  const fetchR = useCallback(async () => {
+    setLoading(true);
+    try { const r = await api.get(`/learning/classes/${classId}/resources`); setResources(r.data.resources || []); }
+    catch {} finally { setLoading(false); }
+  }, [classId]);
+  useEffect(() => { fetchR(); }, [fetchR]);
+
+  const save = async () => {
+    setSaving(true);
+    try {
+      if (file) {
+        const fd = new FormData();
+        fd.append('file', file);
+        fd.append('title', form.title);
+        if (form.description) fd.append('description', form.description);
+        fd.append('type', form.type);
+        await api.post(`/learning/classes/${classId}/resources/upload`, fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+      } else {
+        await api.post(`/learning/classes/${classId}/resources`, form);
+      }
+      setForm({ title: '', description: '', type: 'cours', url: '' });
+      setFile(null); if (fileRef.current) fileRef.current.value = '';
+      setShowForm(false); fetchR();
+    } catch (err) { alert(err.response?.data?.error || 'Erreur'); } finally { setSaving(false); }
+  };
+
+  const del = async (id) => {
+    if (!confirm('Supprimer ce document ?')) return;
+    try { await api.delete(`/learning/class-resources/${id}`); fetchR(); } catch {}
+  };
+
+  const filtered = filterType === 'all' ? resources : resources.filter(r => r.type === filterType);
+  const counts = DOC_TYPES.reduce((a, t) => ({ ...a, [t.value]: resources.filter(r => r.type === t.value).length }), {});
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <p className="text-sm font-semibold text-gray-700">📁 Documents & Ressources</p>
+        <button onClick={() => setShowForm(s => !s)} className="text-xs bg-blue-600 text-white px-3 py-1.5 rounded-lg hover:bg-blue-700">
+          {showForm ? 'Annuler' : '+ Partager un document'}
+        </button>
+      </div>
+      {showForm && (
+        <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 space-y-3">
+          <input value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} placeholder="Titre *"
+            className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+          <textarea value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} rows={2} placeholder="Description (année, matière…)"
+            className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm resize-none focus:outline-none" />
+          <select value={form.type} onChange={e => setForm(f => ({ ...f, type: e.target.value }))}
+            className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none bg-white">
+            {DOC_TYPES.map(t => <option key={t.value} value={t.value}>{t.icon} {t.label}</option>)}
+          </select>
+          <input value={form.url} onChange={e => setForm(f => ({ ...f, url: e.target.value }))} placeholder="Lien (Google Drive, Dropbox…)"
+            className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none" />
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-gray-400">ou</span>
+            <input ref={fileRef} type="file" onChange={e => setFile(e.target.files[0] || null)} className="hidden" />
+            <button onClick={() => fileRef.current?.click()} className="text-xs border border-gray-200 px-3 py-1.5 rounded-lg text-gray-600 hover:bg-gray-50">
+              📎 {file ? file.name : 'Choisir un fichier'}
+            </button>
+            {file && <button onClick={() => { setFile(null); if (fileRef.current) fileRef.current.value = ''; }} className="text-gray-400 hover:text-red-400 text-xs">✕</button>}
+          </div>
+          <button onClick={save} disabled={saving || !form.title.trim() || (!form.url.trim() && !file)}
+            className="w-full bg-blue-600 text-white text-sm rounded-lg py-2 hover:bg-blue-700 disabled:opacity-40">
+            {saving ? '...' : 'Partager'}
+          </button>
+        </div>
+      )}
+
+      <div className="flex gap-1.5 overflow-x-auto pb-1">
+        <button onClick={() => setFilterType('all')}
+          className={`flex-shrink-0 px-3 py-1 rounded-full text-xs font-medium transition-colors ${filterType === 'all' ? 'bg-gray-800 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
+          Tous ({resources.length})
+        </button>
+        {DOC_TYPES.filter(t => counts[t.value] > 0).map(t => (
+          <button key={t.value} onClick={() => setFilterType(t.value)}
+            className={`flex-shrink-0 px-3 py-1 rounded-full text-xs font-medium transition-colors ${filterType === t.value ? 'bg-gray-800 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
+            {t.icon} {t.label} ({counts[t.value]})
+          </button>
+        ))}
+      </div>
+
+      {loading ? (
+        <div className="flex justify-center py-8"><div className="w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" /></div>
+      ) : filtered.length === 0 ? (
+        <div className="text-center py-10 text-gray-400">
+          <p className="text-3xl mb-2">📁</p>
+          <p className="text-sm">Aucun document</p>
+          <p className="text-xs mt-1">Partagez d'anciens cours, TPs et examens avec la classe</p>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {filtered.map(r => (
+            <div key={r.id} className="card flex items-center gap-3 hover:shadow-md transition-shadow">
+              <span className="text-2xl flex-shrink-0">{docIcon(r.type)}</span>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <p className="font-medium text-sm text-gray-800">{r.title}</p>
+                  <span className="text-[10px] bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">{docLabel(r.type)}</span>
+                </div>
+                {r.description && <p className="text-xs text-gray-400 mt-0.5 truncate">{r.description}</p>}
+                <p className="text-[10px] text-gray-400 mt-0.5">{r.createdBy?.firstName} {r.createdBy?.lastName} • {new Date(r.createdAt).toLocaleDateString('fr-FR')}</p>
+              </div>
+              <div className="flex items-center gap-2 flex-shrink-0">
+                <a href={r.url} target="_blank" rel="noreferrer"
+                  className="text-xs bg-gray-100 text-gray-700 px-3 py-1 rounded-lg hover:bg-gray-200 transition-colors font-medium">
+                  Ouvrir
+                </a>
+                {r.createdBy?.id === currentUserId && (
+                  <button onClick={() => del(r.id)} className="text-[10px] text-gray-300 hover:text-red-400 transition-colors">🗑️</button>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -359,8 +741,8 @@ function InstructorLessonManager({ course, onBack }) {
 /* ── Class View ── */
 function ClassView({ classId, currentUserId, onBack, onOpenCourse }) {
   const [classData, setClassData] = useState(null);
-  const [loading,   setLoading]   = useState(true);
-  const [classTab,  setClassTab]  = useState('chat');
+  const [loading, setLoading]     = useState(true);
+  const [classTab, setClassTab]   = useState('chat');
 
   const fetchClass = useCallback(async () => {
     setLoading(true);
@@ -369,9 +751,7 @@ function ClassView({ classId, currentUserId, onBack, onOpenCourse }) {
   }, [classId]);
   useEffect(() => { fetchClass(); }, [fetchClass]);
 
-  if (loading) return (
-    <div className="flex justify-center py-16"><div className="w-6 h-6 border-2 border-green-800 border-t-transparent rounded-full animate-spin" /></div>
-  );
+  if (loading) return <div className="flex justify-center py-16"><div className="w-6 h-6 border-2 border-green-800 border-t-transparent rounded-full animate-spin" /></div>;
   if (!classData) return (
     <div className="text-center py-16 text-gray-400">
       <p className="text-sm">Classe introuvable.</p>
@@ -398,25 +778,27 @@ function ClassView({ classId, currentUserId, onBack, onOpenCourse }) {
               {classData.year && <span className="text-xs bg-blue-100 text-blue-700 px-2.5 py-1 rounded-full font-medium">{classData.year}</span>}
               {myMembership && <RoleChip role={myMembership.role} />}
             </div>
-            {classData.description && <p className="text-sm text-gray-500 mt-0.5 truncate">{classData.description}</p>}
+            {classData.description && <p className="text-sm text-gray-500 mt-0.5">{classData.description}</p>}
+            <p className="text-xs text-gray-400 mt-1">{members.length} membre{members.length !== 1 ? 's' : ''} • {courses.length} cours associé{courses.length !== 1 ? 's' : ''}</p>
           </div>
         </div>
       </div>
 
-      <div className="flex gap-1 bg-gray-100 rounded-xl p-1">
+      <div className="flex gap-1 bg-gray-100 rounded-xl p-1 overflow-x-auto">
         {[
-          { v: 'chat',    l: '💬 Chat' },
-          { v: 'courses', l: `📚 Cours (${courses.length})` },
-          { v: 'members', l: `👥 Membres (${members.length})` },
+          { v: 'chat',      l: '💬 Chat' },
+          { v: 'documents', l: '📁 Documents' },
+          { v: 'courses',   l: `📚 Cours (${courses.length})` },
+          { v: 'members',   l: `👥 Membres (${members.length})` },
         ].map(t => (
           <button key={t.v} onClick={() => setClassTab(t.v)}
-            className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all ${classTab === t.v ? 'bg-white text-green-800 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>{t.l}</button>
+            className={`flex-shrink-0 px-3 py-2 rounded-lg text-xs font-medium transition-all ${classTab === t.v ? 'bg-white text-green-800 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>{t.l}</button>
         ))}
       </div>
 
       {classTab === 'chat' && (
         <div className="card">
-          <p className="text-sm font-semibold text-gray-700 mb-4">💬 Chat de la classe</p>
+          <p className="text-sm font-semibold text-gray-700 mb-4">💬 Messagerie de la classe</p>
           <ChatPanel
             messagesUrl={`/learning/classes/${classId}/messages`}
             sendUrl={`/learning/classes/${classId}/messages`}
@@ -426,10 +808,14 @@ function ClassView({ classId, currentUserId, onBack, onOpenCourse }) {
         </div>
       )}
 
+      {classTab === 'documents' && (
+        <ClassDocumentsTab classId={classId} currentUserId={currentUserId} />
+      )}
+
       {classTab === 'courses' && (
         <div>
           {courses.length === 0 ? (
-            <div className="text-center py-10 text-gray-400"><p className="text-3xl mb-2">📚</p><p className="text-sm">Aucun cours associé</p></div>
+            <div className="text-center py-10 text-gray-400"><p className="text-3xl mb-2">📚</p><p className="text-sm">Aucun cours associé à cette classe</p></div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {courses.map(c => {
@@ -440,11 +826,7 @@ function ClassView({ classId, currentUserId, onBack, onOpenCourse }) {
                     <span className="text-3xl">{course.emoji}</span>
                     <p className="font-medium text-gray-800 mt-2 text-sm">{course.title}</p>
                     <p className="text-xs text-gray-400 mt-1">{catLabel(course.category)}</p>
-                    <div className="flex gap-2 mt-2">
-                      <span className="text-[10px] bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">
-                        {course._count?.lessons || 0} leçon{(course._count?.lessons || 0) !== 1 ? 's' : ''}
-                      </span>
-                    </div>
+                    <span className="text-[10px] bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full mt-2 inline-block">{course._count?.lessons || 0} leçon{(course._count?.lessons || 0) !== 1 ? 's' : ''}</span>
                   </button>
                 );
               })}
@@ -457,11 +839,11 @@ function ClassView({ classId, currentUserId, onBack, onOpenCourse }) {
         <div className="space-y-5">
           {instructors.length > 0 && (
             <div>
-              <p className="text-xs font-semibold text-purple-700 uppercase tracking-wide mb-2">⭐ Formateurs</p>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <p className="text-xs font-semibold text-purple-700 uppercase tracking-wide mb-2">⭐ Formateurs ({instructors.length})</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 {instructors.map(m => (
                   <div key={m.id} className="flex items-center gap-3 p-3 bg-purple-50 border border-purple-100 rounded-xl">
-                    <div className="w-9 h-9 rounded-full bg-purple-100 text-sm font-bold text-purple-800 flex items-center justify-center flex-shrink-0">
+                    <div className="w-9 h-9 rounded-full bg-purple-200 text-sm font-bold text-purple-800 flex items-center justify-center flex-shrink-0">
                       {m.user.firstName?.[0]}{m.user.lastName?.[0]}
                     </div>
                     <div><p className="text-sm font-medium text-gray-800">{m.user.firstName} {m.user.lastName}</p></div>
@@ -472,17 +854,14 @@ function ClassView({ classId, currentUserId, onBack, onOpenCourse }) {
           )}
           {alumni.length > 0 && (
             <div>
-              <p className="text-xs font-semibold text-amber-700 uppercase tracking-wide mb-2">🎓 Anciens</p>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <p className="text-xs font-semibold text-amber-700 uppercase tracking-wide mb-2">🎓 Anciens ({alumni.length})</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 {alumni.map(m => (
                   <div key={m.id} className="flex items-center gap-3 p-3 bg-amber-50 border border-amber-100 rounded-xl">
-                    <div className="w-9 h-9 rounded-full bg-amber-100 text-sm font-bold text-amber-800 flex items-center justify-center flex-shrink-0">
+                    <div className="w-9 h-9 rounded-full bg-amber-200 text-sm font-bold text-amber-800 flex items-center justify-center flex-shrink-0">
                       {m.user.firstName?.[0]}{m.user.lastName?.[0]}
                     </div>
-                    <div>
-                      <p className="text-sm font-medium text-gray-800">{m.user.firstName} {m.user.lastName}</p>
-                      <RoleChip role="alumni" />
-                    </div>
+                    <p className="text-sm font-medium text-gray-800">{m.user.firstName} {m.user.lastName}</p>
                   </div>
                 ))}
               </div>
@@ -490,17 +869,14 @@ function ClassView({ classId, currentUserId, onBack, onOpenCourse }) {
           )}
           {students.length > 0 && (
             <div>
-              <p className="text-xs font-semibold text-blue-700 uppercase tracking-wide mb-2">📚 Étudiants actuels</p>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <p className="text-xs font-semibold text-blue-700 uppercase tracking-wide mb-2">📚 Étudiants ({students.length})</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 {students.map(m => (
                   <div key={m.id} className="flex items-center gap-3 p-3 bg-blue-50 border border-blue-100 rounded-xl">
-                    <div className="w-9 h-9 rounded-full bg-blue-100 text-sm font-bold text-blue-800 flex items-center justify-center flex-shrink-0">
+                    <div className="w-9 h-9 rounded-full bg-blue-200 text-sm font-bold text-blue-800 flex items-center justify-center flex-shrink-0">
                       {m.user.firstName?.[0]}{m.user.lastName?.[0]}
                     </div>
-                    <div>
-                      <p className="text-sm font-medium text-gray-800">{m.user.firstName} {m.user.lastName}</p>
-                      <RoleChip role="student" />
-                    </div>
+                    <p className="text-sm font-medium text-gray-800">{m.user.firstName} {m.user.lastName}</p>
                   </div>
                 ))}
               </div>
@@ -523,10 +899,7 @@ function ClassesSection({ currentUserId, onOpenClass }) {
   const fetchClasses = useCallback(async () => {
     setLoading(true);
     try {
-      const [myRes, pubRes] = await Promise.all([
-        api.get('/learning/classes'),
-        api.get('/learning/classes/public'),
-      ]);
+      const [myRes, pubRes] = await Promise.all([api.get('/learning/classes'), api.get('/learning/classes/public')]);
       setMyClasses(myRes.data.classes || []);
       setPublicClasses(pubRes.data.classes || []);
     } catch { setMyClasses([]); setPublicClasses([]); } finally { setLoading(false); }
@@ -539,8 +912,8 @@ function ClassesSection({ currentUserId, onOpenClass }) {
     catch (err) { alert(err.response?.data?.error || 'Erreur'); } finally { setJoining(j => ({ ...j, [classId]: false })); }
   };
 
-  const notJoined     = publicClasses.filter(cls => !myClasses.find(m => m.id === cls.id) && cls.myMembership?.status !== 'pending' && cls.myMembership?.status !== 'invited');
-  const pendingJoined = publicClasses.filter(cls => cls.myMembership?.status === 'pending');
+  const notJoined  = publicClasses.filter(cls => !myClasses.find(m => m.id === cls.id) && cls.myMembership?.status !== 'pending');
+  const pendingCls = publicClasses.filter(cls => cls.myMembership?.status === 'pending');
 
   if (loading) return (
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -550,11 +923,11 @@ function ClassesSection({ currentUserId, onOpenClass }) {
 
   return (
     <div className="space-y-8">
-      {myClasses.length === 0 && notJoined.length === 0 && pendingJoined.length === 0 ? (
+      {myClasses.length === 0 && notJoined.length === 0 && pendingCls.length === 0 ? (
         <div className="text-center py-12 text-gray-400">
           <p className="text-4xl mb-3">🏫</p>
           <p className="font-medium text-gray-600">Aucune classe disponible</p>
-          <p className="text-sm mt-1">Des classes seront créées par les administrateurs</p>
+          <p className="text-sm mt-1">Les classes sont créées par les administrateurs</p>
         </div>
       ) : (
         <>
@@ -571,7 +944,7 @@ function ClassesSection({ currentUserId, onOpenClass }) {
                         <p className="font-medium text-gray-800 text-sm">{cls.name}</p>
                         {cls.year && <span className="text-[10px] bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">{cls.year}</span>}
                         <div className="flex gap-2 mt-1.5 flex-wrap">
-                          <span className="text-[10px] bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">{cls._count?.members || 0} membre{(cls._count?.members || 0) !== 1 ? 's' : ''}</span>
+                          <span className="text-[10px] bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">{cls._count?.members || 0} membres</span>
                           <span className="text-[10px] bg-green-50 text-green-600 px-2 py-0.5 rounded-full">{cls._count?.courses || 0} cours</span>
                         </div>
                       </div>
@@ -581,15 +954,13 @@ function ClassesSection({ currentUserId, onOpenClass }) {
               </div>
             </div>
           )}
-
-          {pendingJoined.length > 0 && (
+          {pendingCls.length > 0 && (
             <div>
               <h3 className="font-semibold text-gray-700 mb-3 flex items-center gap-2">
-                Demandes en attente
-                <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">{pendingJoined.length}</span>
+                Demandes en attente <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">{pendingCls.length}</span>
               </h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {pendingJoined.map(cls => (
+                {pendingCls.map(cls => (
                   <div key={cls.id} className="card flex items-center gap-3 opacity-70">
                     <span className="text-2xl">{cls.emoji}</span>
                     <div className="flex-1 min-w-0">
@@ -602,11 +973,10 @@ function ClassesSection({ currentUserId, onOpenClass }) {
               </div>
             </div>
           )}
-
           {notJoined.length > 0 && (
             <div>
               <h3 className="font-semibold text-gray-700 mb-1">Découvrir des classes</h3>
-              <p className="text-xs text-gray-400 mb-3">Rejoignez une classe pour accéder à ses cours et échanger avec ses membres</p>
+              <p className="text-xs text-gray-400 mb-3">Rejoignez une classe pour accéder à ses documents, cours et échanger avec anciens et actuels</p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {notJoined.map(cls => (
                   <div key={cls.id} className="card flex items-start gap-3">
@@ -642,29 +1012,21 @@ export default function MemberLearning() {
   const [courseDetail,    setCourseDetail]    = useState(null);
   const [loadingCourse,   setLoadingCourse]   = useState(false);
   const [selectedClassId, setSelectedClassId] = useState(null);
-
-  const [courses,   setCourses]   = useState([]);
-  const [resources, setResources] = useState([]);
-  const [stats,     setStats]     = useState(null);
-  const [loading,   setLoading]   = useState(true);
-
-  const [filterCat,   setFilterCat]   = useState('all');
-  const [enrollModal, setEnrollModal] = useState(null);
-  const [quizModal,   setQuizModal]   = useState(null);
-  const [courseTab,   setCourseTab]   = useState('lessons');
-  const [instMode,    setInstMode]    = useState(false);
-  const [invRefresh,  setInvRefresh]  = useState(0);
+  const [courses,         setCourses]         = useState([]);
+  const [stats,           setStats]           = useState(null);
+  const [loading,         setLoading]         = useState(true);
+  const [filterCat,       setFilterCat]       = useState('all');
+  const [enrollModal,     setEnrollModal]     = useState(null);
+  const [quizModal,       setQuizModal]       = useState(null);
+  const [courseTab,       setCourseTab]       = useState('chat');
+  const [manageMode,      setManageMode]      = useState(false);
+  const [invRefresh,      setInvRefresh]      = useState(0);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-      const [cRes, rRes, sRes] = await Promise.all([
-        api.get('/learning/courses'),
-        api.get('/learning/resources'),
-        api.get('/learning/my-stats'),
-      ]);
+      const [cRes, sRes] = await Promise.all([api.get('/learning/courses'), api.get('/learning/my-stats')]);
       setCourses(cRes.data.courses || []);
-      setResources(rRes.data.resources || []);
       setStats(sRes.data);
     } catch {} finally { setLoading(false); }
   }, []);
@@ -672,26 +1034,18 @@ export default function MemberLearning() {
 
   const handleCourseClick = async (course) => {
     if (course.restricted) {
-      const enrollment = course.myEnrollment;
-      if (!enrollment) { setEnrollModal(course); return; }
-      if (enrollment.status === 'pending' || enrollment.status === 'invited') { setEnrollModal(course); return; }
-      if (enrollment.status === 'rejected') return;
+      const e = course.myEnrollment;
+      if (!e || e.status === 'pending' || e.status === 'invited') { setEnrollModal(course); return; }
+      if (e.status === 'rejected') return;
     }
     setSelectedCourse(course);
     setCourseDetail(null);
     setView('course');
-    setCourseTab('lessons');
-    setInstMode(false);
+    setCourseTab('chat');
+    setManageMode(false);
     setLoadingCourse(true);
-    try {
-      const res = await api.get(`/learning/courses/${course.id}`);
-      setCourseDetail(res.data.course);
-    } catch {} finally { setLoadingCourse(false); }
-  };
-
-  const openClass = (classId) => {
-    setSelectedClassId(classId);
-    setView('class');
+    try { const res = await api.get(`/learning/courses/${course.id}`); setCourseDetail(res.data.course); }
+    catch {} finally { setLoadingCourse(false); }
   };
 
   const backToList = () => {
@@ -699,11 +1053,7 @@ export default function MemberLearning() {
     setSelectedCourse(null);
     setCourseDetail(null);
     setSelectedClassId(null);
-    setInstMode(false);
-  };
-
-  const completeLesson = async (lessonId) => {
-    try { await api.post(`/learning/lessons/${lessonId}/complete`); } catch {}
+    setManageMode(false);
   };
 
   const getYtEmbed = (url) => {
@@ -717,7 +1067,7 @@ export default function MemberLearning() {
   const enrollStatus = (c) => {
     if (!c.restricted) return null;
     const e = c.myEnrollment;
-    if (!e) return { label: '🔒 Restreint', cls: 'bg-gray-100 text-gray-500' };
+    if (!e)               return { label: '🔒 Restreint', cls: 'bg-gray-100 text-gray-500' };
     if (e.status === 'pending')  return { label: '⏳ En attente', cls: 'bg-amber-100 text-amber-700' };
     if (e.status === 'invited')  return { label: '📨 Invité',     cls: 'bg-blue-100 text-blue-700' };
     if (e.status === 'rejected') return { label: '✕ Refusé',      cls: 'bg-red-100 text-red-600' };
@@ -725,14 +1075,14 @@ export default function MemberLearning() {
     return null;
   };
 
+  const isInstructor = courseDetail?.myEnrollment?.role === 'instructor'
+    || selectedCourse?.myEnrollment?.role === 'instructor'
+    || user?.role === 'admin';
+
   return (
     <MemberLayout title="Espace Apprentissage">
-      {enrollModal && (
-        <EnrollModal course={enrollModal} onClose={() => setEnrollModal(null)} onRequested={fetchData} />
-      )}
-      {quizModal && (
-        <QuizPlayer quiz={quizModal} onClose={() => setQuizModal(null)} />
-      )}
+      {enrollModal && <EnrollModal course={enrollModal} onClose={() => setEnrollModal(null)} onRequested={fetchData} />}
+      {quizModal   && <QuizPlayer quiz={quizModal} onClose={() => setQuizModal(null)} />}
 
       {/* ── List view ── */}
       {view === 'list' && (
@@ -740,21 +1090,19 @@ export default function MemberLearning() {
           <InvitationsBanner key={invRefresh} onDone={() => { setInvRefresh(r => r + 1); fetchData(); }} />
 
           {stats && (
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
               {[
-                { label: 'Leçons\ncomplétées', value: stats.lessonsCompleted, color: 'green' },
-                { label: 'Quiz\nréussis',      value: stats.quizzesPassed,    color: 'blue' },
-                { label: 'Cours\nsuivis',      value: stats.coursesStarted,   color: 'purple' },
+                { label: 'Leçons complétées', value: stats.lessonsCompleted, color: 'green' },
+                { label: 'Quiz réussis',       value: stats.quizzesPassed,   color: 'blue' },
               ].map(s => (
                 <div key={s.label} className="card text-center py-3">
-                  <p className={`text-2xl font-bold text-${s.color}-700`}>{s.value}</p>
-                  <p className="text-[10px] text-gray-400 mt-0.5 whitespace-pre-line">{s.label}</p>
+                  <p className={`text-2xl font-bold text-${s.color}-700`}>{s.value ?? 0}</p>
+                  <p className="text-[10px] text-gray-400 mt-0.5">{s.label}</p>
                 </div>
               ))}
             </div>
           )}
 
-          {/* Main tabs: Cours | Classes */}
           <div className="flex gap-1 bg-gray-100 rounded-xl p-1">
             {[{ v: 'courses', l: '📚 Cours' }, { v: 'classes', l: '🏫 Classes' }].map(t => (
               <button key={t.v} onClick={() => setMainTab(t.v)}
@@ -762,7 +1110,6 @@ export default function MemberLearning() {
             ))}
           </div>
 
-          {/* ── Courses ── */}
           {mainTab === 'courses' && (
             <>
               <div className="flex gap-2 overflow-x-auto pb-1">
@@ -803,35 +1150,19 @@ export default function MemberLearning() {
                         {course.description && <p className="text-xs text-gray-500 mt-1 line-clamp-2">{course.description}</p>}
                         <div className="flex gap-2 mt-3 flex-wrap">
                           <span className="text-[10px] bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">{catEmoji(course.category)} {catLabel(course.category)}</span>
-                          <span className="text-[10px] bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">{course._count.lessons} leçon{course._count.lessons !== 1 ? 's' : ''}</span>
-                          {course._count.quizzes > 0 && <span className="text-[10px] bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full">🧩 {course._count.quizzes}</span>}
+                          <span className="text-[10px] bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">{course._count?.lessons || 0} leçon{course._count?.lessons !== 1 ? 's' : ''}</span>
+                          {course._count?.quizzes > 0 && <span className="text-[10px] bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full">🧩 {course._count.quizzes}</span>}
                         </div>
                       </button>
                     );
                   })}
                 </div>
               )}
-
-              {resources.filter(r => !r.courseId).length > 0 && (
-                <div className="card">
-                  <p className="text-sm font-semibold text-gray-700 mb-3">🗂️ Ressources générales</p>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                    {resources.filter(r => !r.courseId).map(r => (
-                      <a key={r.id} href={r.url || r.filePath} target="_blank" rel="noreferrer"
-                        className="flex items-center gap-2 p-2.5 rounded-xl bg-gray-50 hover:bg-green-50 border border-gray-200 hover:border-green-300 transition-colors">
-                        <span className="text-base">{r.type === 'pdf' ? '📄' : r.type === 'video' ? '🎬' : r.type === 'audio' ? '🎵' : '🔗'}</span>
-                        <span className="text-sm text-gray-700 truncate">{r.title}</span>
-                      </a>
-                    ))}
-                  </div>
-                </div>
-              )}
             </>
           )}
 
-          {/* ── Classes ── */}
           {mainTab === 'classes' && (
-            <ClassesSection currentUserId={user?.id} onOpenClass={openClass} />
+            <ClassesSection currentUserId={user?.id} onOpenClass={(id) => { setSelectedClassId(id); setView('class'); }} />
           )}
         </div>
       )}
@@ -839,8 +1170,12 @@ export default function MemberLearning() {
       {/* ── Course view ── */}
       {view === 'course' && selectedCourse && (
         <div className="space-y-5">
-          {instMode ? (
-            <InstructorLessonManager course={selectedCourse} onBack={() => setInstMode(false)} />
+          {manageMode ? (
+            <InstructorManagePanel
+              courseId={selectedCourse.id}
+              courseTitle={selectedCourse.title}
+              onBack={() => setManageMode(false)}
+            />
           ) : (
             <>
               <div>
@@ -852,41 +1187,63 @@ export default function MemberLearning() {
                     {selectedCourse.description && <p className="text-sm text-gray-500 mt-0.5">{selectedCourse.description}</p>}
                     <div className="flex gap-2 mt-2 flex-wrap">
                       <span className="text-xs bg-gray-100 text-gray-500 px-2.5 py-1 rounded-full">{catEmoji(selectedCourse.category)} {catLabel(selectedCourse.category)}</span>
+                      {courseDetail && (
+                        <>
+                          <span className="text-xs bg-gray-100 text-gray-500 px-2.5 py-1 rounded-full">{courseDetail.lessons?.length || 0} leçon{courseDetail.lessons?.length !== 1 ? 's' : ''}</span>
+                          {courseDetail.meetings?.length > 0 && (
+                            <span className="text-xs bg-green-50 text-green-700 px-2.5 py-1 rounded-full">📅 {courseDetail.meetings.length} réunion{courseDetail.meetings.length !== 1 ? 's' : ''}</span>
+                          )}
+                        </>
+                      )}
                     </div>
                   </div>
-                  {(courseDetail?.myEnrollment?.role === 'instructor' || selectedCourse.myEnrollment?.role === 'instructor') && (
-                    <button onClick={() => setInstMode(true)}
-                      className="text-xs text-purple-700 border border-purple-200 rounded-lg px-3 py-1.5 hover:bg-purple-50 flex-shrink-0">✏️ Gérer</button>
+                  {isInstructor && (
+                    <button onClick={() => setManageMode(true)}
+                      className="text-xs text-purple-700 border border-purple-200 rounded-lg px-3 py-1.5 hover:bg-purple-50 flex-shrink-0 font-medium">
+                      ⚙️ Gérer
+                    </button>
                   )}
                 </div>
               </div>
 
               <div className="flex gap-1 bg-gray-100 rounded-xl p-1 overflow-x-auto">
                 {[
-                  { v: 'lessons',   l: '📖 Leçons' },
-                  { v: 'quiz',      l: '🧩 Quiz' },
-                  { v: 'resources', l: '🗂️ Ressources' },
-                  { v: 'chat',      l: '💬 Chat' },
+                  { v: 'chat',     l: '💬 Chat' },
+                  { v: 'lessons',  l: '📖 Leçons' },
+                  { v: 'quiz',     l: '🧩 Quiz' },
+                  { v: 'resources',l: '🗂️ Ressources' },
+                  { v: 'planning', l: '📅 Planning' },
+                  { v: 'members',  l: '👥 Membres' },
                 ].map(t => (
                   <button key={t.v} onClick={() => setCourseTab(t.v)}
                     className={`flex-shrink-0 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${courseTab === t.v ? 'bg-white text-green-800 shadow-sm' : 'text-gray-500'}`}>{t.l}</button>
                 ))}
               </div>
 
+              {courseTab === 'chat' && (
+                <div className="card">
+                  <p className="text-sm font-semibold text-gray-700 mb-4">💬 Chat du cours</p>
+                  <ChatPanel
+                    messagesUrl={`/learning/courses/${selectedCourse.id}/messages`}
+                    sendUrl={`/learning/courses/${selectedCourse.id}/messages`}
+                    deleteUrl="/learning/messages"
+                    currentUserId={user?.id}
+                  />
+                </div>
+              )}
+
               {courseTab === 'lessons' && (
                 <div className="space-y-4">
                   {loadingCourse ? (
                     <div className="flex justify-center py-10"><div className="w-5 h-5 border-2 border-green-800 border-t-transparent rounded-full animate-spin" /></div>
                   ) : (!courseDetail?.lessons || courseDetail.lessons.length === 0) ? (
-                    <div className="text-center py-12 text-gray-400">
-                      <p className="text-3xl mb-2">📖</p><p className="text-sm">Aucune leçon pour l'instant</p>
-                    </div>
+                    <div className="text-center py-12 text-gray-400"><p className="text-3xl mb-2">📖</p><p className="text-sm">Aucune leçon pour l'instant</p></div>
                   ) : courseDetail.lessons.map((lesson, i) => (
                     <div key={lesson.id} className="card">
                       <div className="flex items-center gap-3 mb-4">
                         <div className="w-8 h-8 bg-green-800 text-white rounded-full text-sm font-bold flex items-center justify-center flex-shrink-0">{i + 1}</div>
                         <h3 className="font-semibold text-gray-800 flex-1">{lesson.title}</h3>
-                        <button onClick={() => completeLesson(lesson.id)}
+                        <button onClick={() => api.post(`/learning/lessons/${lesson.id}/complete`).catch(() => {})}
                           className="text-xs text-green-700 border border-green-200 rounded-lg px-2.5 py-1 hover:bg-green-50 flex-shrink-0">✓ Lu</button>
                       </div>
                       {lesson.videoUrl && (
@@ -899,9 +1256,7 @@ export default function MemberLearning() {
                           )}
                         </div>
                       )}
-                      {lesson.body && (
-                        <div className="prose prose-sm max-w-none text-gray-700 whitespace-pre-wrap text-sm leading-relaxed">{lesson.body}</div>
-                      )}
+                      {lesson.body && <div className="prose prose-sm max-w-none text-gray-700 whitespace-pre-wrap text-sm leading-relaxed">{lesson.body}</div>}
                     </div>
                   ))}
                 </div>
@@ -912,9 +1267,7 @@ export default function MemberLearning() {
                   {loadingCourse ? (
                     <div className="flex justify-center py-10"><div className="w-5 h-5 border-2 border-green-800 border-t-transparent rounded-full animate-spin" /></div>
                   ) : (!courseDetail?.quizzes || courseDetail.quizzes.length === 0) ? (
-                    <div className="text-center py-12 text-gray-400">
-                      <p className="text-3xl mb-2">🧩</p><p className="text-sm">Aucun quiz pour l'instant</p>
-                    </div>
+                    <div className="text-center py-12 text-gray-400"><p className="text-3xl mb-2">🧩</p><p className="text-sm">Aucun quiz</p></div>
                   ) : courseDetail.quizzes.map(quiz => (
                     <div key={quiz.id} className="card hover:shadow-md transition-shadow">
                       <div className="flex items-center justify-between">
@@ -934,34 +1287,29 @@ export default function MemberLearning() {
                 <div className="space-y-3">
                   {loadingCourse ? (
                     <div className="flex justify-center py-10"><div className="w-5 h-5 border-2 border-green-800 border-t-transparent rounded-full animate-spin" /></div>
-                  ) : (!courseDetail?.resources || courseDetail.resources.length === 0) ? (
-                    <div className="text-center py-12 text-gray-400">
-                      <p className="text-3xl mb-2">🗂️</p><p className="text-sm">Aucune ressource</p>
-                    </div>
-                  ) : courseDetail.resources.map(r => (
+                  ) : (!courseDetail?.resources || courseDetail.resources.filter(r => r.courseId).length === 0) ? (
+                    <div className="text-center py-12 text-gray-400"><p className="text-3xl mb-2">🗂️</p><p className="text-sm">Aucune ressource partagée</p></div>
+                  ) : courseDetail.resources.filter(r => r.courseId).map(r => (
                     <a key={r.id} href={r.url || r.filePath} target="_blank" rel="noreferrer"
                       className="card flex items-center gap-3 hover:shadow-md transition-shadow">
                       <span className="text-2xl">{r.type === 'pdf' ? '📄' : r.type === 'video' ? '🎬' : r.type === 'audio' ? '🎵' : '🔗'}</span>
                       <div className="min-w-0">
                         <p className="font-medium text-sm text-gray-800">{r.title}</p>
                         {r.description && <p className="text-xs text-gray-400">{r.description}</p>}
+                        {r.fileName && <p className="text-xs text-gray-300">{r.fileName}</p>}
                       </div>
-                      <span className="ml-auto text-green-700">→</span>
+                      <span className="ml-auto text-green-700 flex-shrink-0">→</span>
                     </a>
                   ))}
                 </div>
               )}
 
-              {courseTab === 'chat' && (
-                <div className="card">
-                  <p className="text-sm font-semibold text-gray-700 mb-4">💬 Chat du cours</p>
-                  <ChatPanel
-                    messagesUrl={`/learning/courses/${selectedCourse.id}/messages`}
-                    sendUrl={`/learning/courses/${selectedCourse.id}/messages`}
-                    deleteUrl="/learning/messages"
-                    currentUserId={user?.id}
-                  />
-                </div>
+              {courseTab === 'planning' && (
+                <PlanningTab courseId={selectedCourse.id} isInstructor={isInstructor} />
+              )}
+
+              {courseTab === 'members' && (
+                <CourseMembersTab courseId={selectedCourse.id} isInstructor={isInstructor} />
               )}
             </>
           )}
@@ -974,9 +1322,7 @@ export default function MemberLearning() {
           classId={selectedClassId}
           currentUserId={user?.id}
           onBack={backToList}
-          onOpenCourse={(course) => {
-            handleCourseClick(course);
-          }}
+          onOpenCourse={handleCourseClick}
         />
       )}
     </MemberLayout>

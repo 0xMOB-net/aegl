@@ -86,6 +86,10 @@ const getCourse = async (req, res) => {
         lessons:   { orderBy: { order: 'asc' } },
         resources: { orderBy: { createdAt: 'desc' } },
         quizzes:   { include: { questions: { orderBy: { order: 'asc' } } } },
+        meetings:  {
+          include: { createdBy: { select: { id: true, firstName: true, lastName: true } } },
+          orderBy: { scheduledAt: 'asc' },
+        },
       },
     });
     if (!course) return res.status(404).json({ error: 'Cours introuvable' });
@@ -307,6 +311,12 @@ const uploadResource = async (req, res) => {
 
 const deleteResource = async (req, res) => {
   try {
+    const r = await prisma.resource.findUnique({ where: { id: req.params.id } });
+    if (!r) return res.status(404).json({ error: 'Ressource introuvable' });
+    if (req.user.role !== 'admin') {
+      if (!r.courseId) return res.status(403).json({ error: 'Accès refusé' });
+      if (!await isInstructor(r.courseId, req.user.id)) return res.status(403).json({ error: 'Accès refusé' });
+    }
     await prisma.resource.delete({ where: { id: req.params.id } });
     res.json({ ok: true });
   } catch (err) {
@@ -368,6 +378,12 @@ const updateQuiz = async (req, res) => {
 
 const deleteQuiz = async (req, res) => {
   try {
+    const q = await prisma.quiz.findUnique({ where: { id: req.params.id } });
+    if (!q) return res.status(404).json({ error: 'Quiz introuvable' });
+    if (req.user.role !== 'admin') {
+      if (!q.courseId) return res.status(403).json({ error: 'Accès refusé' });
+      if (!await isInstructor(q.courseId, req.user.id)) return res.status(403).json({ error: 'Accès refusé' });
+    }
     await prisma.quiz.delete({ where: { id: req.params.id } });
     res.json({ ok: true });
   } catch (err) {
@@ -1087,6 +1103,189 @@ const deleteClassMessage = async (req, res) => {
   }
 };
 
+// ── Course Meetings ────────────────────────────────────────────────────────
+
+const listMeetings = async (req, res) => {
+  try {
+    const { id: courseId } = req.params;
+    if (!await checkCourseAccess(courseId, req.user.id, req.user.role))
+      return res.status(403).json({ error: 'Accès refusé' });
+    const meetings = await prisma.courseMeeting.findMany({
+      where: { courseId },
+      include: { createdBy: { select: { id: true, firstName: true, lastName: true } } },
+      orderBy: [{ scheduledAt: 'asc' }, { createdAt: 'desc' }],
+    });
+    res.json({ meetings });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Erreur serveur' });
+  }
+};
+
+const createMeeting = async (req, res) => {
+  try {
+    const { id: courseId } = req.params;
+    if (req.user.role !== 'admin' && !await isInstructor(courseId, req.user.id))
+      return res.status(403).json({ error: 'Accès refusé' });
+    const { title, description, platform = 'googlemeet', meetUrl, scheduledAt } = req.body;
+    if (!title?.trim() || !meetUrl?.trim()) return res.status(400).json({ error: 'Titre et lien requis' });
+    const meeting = await prisma.courseMeeting.create({
+      data: {
+        courseId, title: title.trim(), description, platform,
+        meetUrl: meetUrl.trim(),
+        scheduledAt: scheduledAt ? new Date(scheduledAt) : null,
+        createdById: req.user.id,
+      },
+      include: { createdBy: { select: { id: true, firstName: true, lastName: true } } },
+    });
+    const [enrollments, course] = await Promise.all([
+      prisma.courseEnrollment.findMany({
+        where: { courseId, status: 'approved', userId: { not: req.user.id } },
+        select: { userId: true },
+      }),
+      prisma.course.findUnique({ where: { id: courseId }, select: { title: true } }),
+    ]);
+    await Promise.all(enrollments.map(e => createNotif(e.userId, 'meeting_created',
+      `📅 Nouvelle réunion`,
+      `${course?.title}: ${meeting.title}${scheduledAt ? ' — ' + new Date(scheduledAt).toLocaleDateString('fr-FR') : ''}`,
+      '/membres/apprentissage'
+    )));
+    res.status(201).json({ meeting });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Erreur serveur' });
+  }
+};
+
+const updateMeeting = async (req, res) => {
+  try {
+    const { meetingId } = req.params;
+    const m = await prisma.courseMeeting.findUnique({ where: { id: meetingId } });
+    if (!m) return res.status(404).json({ error: 'Réunion introuvable' });
+    if (req.user.role !== 'admin' && !await isInstructor(m.courseId, req.user.id))
+      return res.status(403).json({ error: 'Accès refusé' });
+    const { title, description, platform, meetUrl, scheduledAt } = req.body;
+    const meeting = await prisma.courseMeeting.update({
+      where: { id: meetingId },
+      data: {
+        ...(title !== undefined && { title }),
+        ...(description !== undefined && { description }),
+        ...(platform !== undefined && { platform }),
+        ...(meetUrl !== undefined && { meetUrl }),
+        scheduledAt: scheduledAt !== undefined ? (scheduledAt ? new Date(scheduledAt) : null) : undefined,
+      },
+      include: { createdBy: { select: { id: true, firstName: true, lastName: true } } },
+    });
+    res.json({ meeting });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Erreur serveur' });
+  }
+};
+
+const deleteMeeting = async (req, res) => {
+  try {
+    const { meetingId } = req.params;
+    const m = await prisma.courseMeeting.findUnique({ where: { id: meetingId } });
+    if (!m) return res.status(404).json({ error: 'Réunion introuvable' });
+    if (req.user.role !== 'admin' && !await isInstructor(m.courseId, req.user.id))
+      return res.status(403).json({ error: 'Accès refusé' });
+    await prisma.courseMeeting.delete({ where: { id: meetingId } });
+    res.json({ ok: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Erreur serveur' });
+  }
+};
+
+// ── Class Resources ────────────────────────────────────────────────────────
+
+const listClassResources = async (req, res) => {
+  try {
+    const { id: classId } = req.params;
+    if (req.user.role !== 'admin') {
+      const m = await prisma.classMember.findUnique({
+        where: { classId_userId: { classId, userId: req.user.id } },
+      });
+      if (!m || m.status !== 'approved') return res.status(403).json({ error: 'Accès refusé' });
+    }
+    const resources = await prisma.classResource.findMany({
+      where: { classId },
+      include: { createdBy: { select: { id: true, firstName: true, lastName: true } } },
+      orderBy: { createdAt: 'desc' },
+    });
+    res.json({ resources });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Erreur serveur' });
+  }
+};
+
+const createClassResource = async (req, res) => {
+  try {
+    const { id: classId } = req.params;
+    if (req.user.role !== 'admin') {
+      const m = await prisma.classMember.findUnique({
+        where: { classId_userId: { classId, userId: req.user.id } },
+      });
+      if (!m || m.status !== 'approved') return res.status(403).json({ error: 'Seuls les membres approuvés peuvent ajouter des documents' });
+    }
+    const { title, description, type = 'autre', url } = req.body;
+    if (!title?.trim() || !url?.trim()) return res.status(400).json({ error: 'Titre et URL requis' });
+    const resource = await prisma.classResource.create({
+      data: { classId, title: title.trim(), description, type, url: url.trim(), createdById: req.user.id },
+      include: { createdBy: { select: { id: true, firstName: true, lastName: true } } },
+    });
+    res.status(201).json({ resource });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Erreur serveur' });
+  }
+};
+
+const uploadClassResource = async (req, res) => {
+  try {
+    const { id: classId } = req.params;
+    if (req.user.role !== 'admin') {
+      const m = await prisma.classMember.findUnique({
+        where: { classId_userId: { classId, userId: req.user.id } },
+      });
+      if (!m || m.status !== 'approved') return res.status(403).json({ error: 'Accès refusé' });
+    }
+    const { title, description, type = 'fichier' } = req.body;
+    if (!title?.trim()) return res.status(400).json({ error: 'Titre requis' });
+    if (!req.file) return res.status(400).json({ error: 'Fichier requis' });
+    const r = await uploadToCloudinary(req.file.buffer, { folder: 'aegl/class-resources', type: 'upload' });
+    const resource = await prisma.classResource.create({
+      data: {
+        classId, title: title.trim(), description, type,
+        url: r.secure_url, filePath: r.public_id, fileName: req.file.originalname,
+        createdById: req.user.id,
+      },
+      include: { createdBy: { select: { id: true, firstName: true, lastName: true } } },
+    });
+    res.status(201).json({ resource });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Erreur serveur' });
+  }
+};
+
+const deleteClassResource = async (req, res) => {
+  try {
+    const { resourceId } = req.params;
+    const r = await prisma.classResource.findUnique({ where: { id: resourceId } });
+    if (!r) return res.status(404).json({ error: 'Ressource introuvable' });
+    if (req.user.role !== 'admin' && r.createdById !== req.user.id && !await isClassInstructor(r.classId, req.user.id))
+      return res.status(403).json({ error: 'Accès refusé' });
+    await prisma.classResource.delete({ where: { id: resourceId } });
+    res.json({ ok: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Erreur serveur' });
+  }
+};
+
 // ── Public class list (for joining) ───────────────────────────────────────
 
 const listPublicClasses = async (req, res) => {
@@ -1119,10 +1318,12 @@ module.exports = {
   listEnrollments, updateEnrollment, addMember, removeMember,
   myInvitations,
   getCourseMessages, sendCourseMessage, deleteCourseMessage,
+  listMeetings, createMeeting, updateMeeting, deleteMeeting,
   listClasses, getClass, createClass, updateClass, deleteClass,
   listPublicClasses,
   listClassMembers, inviteToClass, addClassMember, updateClassMember,
   respondToClassInvitation, requestJoinClass, removeClassMember,
   addCourseToClass, removeCourseFromClass,
   getClassMessages, sendClassMessage, deleteClassMessage,
+  listClassResources, createClassResource, uploadClassResource, deleteClassResource,
 };

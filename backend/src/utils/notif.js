@@ -1,8 +1,10 @@
 const prisma = require('../prisma/client');
+const { sendPush } = require('./pushNotif');
 
 const createNotif = async (userId, type, title, body = null, link = null) => {
   try {
     await prisma.notification.create({ data: { userId, type, title, body, link } });
+    sendPush(userId, { title, body, type, url: link }).catch(() => {});
   } catch (err) {
     console.error('[NOTIF]', err.message);
   }

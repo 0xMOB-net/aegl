@@ -1,0 +1,17 @@
+{
+  "name": "AEGL — Association des Étudiants Guinéens de Limoges",
+  "short_name": "AEGL",
+  "description": "Plateforme de la communauté étudiante guinéenne de Limoges",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#052e16",
+  "orientation": "portrait-primary",
+  "icons": [
+    { "src": "/icon-192.svg", "sizes": "192x192", "type": "image/svg+xml" },
+    { "src": "/icon-512.svg", "sizes": "512x512", "type": "image/svg+xml" },
+    { "src": "/icon-maskable.svg", "sizes": "512x512", "type": "image/svg+xml", "purpose": "maskable" }
+  ],
+  "categories": ["education", "social"],
+  "lang": "fr"
+}

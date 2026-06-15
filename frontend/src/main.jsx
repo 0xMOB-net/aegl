@@ -6,6 +6,12 @@ import { inject } from '@vercel/analytics'
 
 inject()
 
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').catch(() => {});
+  });
+}
+
 // Si un token d'impersonation est passé dans l'URL (?_t=...), on le stocke
 // dans sessionStorage (propre à cet onglet) sans toucher à la session admin
 const _params = new URLSearchParams(window.location.search);
