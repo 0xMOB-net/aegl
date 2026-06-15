@@ -639,6 +639,8 @@ export default function MemberLearning() {
   const [mainTab,         setMainTab]         = useState('courses');
   const [view,            setView]            = useState('list');
   const [selectedCourse,  setSelectedCourse]  = useState(null);
+  const [courseDetail,    setCourseDetail]    = useState(null);
+  const [loadingCourse,   setLoadingCourse]   = useState(false);
   const [selectedClassId, setSelectedClassId] = useState(null);
 
   const [courses,   setCourses]   = useState([]);
@@ -668,7 +670,7 @@ export default function MemberLearning() {
   }, []);
   useEffect(() => { fetchData(); }, [fetchData]);
 
-  const handleCourseClick = (course) => {
+  const handleCourseClick = async (course) => {
     if (course.restricted) {
       const enrollment = course.myEnrollment;
       if (!enrollment) { setEnrollModal(course); return; }
@@ -676,9 +678,15 @@ export default function MemberLearning() {
       if (enrollment.status === 'rejected') return;
     }
     setSelectedCourse(course);
+    setCourseDetail(null);
     setView('course');
     setCourseTab('lessons');
     setInstMode(false);
+    setLoadingCourse(true);
+    try {
+      const res = await api.get(`/learning/courses/${course.id}`);
+      setCourseDetail(res.data.course);
+    } catch {} finally { setLoadingCourse(false); }
   };
 
   const openClass = (classId) => {
@@ -689,6 +697,7 @@ export default function MemberLearning() {
   const backToList = () => {
     setView('list');
     setSelectedCourse(null);
+    setCourseDetail(null);
     setSelectedClassId(null);
     setInstMode(false);
   };
@@ -845,7 +854,7 @@ export default function MemberLearning() {
                       <span className="text-xs bg-gray-100 text-gray-500 px-2.5 py-1 rounded-full">{catEmoji(selectedCourse.category)} {catLabel(selectedCourse.category)}</span>
                     </div>
                   </div>
-                  {selectedCourse.myEnrollment?.role === 'instructor' && (
+                  {(courseDetail?.myEnrollment?.role === 'instructor' || selectedCourse.myEnrollment?.role === 'instructor') && (
                     <button onClick={() => setInstMode(true)}
                       className="text-xs text-purple-700 border border-purple-200 rounded-lg px-3 py-1.5 hover:bg-purple-50 flex-shrink-0">✏️ Gérer</button>
                   )}
@@ -866,11 +875,13 @@ export default function MemberLearning() {
 
               {courseTab === 'lessons' && (
                 <div className="space-y-4">
-                  {(!selectedCourse.lessons || selectedCourse.lessons.length === 0) ? (
+                  {loadingCourse ? (
+                    <div className="flex justify-center py-10"><div className="w-5 h-5 border-2 border-green-800 border-t-transparent rounded-full animate-spin" /></div>
+                  ) : (!courseDetail?.lessons || courseDetail.lessons.length === 0) ? (
                     <div className="text-center py-12 text-gray-400">
                       <p className="text-3xl mb-2">📖</p><p className="text-sm">Aucune leçon pour l'instant</p>
                     </div>
-                  ) : selectedCourse.lessons.map((lesson, i) => (
+                  ) : courseDetail.lessons.map((lesson, i) => (
                     <div key={lesson.id} className="card">
                       <div className="flex items-center gap-3 mb-4">
                         <div className="w-8 h-8 bg-green-800 text-white rounded-full text-sm font-bold flex items-center justify-center flex-shrink-0">{i + 1}</div>
@@ -898,11 +909,13 @@ export default function MemberLearning() {
 
               {courseTab === 'quiz' && (
                 <div className="space-y-4">
-                  {(!selectedCourse.quizzes || selectedCourse.quizzes.length === 0) ? (
+                  {loadingCourse ? (
+                    <div className="flex justify-center py-10"><div className="w-5 h-5 border-2 border-green-800 border-t-transparent rounded-full animate-spin" /></div>
+                  ) : (!courseDetail?.quizzes || courseDetail.quizzes.length === 0) ? (
                     <div className="text-center py-12 text-gray-400">
                       <p className="text-3xl mb-2">🧩</p><p className="text-sm">Aucun quiz pour l'instant</p>
                     </div>
-                  ) : selectedCourse.quizzes.map(quiz => (
+                  ) : courseDetail.quizzes.map(quiz => (
                     <div key={quiz.id} className="card hover:shadow-md transition-shadow">
                       <div className="flex items-center justify-between">
                         <div>
@@ -919,11 +932,13 @@ export default function MemberLearning() {
 
               {courseTab === 'resources' && (
                 <div className="space-y-3">
-                  {(!selectedCourse.resources || selectedCourse.resources.length === 0) ? (
+                  {loadingCourse ? (
+                    <div className="flex justify-center py-10"><div className="w-5 h-5 border-2 border-green-800 border-t-transparent rounded-full animate-spin" /></div>
+                  ) : (!courseDetail?.resources || courseDetail.resources.length === 0) ? (
                     <div className="text-center py-12 text-gray-400">
                       <p className="text-3xl mb-2">🗂️</p><p className="text-sm">Aucune ressource</p>
                     </div>
-                  ) : selectedCourse.resources.map(r => (
+                  ) : courseDetail.resources.map(r => (
                     <a key={r.id} href={r.url || r.filePath} target="_blank" rel="noreferrer"
                       className="card flex items-center gap-3 hover:shadow-md transition-shadow">
                       <span className="text-2xl">{r.type === 'pdf' ? '📄' : r.type === 'video' ? '🎬' : r.type === 'audio' ? '🎵' : '🔗'}</span>
@@ -960,9 +975,7 @@ export default function MemberLearning() {
           currentUserId={user?.id}
           onBack={backToList}
           onOpenCourse={(course) => {
-            setSelectedCourse(course);
-            setView('course');
-            setCourseTab('lessons');
+            handleCourseClick(course);
           }}
         />
       )}
