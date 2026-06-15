@@ -37,6 +37,8 @@ const StudentAlerts    = lazy(() => import('./pages/student/Alerts'));
 
 const MemberMessagerie    = lazy(() => import('./pages/members/Messagerie'));
 const AdminMessagerie     = lazy(() => import('./pages/admin/Messagerie'));
+const MemberLearning      = lazy(() => import('./pages/members/Learning'));
+const AdminLearning       = lazy(() => import('./pages/admin/Learning'));
 
 const PageLoader = () => (
   <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -112,6 +114,10 @@ function App() {
 
             {/* MESSAGERIE MEMBRES (student + host) */}
             <Route path="/membres/messagerie" element={<ProtectedRoute roles={['student', 'host']}><MemberMessagerie /></ProtectedRoute>} />
+
+            {/* APPRENTISSAGE */}
+            <Route path="/membres/apprentissage" element={<ProtectedRoute roles={['student', 'host']}><MemberLearning /></ProtectedRoute>} />
+            <Route path="/membres/admin/apprentissage" element={<ProtectedRoute roles={['admin']}><AdminLearning /></ProtectedRoute>} />
 
             {/* 404 */}
             <Route path="*" element={<Navigate to="/" replace />} />

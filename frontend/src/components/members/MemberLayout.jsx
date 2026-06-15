@@ -26,7 +26,8 @@ const bureauNav = [
   { to: '/membres/admin/collectes',  label: 'Collectes',        icon: '💚' },
   { to: '/membres/admin/hebergeurs', label: 'Utilisateurs',     icon: '👥' },
   { to: '/membres/admin/activite',   label: 'Journal',          icon: '📋' },
-  { to: '/membres/admin/messagerie', label: 'Messagerie',       icon: '✉️', unread: true },
+  { to: '/membres/admin/messagerie',    label: 'Messagerie',    icon: '✉️', unread: true },
+  { to: '/membres/admin/apprentissage', label: 'Apprentissage', icon: '🎓' },
 ];
 
 const hostNav = [
@@ -34,13 +35,15 @@ const hostNav = [
   { to: '/membres/hebergeur/attestations', label: 'Attestations', icon: '📄' },
   { to: '/membres/hebergeur/alertes',      label: 'Alertes',      icon: '🔔' },
   { to: '/membres/hebergeur/profil',       label: 'Mon profil',   icon: '🏠' },
-  { to: '/membres/messagerie',             label: 'Messagerie',   icon: '✉️', unread: true },
+  { to: '/membres/messagerie',    label: 'Messagerie',    icon: '✉️', unread: true },
+  { to: '/membres/apprentissage', label: 'Apprentissage', icon: '🎓' },
 ];
 
 const studentNav = [
-  { to: '/membres/etudiant/dossier', label: 'Mon dossier', icon: '📁' },
-  { to: '/membres/etudiant/alertes', label: 'Alertes',     icon: '🔔' },
-  { to: '/membres/messagerie',       label: 'Messagerie',  icon: '✉️', unread: true },
+  { to: '/membres/etudiant/dossier', label: 'Mon dossier',   icon: '📁' },
+  { to: '/membres/etudiant/alertes', label: 'Alertes',       icon: '🔔' },
+  { to: '/membres/messagerie',       label: 'Messagerie',    icon: '✉️', unread: true },
+  { to: '/membres/apprentissage',    label: 'Apprentissage', icon: '🎓' },
 ];
 
 export default function MemberLayout({ children, title }) {
